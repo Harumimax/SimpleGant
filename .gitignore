@@ -1,0 +1,15 @@
+/vendor/
+/node_modules/
+.env
+.env.*
+!.env.example
+/public/build/
+/storage/*.key
+/storage/logs/*.log
+.phpunit.result.cache
+/.idea/
+/.vscode/
+/.agents
+/docs
+AGENTS.md
+skills-lock.json
