@@ -16,6 +16,31 @@ body {
   min-height: 100vh;
 }
 
+::selection {
+  color: #ffffff;
+  background: #286b59;
+}
+
+.auth-timeline-grid {
+  background-image: linear-gradient(
+    to right,
+    rgb(255 255 255 / 7%) 1px,
+    transparent 1px
+  );
+  background-size: 12.5% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 button,
 input,
 select,

@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import 'reflect-metadata';
 
+import fastifyCookie from '@fastify/cookie';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -16,7 +18,15 @@ async function bootstrap() {
   );
   const port = Number(process.env.PORT ?? 3000);
 
+  await app.register(fastifyCookie);
   app.setGlobalPrefix('api');
+  app.useGlobalPipes(
+    new ValidationPipe({
+      forbidNonWhitelisted: true,
+      transform: true,
+      whitelist: true,
+    }),
+  );
   app.enableCors({
     credentials: true,
     origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
