@@ -1,0 +1,21 @@
+{
+  "name": "simplegant",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=24.11.0"
+  },
+  "scripts": {
+    "dev:web": "npm run dev --workspace @simplegant/web",
+    "dev:api": "npm run dev --workspace @simplegant/api",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "prisma:generate": "npm run prisma:generate --workspace @simplegant/api",
+    "prisma:validate": "npm run prisma:validate --workspace @simplegant/api"
+  }
+}
