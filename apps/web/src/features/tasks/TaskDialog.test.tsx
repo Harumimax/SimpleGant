@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Task } from './tasks.api';
+import type { ProjectColumn } from '../projects/projects.api';
 import { TaskDialog } from './TaskDialog';
 
 const parentTask: Task = {
@@ -22,6 +23,15 @@ const parentTask: Task = {
   customFields: {},
   createdAt: '2026-10-27T10:00:00.000Z',
   updatedAt: '2026-10-27T10:00:00.000Z',
+};
+
+const customColumn: ProjectColumn = {
+  id: 'column-1',
+  name: 'Бюджет',
+  key: 'custom_budget',
+  orderIndex: 5,
+  isVisible: false,
+  isDefault: false,
 };
 
 describe('TaskDialog', () => {
@@ -80,6 +90,27 @@ describe('TaskDialog', () => {
     );
     expect(onSubmit).toHaveBeenCalledWith(
       expect.not.objectContaining({ endDate: expect.anything() }),
+    );
+  });
+
+  it('submits text values for custom project columns, including hidden ones', () => {
+    const onSubmit = vi.fn();
+    render(
+      <TaskDialog
+        columns={[customColumn]}
+        isPending={false}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Задача' } });
+    fireEvent.change(screen.getByLabelText('Ответственный'), { target: { value: 'Ирина' } });
+    fireEvent.change(screen.getByLabelText('Бюджет'), { target: { value: ' 150 000 ₽ ' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Создать задачу' }).closest('form')!);
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ customFields: { custom_budget: '150 000 ₽' } }),
     );
   });
 });

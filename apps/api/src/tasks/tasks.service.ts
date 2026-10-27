@@ -50,6 +50,10 @@ export class TasksService {
       input.endDate,
       input.excludeWeekends ?? true,
     );
+    const customFields = await this.validateCustomFields(
+      projectId,
+      input.customFields ?? {},
+    );
     const task = await this.repository.create({
       projectId,
       orderIndex: await this.repository.nextOrderIndex(projectId),
@@ -60,6 +64,7 @@ export class TasksService {
       status: input.status ?? TASK_STATUSES[0],
       ...dates,
       color: DEFAULT_TASK_COLOR,
+      customFields,
     });
     return this.toView(task);
   }
@@ -102,6 +107,9 @@ export class TasksService {
       startDate,
       endDate,
       isCollapsed: input.isCollapsed ?? current.isCollapsed,
+      customFields: input.customFields === undefined
+        ? current.customFields as Record<string, string>
+        : await this.validateCustomFields(projectId, input.customFields),
     };
     const recalculated = recalculateParentDates(
       currentTasks.map((task) =>
@@ -274,6 +282,33 @@ export class TasksService {
     if (!(await this.repository.findOwnedProject(projectId, ownerId))) {
       throw new NotFoundException('Проект не найден');
     }
+  }
+
+  private async validateCustomFields(
+    projectId: string,
+    customFields: Record<string, unknown>,
+  ) {
+    const allowedKeys = new Set(
+      (await this.repository.listCustomColumns(projectId)).map(({ key }) => key),
+    );
+    const normalized: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(customFields)) {
+      if (!allowedKeys.has(key)) {
+        throw new BadRequestException('Поле задачи не принадлежит проекту');
+      }
+      if (typeof value !== 'string') {
+        throw new BadRequestException('Значение пользовательского поля должно быть текстом');
+      }
+      const trimmed = value.trim();
+      if (trimmed.length > 500) {
+        throw new BadRequestException(
+          'Значение пользовательского поля должно быть не длиннее 500 символов',
+        );
+      }
+      if (trimmed) normalized[key] = trimmed;
+    }
+    return normalized;
   }
 
   private async findTask(projectId: string, taskId: string) {

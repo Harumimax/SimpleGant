@@ -20,6 +20,12 @@ export type ProjectColumn = {
 
 export type ProjectDetail = Project & { columns: ProjectColumn[] };
 
+export type ProjectColumnConfigurationInput = {
+  id?: string;
+  name: string;
+  isVisible: boolean;
+};
+
 export type ProjectInput = {
   name: string;
   startDate: string;
@@ -50,4 +56,14 @@ export function updateProject(id: string, input: ProjectInput) {
 
 export function deleteProject(id: string) {
   return apiRequest<void>(`/projects/${id}`, { method: 'DELETE' });
+}
+
+export function configureProjectColumns(
+  projectId: string,
+  columns: ProjectColumnConfigurationInput[],
+) {
+  return apiRequest<ProjectColumn[]>(`/projects/${projectId}/columns`, {
+    method: 'PUT',
+    body: JSON.stringify({ columns }),
+  });
 }

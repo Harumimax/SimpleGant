@@ -13,6 +13,13 @@ import {
 } from '../features/gantt/taskHierarchy';
 import type { TaskDateRange } from '../features/gantt/timeline';
 import { useProject } from '../features/projects/projects.queries';
+import {
+  configureProjectColumns,
+  type ProjectColumnConfigurationInput,
+  type ProjectDetail,
+} from '../features/projects/projects.api';
+import { ProjectColumnsDialog } from '../features/projects/ProjectColumnsDialog';
+import { projectQueryKey } from '../features/projects/projects.queries';
 import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
 import { TaskDetailsDialog } from '../features/tasks/TaskDetailsDialog';
 import { TaskDialog } from '../features/tasks/TaskDialog';
@@ -39,6 +46,7 @@ export function ProjectEditorPage() {
   const [detailsTask, setDetailsTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
+  const [isColumnsOpen, setIsColumnsOpen] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: (input: TaskInput) => createTask(projectId, input),
@@ -151,6 +159,18 @@ export function ProjectEditorPage() {
       queryClient.setQueryData(tasksQueryKey(projectId), updatedTasks);
     },
   });
+  const columnsMutation = useMutation({
+    mutationFn: (columns: ProjectColumnConfigurationInput[]) =>
+      configureProjectColumns(projectId, columns),
+    onSuccess: async (columns) => {
+      queryClient.setQueryData<ProjectDetail>(
+        projectQueryKey(projectId),
+        (current) => current ? { ...current, columns } : current,
+      );
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey(projectId) });
+      setIsColumnsOpen(false);
+    },
+  });
 
   const mutationMessage = (error: unknown) => error instanceof Error ? error.message : 'Не удалось выполнить действие';
 
@@ -222,6 +242,7 @@ export function ProjectEditorPage() {
           dateMutation.isError ? mutationMessage(dateMutation.error) : undefined
         }
         onAddTask={() => { createMutation.reset(); setIsCreateOpen(true); }}
+        onConfigureColumns={() => { columnsMutation.reset(); setIsColumnsOpen(true); }}
         onTaskDatesChange={async (task, dates) => {
           dateMutation.reset();
           await dateMutation.mutateAsync({ task, dates });
@@ -252,10 +273,11 @@ export function ProjectEditorPage() {
         }
       />
 
-      {isCreateOpen ? <TaskDialog isPending={createMutation.isPending} onClose={() => setIsCreateOpen(false)} onSubmit={(input) => createMutation.mutate(input)} serverError={createMutation.isError ? mutationMessage(createMutation.error) : undefined} /> : null}
+      {isCreateOpen ? <TaskDialog columns={project.data.columns} isPending={createMutation.isPending} onClose={() => setIsCreateOpen(false)} onSubmit={(input) => createMutation.mutate(input)} serverError={createMutation.isError ? mutationMessage(createMutation.error) : undefined} /> : null}
       {detailsTask ? <TaskDetailsDialog onClose={() => setDetailsTask(null)} onDelete={() => { deleteMutation.reset(); setDetailsTask(null); setDeletingTask(detailsTask); }} onEdit={() => { updateMutation.reset(); setDetailsTask(null); setEditingTask(detailsTask); }} task={detailsTask} /> : null}
-      {editingTask ? <TaskDialog datesReadOnly={countTaskDescendants(tasks.data, editingTask.id) > 0} isPending={updateMutation.isPending} onClose={() => setEditingTask(null)} onSubmit={(input) => updateMutation.mutate({ id: editingTask.id, input })} serverError={updateMutation.isError ? mutationMessage(updateMutation.error) : undefined} task={editingTask} /> : null}
+      {editingTask ? <TaskDialog columns={project.data.columns} datesReadOnly={countTaskDescendants(tasks.data, editingTask.id) > 0} isPending={updateMutation.isPending} onClose={() => setEditingTask(null)} onSubmit={(input) => updateMutation.mutate({ id: editingTask.id, input })} serverError={updateMutation.isError ? mutationMessage(updateMutation.error) : undefined} task={editingTask} /> : null}
       {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks.data, deletingTask.id)} isPending={deleteMutation.isPending} onClose={() => setDeletingTask(null)} onConfirm={() => deleteMutation.mutate(deletingTask.id)} serverError={deleteMutation.isError ? mutationMessage(deleteMutation.error) : undefined} task={deletingTask} /> : null}
+      {isColumnsOpen ? <ProjectColumnsDialog columns={project.data.columns} isPending={columnsMutation.isPending} onClose={() => setIsColumnsOpen(false)} onSubmit={(columns) => columnsMutation.mutate(columns)} serverError={columnsMutation.isError ? mutationMessage(columnsMutation.error) : undefined} /> : null}
     </main>
   );
 }

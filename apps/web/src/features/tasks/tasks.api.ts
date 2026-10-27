@@ -39,6 +39,7 @@ export type TaskInput = {
   startDate?: string | null;
   endDate?: string | null;
   excludeWeekends?: boolean;
+  customFields?: Record<string, string>;
 };
 
 export type TaskUpdateInput = Partial<

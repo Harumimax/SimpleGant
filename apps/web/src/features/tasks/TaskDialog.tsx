@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { SelectField } from '../../components/ui/SelectField';
 import { TextField } from '../../components/ui/TextField';
+import type { ProjectColumn } from '../projects/projects.api';
 import { TASK_STATUSES, type Task, type TaskInput, type TaskStatus } from './tasks.api';
 
 type TaskDialogProps = {
@@ -15,9 +16,10 @@ type TaskDialogProps = {
   onClose: () => void;
   onSubmit: (input: TaskInput) => void;
   datesReadOnly?: boolean;
+  columns?: ProjectColumn[];
 };
 
-export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, datesReadOnly = false }: TaskDialogProps) {
+export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, datesReadOnly = false, columns = [] }: TaskDialogProps) {
   const titleId = useId();
   const endDateRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(task?.title ?? '');
@@ -28,6 +30,9 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
   const [startDate, setStartDate] = useState(task?.startDate ?? '');
   const [endDate, setEndDate] = useState(task?.endDate ?? '');
   const [excludeWeekends, setExcludeWeekends] = useState(true);
+  const [customFields, setCustomFields] = useState<Record<string, string>>(
+    task?.customFields ?? {},
+  );
   const [formError, setFormError] = useState('');
 
   function optionalValue(value: string) {
@@ -49,6 +54,17 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
       return;
     }
     setFormError('');
+    const customKeys = new Set(
+      columns.filter(({ isDefault }) => !isDefault).map(({ key }) => key),
+    );
+    const normalizedCustomFields = Object.entries(customFields).reduce<Record<string, string>>(
+      (result, [key, value]) => {
+        const trimmed = value.trim();
+        if (customKeys.has(key) && trimmed) result[key] = trimmed;
+        return result;
+      },
+      {},
+    );
     onSubmit({
       title: title.trim(),
       workType: optionalValue(workType),
@@ -60,6 +76,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
         endDate: optionalDate(endDate),
       } : {}),
       ...(!task ? { excludeWeekends } : {}),
+      customFields: normalizedCustomFields,
     });
   }
 
@@ -91,6 +108,19 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
             <SelectField disabled={isPending} label="Статус" onChange={(event) => setStatus(event.target.value as TaskStatus)} value={status}>
               {TASK_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
             </SelectField>
+            {columns.filter(({ isDefault }) => !isDefault).map((column) => (
+              <TextField
+                disabled={isPending}
+                key={column.id}
+                label={column.name}
+                maxLength={500}
+                onChange={(event) => setCustomFields((current) => ({
+                  ...current,
+                  [column.key]: event.target.value,
+                }))}
+                value={customFields[column.key] ?? ''}
+              />
+            ))}
             <TextField disabled={isPending || datesReadOnly} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Начало задачи" onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
             <TextField disabled={isPending || datesReadOnly} error={formError || undefined} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Конец задачи" min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} ref={endDateRef} type="date" value={endDate} />
           </div>

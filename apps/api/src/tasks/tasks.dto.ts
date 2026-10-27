@@ -7,6 +7,7 @@ import {
   IsInt,
   IsArray,
   IsOptional,
+  IsObject,
   IsString,
   IsUUID,
   MaxLength,
@@ -73,6 +74,10 @@ export class CreateTaskDto {
   @IsOptional()
   @IsBoolean()
   excludeWeekends?: boolean;
+
+  @IsOptional()
+  @IsObject({ message: 'Поля задачи должны быть объектом' })
+  customFields?: Record<string, unknown>;
 }
 
 export class UpdateTaskDto {
@@ -117,6 +122,10 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsBoolean()
   isCollapsed?: boolean;
+
+  @IsOptional()
+  @IsObject({ message: 'Поля задачи должны быть объектом' })
+  customFields?: Record<string, unknown>;
 }
 
 export class TaskPositionDto {

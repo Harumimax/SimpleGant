@@ -29,6 +29,7 @@ const task = {
 function repositoryMock() {
   return {
     findOwnedProject: vi.fn(), list: vi.fn(), find: vi.fn(), nextOrderIndex: vi.fn(),
+    listCustomColumns: vi.fn().mockResolvedValue([]),
     create: vi.fn(), updateWithParentDates: vi.fn(),
     updateOrder: vi.fn(), deleteMany: vi.fn(),
   };
@@ -62,6 +63,7 @@ describe('TasksService', () => {
       orderIndex: 0,
       status: 'Ожидает',
       color: 'sage',
+      customFields: {},
       startDate: new Date('2026-11-02T00:00:00.000Z'),
       endDate: new Date('2026-11-13T00:00:00.000Z'),
     }));
@@ -115,6 +117,30 @@ describe('TasksService', () => {
       }),
       [],
     );
+  });
+
+  it('accepts only text values for custom columns from the same project', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.nextOrderIndex.mockResolvedValue(0);
+    repository.listCustomColumns.mockResolvedValue([{ key: 'custom_budget' }]);
+    repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await service.create(projectId, ownerId, {
+      title: task.title,
+      assignee: task.assignee,
+      customFields: { custom_budget: '  150 000 ₽  ' },
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ customFields: { custom_budget: '150 000 ₽' } }),
+    );
+    await expect(service.create(projectId, ownerId, {
+      title: task.title,
+      assignee: task.assignee,
+      customFields: { foreign_key: 'секрет' },
+    })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('recalculates ancestor dates when a child range changes', async () => {

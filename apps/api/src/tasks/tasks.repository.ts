@@ -27,6 +27,13 @@ export class TasksRepository {
     });
   }
 
+  listCustomColumns(projectId: string) {
+    return this.prisma.projectColumn.findMany({
+      where: { projectId, isDefault: false },
+      select: { key: true },
+    });
+  }
+
   async nextOrderIndex(projectId: string) {
     const result = await this.prisma.task.aggregate({
       where: { projectId },
@@ -46,6 +53,7 @@ export class TasksRepository {
     startDate: Date | null;
     endDate: Date | null;
     color: string;
+    customFields: Record<string, string>;
   }) {
     return this.prisma.task.create({ data: input });
   }
@@ -62,6 +70,7 @@ export class TasksRepository {
       startDate: Date | null;
       endDate: Date | null;
       isCollapsed: boolean;
+      customFields: Record<string, string>;
     },
     parentDates: Array<{
       id: string;

@@ -15,6 +15,7 @@ import {
 import {
   CalendarDays,
   CircleAlert,
+  Columns3,
   LoaderCircle,
   Monitor,
   Plus,
@@ -44,6 +45,7 @@ type GanttWorkspaceProps = {
   project: ProjectDetail;
   tasks: Task[];
   onAddTask: () => void;
+  onConfigureColumns: () => void;
   onTaskDetails: (task: Task) => void;
   onTaskDatesChange: (task: Task, dates: TaskDateRange) => Promise<void>;
   updatingTaskId?: string;
@@ -55,6 +57,7 @@ type GanttWorkspaceProps = {
 };
 
 function columnTemplate(columnCount: number) {
+  if (columnCount === 0) return '42px 96px';
   const extraColumns = Math.max(columnCount - 1, 0);
   return `42px minmax(190px, 2fr) repeat(${extraColumns}, minmax(104px, 1fr)) 96px`;
 }
@@ -63,6 +66,7 @@ export function GanttWorkspace({
   project,
   tasks,
   onAddTask,
+  onConfigureColumns,
   onTaskDetails,
   onTaskDatesChange,
   updatingTaskId,
@@ -158,6 +162,14 @@ export function GanttWorkspace({
                 Сохраняем изменения…
               </span>
             ) : null}
+            <button
+              className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-white px-3 text-sm font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-subtle)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              onClick={onConfigureColumns}
+              type="button"
+            >
+              <Columns3 aria-hidden className="size-4" />
+              Колонки
+            </button>
             <button
               className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 text-sm font-semibold text-white shadow-[var(--shadow-button)] hover:bg-[var(--color-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               onClick={onAddTask}
