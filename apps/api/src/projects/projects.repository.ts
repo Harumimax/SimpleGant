@@ -61,6 +61,15 @@ export class ProjectsRepository {
     });
   }
 
+  countMilestonesOutsideRange(id: string, startDate: Date, endDate: Date) {
+    return this.prisma.milestone.count({
+      where: {
+        projectId: id,
+        OR: [{ date: { lt: startDate } }, { date: { gt: endDate } }],
+      },
+    });
+  }
+
   async deleteOwned(id: string, ownerId: string) {
     const result = await this.prisma.project.deleteMany({
       where: { id, ownerId },

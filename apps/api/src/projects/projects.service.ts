@@ -50,6 +50,18 @@ export class ProjectsService {
     const startDate = input.startDate ?? this.dateOnly(current.startDate);
     const endDate = input.endDate ?? this.dateOnly(current.endDate);
     const dates = this.validateDates(startDate, endDate);
+    if (
+      (input.startDate !== undefined || input.endDate !== undefined) &&
+      await this.repository.countMilestonesOutsideRange(
+        id,
+        dates.startDate,
+        dates.endDate,
+      ) > 0
+    ) {
+      throw new BadRequestException(
+        'Новый период проекта не должен исключать существующие вехи',
+      );
+    }
     const project = await this.repository.update(id, {
       name: input.name ?? current.name,
       ...dates,

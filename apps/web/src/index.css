@@ -343,6 +343,21 @@ a[href] {
   --task-bar-text: var(--color-task-teal-text);
 }
 
+[data-milestone-color="sage"], .gantt-milestone[data-color="sage"] { --milestone-background: var(--color-task-sage); --milestone-border: var(--color-task-sage-border); --milestone-text: var(--color-task-sage-text); }
+[data-milestone-color="blue"], .gantt-milestone[data-color="blue"] { --milestone-background: var(--color-task-blue); --milestone-border: var(--color-task-blue-border); --milestone-text: var(--color-task-blue-text); }
+[data-milestone-color="sky"], .gantt-milestone[data-color="sky"] { --milestone-background: var(--color-task-sky); --milestone-border: var(--color-task-sky-border); --milestone-text: var(--color-task-sky-text); }
+[data-milestone-color="lavender"], .gantt-milestone[data-color="lavender"] { --milestone-background: var(--color-task-lavender); --milestone-border: var(--color-task-lavender-border); --milestone-text: var(--color-task-lavender-text); }
+[data-milestone-color="plum"], .gantt-milestone[data-color="plum"] { --milestone-background: var(--color-task-plum); --milestone-border: var(--color-task-plum-border); --milestone-text: var(--color-task-plum-text); }
+[data-milestone-color="rose"], .gantt-milestone[data-color="rose"] { --milestone-background: var(--color-task-rose); --milestone-border: var(--color-task-rose-border); --milestone-text: var(--color-task-rose-text); }
+[data-milestone-color="coral"], .gantt-milestone[data-color="coral"] { --milestone-background: var(--color-task-coral); --milestone-border: var(--color-task-coral-border); --milestone-text: var(--color-task-coral-text); }
+[data-milestone-color="sand"], .gantt-milestone[data-color="sand"] { --milestone-background: var(--color-task-sand); --milestone-border: var(--color-task-sand-border); --milestone-text: var(--color-task-sand-text); }
+[data-milestone-color="amber"], .gantt-milestone[data-color="amber"] { --milestone-background: var(--color-task-amber); --milestone-border: var(--color-task-amber-border); --milestone-text: var(--color-task-amber-text); }
+[data-milestone-color="teal"], .gantt-milestone[data-color="teal"] { --milestone-background: var(--color-task-teal); --milestone-border: var(--color-task-teal-border); --milestone-text: var(--color-task-teal-text); }
+
+[data-milestone-color] { background-color: var(--milestone-background); }
+.gantt-milestone-line { background-color: var(--milestone-border); box-shadow: 0 0 0 1px rgb(255 255 255 / 55%); }
+.gantt-milestone-label { border: 1px solid var(--milestone-border); background: var(--milestone-background); color: var(--milestone-text); }
+
 @media (width < 1024px) {
   .gantt-shell {
     grid-template-columns: 600px minmax(0, 1fr);

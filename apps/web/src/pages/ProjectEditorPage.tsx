@@ -12,6 +12,17 @@ import {
   toTaskPositions,
 } from '../features/gantt/taskHierarchy';
 import type { TaskDateRange } from '../features/gantt/timeline';
+import { MilestonesDialog } from '../features/milestones/MilestonesDialog';
+import {
+  createMilestone,
+  deleteMilestone,
+  updateMilestone,
+  type MilestoneInput,
+} from '../features/milestones/milestones.api';
+import {
+  milestonesQueryKey,
+  useMilestones,
+} from '../features/milestones/milestones.queries';
 import { useProject } from '../features/projects/projects.queries';
 import {
   configureProjectColumns,
@@ -41,12 +52,14 @@ export function ProjectEditorPage() {
   const { projectId = '' } = useParams();
   const project = useProject(projectId);
   const tasks = useTasks(projectId);
+  const milestones = useMilestones(projectId);
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [detailsTask, setDetailsTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
+  const [isMilestonesOpen, setIsMilestonesOpen] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: (input: TaskInput) => createTask(projectId, input),
@@ -171,10 +184,32 @@ export function ProjectEditorPage() {
       setIsColumnsOpen(false);
     },
   });
+  const createMilestoneMutation = useMutation({
+    mutationFn: (input: MilestoneInput) => createMilestone(projectId, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: milestonesQueryKey(projectId) });
+      setIsMilestonesOpen(false);
+    },
+  });
+  const updateMilestoneMutation = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: MilestoneInput }) =>
+      updateMilestone(projectId, id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: milestonesQueryKey(projectId) });
+      setIsMilestonesOpen(false);
+    },
+  });
+  const deleteMilestoneMutation = useMutation({
+    mutationFn: (id: string) => deleteMilestone(projectId, id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: milestonesQueryKey(projectId) });
+      setIsMilestonesOpen(false);
+    },
+  });
 
   const mutationMessage = (error: unknown) => error instanceof Error ? error.message : 'Не удалось выполнить действие';
 
-  if (project.isPending || tasks.isPending) {
+  if (project.isPending || tasks.isPending || milestones.isPending) {
     return (
       <main
         className="grid min-h-screen place-items-center bg-[var(--color-canvas)] text-[var(--color-text-muted)]"
@@ -185,7 +220,7 @@ export function ProjectEditorPage() {
     );
   }
 
-  if (project.isError || tasks.isError) {
+  if (project.isError || tasks.isError || milestones.isError) {
     return (
       <main
         className="grid min-h-screen place-items-center bg-[var(--color-canvas)] px-5 text-center text-[var(--color-text)]"
@@ -243,6 +278,12 @@ export function ProjectEditorPage() {
         }
         onAddTask={() => { createMutation.reset(); setIsCreateOpen(true); }}
         onConfigureColumns={() => { columnsMutation.reset(); setIsColumnsOpen(true); }}
+        onConfigureMilestones={() => {
+          createMilestoneMutation.reset();
+          updateMilestoneMutation.reset();
+          deleteMilestoneMutation.reset();
+          setIsMilestonesOpen(true);
+        }}
         onTaskDatesChange={async (task, dates) => {
           dateMutation.reset();
           await dateMutation.mutateAsync({ task, dates });
@@ -257,6 +298,7 @@ export function ProjectEditorPage() {
           await collapseMutation.mutateAsync(task);
         }}
         project={project.data}
+        milestones={milestones.data}
         isSavingStructure={
           structureMutation.isPending || collapseMutation.isPending
         }
@@ -278,6 +320,7 @@ export function ProjectEditorPage() {
       {editingTask ? <TaskDialog columns={project.data.columns} datesReadOnly={countTaskDescendants(tasks.data, editingTask.id) > 0} isPending={updateMutation.isPending} onClose={() => setEditingTask(null)} onSubmit={(input) => updateMutation.mutate({ id: editingTask.id, input })} serverError={updateMutation.isError ? mutationMessage(updateMutation.error) : undefined} task={editingTask} /> : null}
       {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks.data, deletingTask.id)} isPending={deleteMutation.isPending} onClose={() => setDeletingTask(null)} onConfirm={() => deleteMutation.mutate(deletingTask.id)} serverError={deleteMutation.isError ? mutationMessage(deleteMutation.error) : undefined} task={deletingTask} /> : null}
       {isColumnsOpen ? <ProjectColumnsDialog columns={project.data.columns} isPending={columnsMutation.isPending} onClose={() => setIsColumnsOpen(false)} onSubmit={(columns) => columnsMutation.mutate(columns)} serverError={columnsMutation.isError ? mutationMessage(columnsMutation.error) : undefined} /> : null}
+      {isMilestonesOpen ? <MilestonesDialog isPending={createMilestoneMutation.isPending || updateMilestoneMutation.isPending || deleteMilestoneMutation.isPending} milestones={milestones.data} onClose={() => setIsMilestonesOpen(false)} onDelete={(id) => deleteMilestoneMutation.mutate(id)} onSave={(input, id) => id ? updateMilestoneMutation.mutate({ id, input }) : createMilestoneMutation.mutate(input)} projectEndDate={project.data.endDate} projectStartDate={project.data.startDate} serverError={createMilestoneMutation.isError ? mutationMessage(createMilestoneMutation.error) : updateMilestoneMutation.isError ? mutationMessage(updateMilestoneMutation.error) : deleteMilestoneMutation.isError ? mutationMessage(deleteMilestoneMutation.error) : undefined} /> : null}
     </main>
   );
 }

@@ -138,6 +138,21 @@ export function calculateTaskBarGeometry(
   };
 }
 
+export function calculateMilestoneLeft(
+  milestoneDate: string,
+  timelineStartDate: string,
+  timelineEndDate: string,
+) {
+  const milestone = parseISO(milestoneDate);
+  const timelineStart = parseISO(timelineStartDate);
+  const timelineEnd = parseISO(timelineEndDate);
+  if (isBefore(milestone, timelineStart) || isAfter(milestone, timelineEnd)) {
+    return null;
+  }
+  return differenceInCalendarDays(milestone, timelineStart) * GANTT_DAY_WIDTH
+    + GANTT_DAY_WIDTH / 2;
+}
+
 export function calculateTaskDateChange(
   taskStartDate: string,
   taskEndDate: string,

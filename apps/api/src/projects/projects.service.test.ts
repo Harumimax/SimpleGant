@@ -30,6 +30,7 @@ function createRepositoryMock() {
     findOwned: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    countMilestonesOutsideRange: vi.fn().mockResolvedValue(0),
     deleteOwned: vi.fn(),
   };
 }
@@ -112,5 +113,19 @@ describe('ProjectsService', () => {
     await expect(
       service.delete(project.id, project.ownerId),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('does not shrink the project period past an existing milestone', async () => {
+    const repository = createRepositoryMock();
+    repository.findOwned.mockResolvedValue(project);
+    repository.countMilestonesOutsideRange.mockResolvedValue(1);
+    const service = new ProjectsService(
+      repository as unknown as ProjectsRepository,
+    );
+
+    await expect(service.update(project.id, project.ownerId, {
+      endDate: '2026-12-31',
+    })).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.update).not.toHaveBeenCalled();
   });
 });

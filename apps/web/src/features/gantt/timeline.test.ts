@@ -4,6 +4,7 @@ import {
   buildTimeline,
   calculateTaskDateChange,
   calculateTaskBarGeometry,
+  calculateMilestoneLeft,
   GANTT_DAY_WIDTH,
 } from './timeline';
 
@@ -34,6 +35,20 @@ describe('buildTimeline', () => {
       { key: '2026-11', dayCount: 3 },
     ]);
     expect(timeline.weeks.map(({ dayCount }) => dayCount)).toEqual([3, 2]);
+  });
+});
+
+describe('calculateMilestoneLeft', () => {
+  it('centers a milestone line in its day cell', () => {
+    expect(
+      calculateMilestoneLeft('2026-11-03', '2026-11-01', '2026-11-30'),
+    ).toBe(2 * GANTT_DAY_WIDTH + GANTT_DAY_WIDTH / 2);
+  });
+
+  it('does not render a milestone outside the project period', () => {
+    expect(
+      calculateMilestoneLeft('2026-12-01', '2026-11-01', '2026-11-30'),
+    ).toBeNull();
   });
 });
 

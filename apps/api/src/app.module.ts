@@ -6,6 +6,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { DatabaseModule } from './database/database.module.js';
+import { MilestonesModule } from './milestones/milestones.module.js';
 import { ProjectColumnsModule } from './project-columns/project-columns.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
 import { CsrfOriginGuard } from './security/csrf-origin.guard.js';
@@ -15,6 +16,7 @@ import { TasksModule } from './tasks/tasks.module.js';
   imports: [
     DatabaseModule,
     AuthModule,
+    MilestonesModule,
     ProjectsModule,
     ProjectColumnsModule,
     TasksModule,

@@ -16,6 +16,7 @@ import {
   CalendarDays,
   CircleAlert,
   Columns3,
+  Flag,
   LoaderCircle,
   Monitor,
   Plus,
@@ -23,6 +24,7 @@ import {
 import { useRef, type UIEvent } from 'react';
 
 import type { ProjectDetail } from '../projects/projects.api';
+import type { Milestone } from '../milestones/milestones.api';
 import type { Task } from '../tasks/tasks.api';
 import {
   flattenVisibleTasks,
@@ -40,12 +42,15 @@ import {
   type TaskDateRange,
 } from './timeline';
 import { TaskBar } from './TaskBar';
+import { MilestoneLayer } from './MilestoneLayer';
 
 type GanttWorkspaceProps = {
   project: ProjectDetail;
   tasks: Task[];
+  milestones: Milestone[];
   onAddTask: () => void;
   onConfigureColumns: () => void;
+  onConfigureMilestones: () => void;
   onTaskDetails: (task: Task) => void;
   onTaskDatesChange: (task: Task, dates: TaskDateRange) => Promise<void>;
   updatingTaskId?: string;
@@ -65,8 +70,10 @@ function columnTemplate(columnCount: number) {
 export function GanttWorkspace({
   project,
   tasks,
+  milestones,
   onAddTask,
   onConfigureColumns,
+  onConfigureMilestones,
   onTaskDetails,
   onTaskDatesChange,
   updatingTaskId,
@@ -162,6 +169,14 @@ export function GanttWorkspace({
                 Сохраняем изменения…
               </span>
             ) : null}
+            <button
+              className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-white px-3 text-sm font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-subtle)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              onClick={onConfigureMilestones}
+              type="button"
+            >
+              <Flag aria-hidden className="size-4" />
+              Вехи
+            </button>
             <button
               className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-white px-3 text-sm font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-subtle)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               onClick={onConfigureColumns}
@@ -296,7 +311,7 @@ export function GanttWorkspace({
               role="region"
               tabIndex={0}
             >
-              <div style={{ minWidth: timeline.width, width: timeline.width }}>
+              <div className="relative" style={{ minWidth: timeline.width, width: timeline.width }}>
                 <div
                   className="sticky top-0 z-10 border-b border-[var(--color-border-strong)] bg-[var(--color-surface-subtle)]"
                   style={{ height: GANTT_HEADER_HEIGHT }}
@@ -371,6 +386,11 @@ export function GanttWorkspace({
                     </div>
                   ))}
                 </div>
+                <MilestoneLayer
+                  milestones={milestones}
+                  timelineEndDate={project.endDate}
+                  timelineStartDate={project.startDate}
+                />
               </div>
             </div>
           </section>
