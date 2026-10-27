@@ -9,13 +9,18 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { SessionGuard } from '../auth/session.guard.js';
 import type { PublicUser } from '../auth/auth.types.js';
-import { CreateTaskDto, UpdateTaskDto } from './tasks.dto.js';
+import {
+  CreateTaskDto,
+  ReorderTasksDto,
+  UpdateTaskDto,
+} from './tasks.dto.js';
 import { TasksService } from './tasks.service.js';
 
 @Controller('projects/:projectId/tasks')
@@ -38,6 +43,15 @@ export class TasksController {
     @Body() input: CreateTaskDto,
   ) {
     return this.tasksService.create(projectId, user.id, input);
+  }
+
+  @Put('order')
+  reorder(
+    @CurrentUser() user: PublicUser,
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Body() input: ReorderTasksDto,
+  ) {
+    return this.tasksService.reorder(projectId, user.id, input);
   }
 
   @Get(':taskId')

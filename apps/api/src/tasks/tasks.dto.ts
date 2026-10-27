@@ -1,12 +1,19 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMinSize,
   IsBoolean,
   IsDateString,
   IsIn,
+  IsInt,
+  IsArray,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
+  Min,
   MinLength,
+  ValidateIf,
+  ValidateNested,
 } from 'class-validator';
 
 import { TASK_STATUSES, type TaskStatus } from './task.constants.js';
@@ -106,4 +113,29 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsDateString({ strict: true }, { message: 'Укажите корректную дату окончания' })
   endDate?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  isCollapsed?: boolean;
+}
+
+export class TaskPositionDto {
+  @IsUUID('4', { message: 'Некорректный идентификатор задачи' })
+  id!: string;
+
+  @ValidateIf((_object, value) => value !== null)
+  @IsUUID('4', { message: 'Некорректный идентификатор родительской задачи' })
+  parentId!: string | null;
+
+  @IsInt()
+  @Min(0)
+  orderIndex!: number;
+}
+
+export class ReorderTasksDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => TaskPositionDto)
+  tasks!: TaskPositionDto[];
 }

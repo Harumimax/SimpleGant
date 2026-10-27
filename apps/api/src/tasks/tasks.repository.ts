@@ -60,15 +60,33 @@ export class TasksRepository {
       status: TaskStatus;
       startDate: Date | null;
       endDate: Date | null;
+      isCollapsed: boolean;
     },
   ) {
     return this.prisma.task.update({ where: { id }, data: input });
   }
 
-  async delete(projectId: string, taskId: string) {
+  async updateOrder(
+    projectId: string,
+    positions: Array<{
+      id: string;
+      parentId: string | null;
+      orderIndex: number;
+      level: number;
+    }>,
+  ) {
+    await this.prisma.$transaction(
+      positions.map(({ id, ...data }) =>
+        this.prisma.task.update({ where: { id }, data }),
+      ),
+    );
+    return this.list(projectId);
+  }
+
+  async deleteMany(projectId: string, taskIds: string[]) {
     const result = await this.prisma.task.deleteMany({
-      where: { id: taskId, projectId },
+      where: { id: { in: taskIds }, projectId },
     });
-    return result.count > 0;
+    return result.count;
   }
 }

@@ -1,7 +1,20 @@
 import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
   CalendarDays,
   CircleAlert,
-  Ellipsis,
   LoaderCircle,
   Monitor,
   Plus,
@@ -10,6 +23,14 @@ import { useRef, type UIEvent } from 'react';
 
 import type { ProjectDetail } from '../projects/projects.api';
 import type { Task } from '../tasks/tasks.api';
+import {
+  flattenVisibleTasks,
+  indentTask,
+  moveTask,
+  outdentTask,
+  taskHasChildren,
+} from './taskHierarchy';
+import { TaskTableRow } from './TaskTableRow';
 import {
   buildTimeline,
   GANTT_DAY_WIDTH,
@@ -27,20 +48,15 @@ type GanttWorkspaceProps = {
   onTaskDatesChange: (task: Task, dates: TaskDateRange) => Promise<void>;
   updatingTaskId?: string;
   dateChangeError?: string;
+  onTaskOrderChange: (tasks: Task[]) => Promise<void>;
+  onToggleTaskCollapsed: (task: Task) => Promise<void>;
+  isSavingStructure?: boolean;
+  structureChangeError?: string;
 };
 
 function columnTemplate(columnCount: number) {
   const extraColumns = Math.max(columnCount - 1, 0);
-  return `42px minmax(190px, 2fr) repeat(${extraColumns}, minmax(104px, 1fr)) 48px`;
-}
-
-function taskValue(task: Task, key: string) {
-  if (key === 'title') return task.title;
-  if (key === 'workType') return task.workType || '—';
-  if (key === 'assignee') return task.assignee;
-  if (key === 'estimate') return task.estimate || '—';
-  if (key === 'status') return task.status;
-  return task.customFields[key] || '—';
+  return `42px minmax(190px, 2fr) repeat(${extraColumns}, minmax(104px, 1fr)) 96px`;
 }
 
 export function GanttWorkspace({
@@ -51,6 +67,10 @@ export function GanttWorkspace({
   onTaskDatesChange,
   updatingTaskId,
   dateChangeError,
+  onTaskOrderChange,
+  onToggleTaskCollapsed,
+  isSavingStructure = false,
+  structureChangeError,
 }: GanttWorkspaceProps) {
   const taskPaneRef = useRef<HTMLElement>(null);
   const timelinePaneRef = useRef<HTMLDivElement>(null);
@@ -59,10 +79,30 @@ export function GanttWorkspace({
     .filter(({ isVisible }) => isVisible)
     .sort((left, right) => left.orderIndex - right.orderIndex);
   const taskGridTemplate = columnTemplate(columns.length);
+  const visibleTasks = flattenVisibleTasks(tasks);
   const rows: Array<Task | null> = [
-    ...tasks,
-    ...Array.from({ length: Math.max(20 - tasks.length, 0) }, () => null),
+    ...visibleTasks,
+    ...Array.from({ length: Math.max(20 - visibleTasks.length, 0) }, () => null),
   ];
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function saveStructure(nextTasks: Task[] | null) {
+    if (!nextTasks || isSavingStructure) return;
+    void onTaskOrderChange(nextTasks).catch(() => undefined);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over, delta } = event;
+    if (!over) return;
+    const horizontalIntent: -1 | 0 | 1 =
+      delta.x > 28 ? 1 : delta.x < -28 ? -1 : 0;
+    saveStructure(
+      moveTask(tasks, String(active.id), String(over.id), horizontalIntent),
+    );
+  }
 
   function syncVerticalScroll(
     event: UIEvent<HTMLElement>,
@@ -107,15 +147,15 @@ export function GanttWorkspace({
           </div>
 
           <div className="flex items-center gap-3">
-            {dateChangeError ? (
+            {dateChangeError || structureChangeError ? (
               <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-danger)]" role="alert">
                 <CircleAlert aria-hidden className="size-4" />
-                Не удалось сохранить сроки
+                Не удалось сохранить изменения
               </span>
-            ) : updatingTaskId ? (
+            ) : updatingTaskId || isSavingStructure ? (
               <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]" role="status">
                 <LoaderCircle aria-hidden className="size-4 animate-spin" />
-                Сохраняем сроки…
+                Сохраняем изменения…
               </span>
             ) : null}
             <button
@@ -164,27 +204,63 @@ export function GanttWorkspace({
             </div>
 
             <div className="relative bg-white">
-              {rows.map((task, index) => (
+              <DndContext
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+                sensors={sensors}
+              >
+                <SortableContext
+                  items={visibleTasks.map(({ id }) => id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {visibleTasks.map((task, index) => (
+                    <TaskTableRow
+                      canIndent={Boolean(indentTask(tasks, task.id))}
+                      canOutdent={Boolean(task.parentId)}
+                      columns={columns}
+                      gridTemplateColumns={taskGridTemplate}
+                      hasChildren={taskHasChildren(tasks, task.id)}
+                      isDisabled={isSavingStructure}
+                      key={task.id}
+                      onDetails={onTaskDetails}
+                      onIndent={(selectedTask) =>
+                        saveStructure(indentTask(tasks, selectedTask.id))
+                      }
+                      onOutdent={(selectedTask) =>
+                        saveStructure(outdentTask(tasks, selectedTask.id))
+                      }
+                      onToggleCollapsed={(selectedTask) => {
+                        if (!isSavingStructure) {
+                          void onToggleTaskCollapsed(selectedTask).catch(
+                            () => undefined,
+                          );
+                        }
+                      }}
+                      rowNumber={index + 1}
+                      task={task}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+
+              {rows.slice(visibleTasks.length).map((_, index) => (
                 <div
-                  aria-hidden={task ? undefined : true}
-                  className={`grid border-b border-[var(--color-border)] ${task ? 'bg-white hover:bg-[var(--color-surface-hover)]' : ''}`}
-                  key={task?.id ?? `empty-${index}`}
+                  aria-hidden="true"
+                  className="grid border-b border-[var(--color-border)]"
+                  key={`empty-${index}`}
                   style={{
                     gridTemplateColumns: taskGridTemplate,
                     height: GANTT_ROW_HEIGHT,
                   }}
                 >
-                  <div className="grid place-items-center border-r border-[var(--color-border)] text-xs tabular-nums text-[var(--color-text-faint)]">{task ? index + 1 : null}</div>
+                  <div className="border-r border-[var(--color-border)]" />
                   {columns.map((column) => (
                     <div
-                      className="flex min-w-0 items-center border-r border-[var(--color-border)] px-3 text-xs text-[var(--color-text)]"
+                      className="border-r border-[var(--color-border)]"
                       key={column.id}
-                      title={task ? String(taskValue(task, column.key)) : undefined}
-                    >
-                      {task ? <span className={`truncate ${column.key === 'title' ? 'font-semibold' : ''}`}>{taskValue(task, column.key)}</span> : null}
-                    </div>
+                    />
                   ))}
-                  <div className="grid place-items-center">{task ? <button aria-label={`Подробно: ${task.title}`} className="grid size-8 place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]" onClick={() => onTaskDetails(task)} type="button"><Ellipsis aria-hidden className="size-4" /></button> : null}</div>
+                  <div />
                 </div>
               ))}
 

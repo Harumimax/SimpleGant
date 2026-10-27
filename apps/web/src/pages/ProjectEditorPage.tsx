@@ -6,6 +6,10 @@ import { Link, useParams } from 'react-router-dom';
 import { useState } from 'react';
 
 import { GanttWorkspace } from '../features/gantt/GanttWorkspace';
+import {
+  countTaskDescendants,
+  toTaskPositions,
+} from '../features/gantt/taskHierarchy';
 import type { TaskDateRange } from '../features/gantt/timeline';
 import { useProject } from '../features/projects/projects.queries';
 import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
@@ -14,6 +18,7 @@ import { TaskDialog } from '../features/tasks/TaskDialog';
 import {
   createTask,
   deleteTask,
+  reorderTasks,
   updateTask,
   type Task,
   type TaskInput,
@@ -92,6 +97,69 @@ export function ProjectEditorPage() {
       });
     },
   });
+  const structureMutation = useMutation({
+    mutationFn: (nextTasks: Task[]) =>
+      reorderTasks(projectId, toTaskPositions(nextTasks)),
+    onMutate: async (nextTasks) => {
+      const queryKey = tasksQueryKey(projectId);
+      await queryClient.cancelQueries({ queryKey });
+      const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
+      queryClient.setQueryData(queryKey, nextTasks);
+      return { previousTasks };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(
+          tasksQueryKey(projectId),
+          context.previousTasks,
+        );
+      }
+    },
+    onSuccess: (updatedTasks) => {
+      queryClient.setQueryData(tasksQueryKey(projectId), updatedTasks);
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: tasksQueryKey(projectId),
+      });
+    },
+  });
+  const collapseMutation = useMutation({
+    mutationFn: (task: Task) =>
+      updateTask(projectId, task.id, {
+        isCollapsed: !task.isCollapsed,
+      }),
+    onMutate: async (task) => {
+      const queryKey = tasksQueryKey(projectId);
+      await queryClient.cancelQueries({ queryKey });
+      const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
+      queryClient.setQueryData<Task[]>(queryKey, (current = []) =>
+        current.map((item) =>
+          item.id === task.id
+            ? { ...item, isCollapsed: !item.isCollapsed }
+            : item,
+        ),
+      );
+      return { previousTasks };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(
+          tasksQueryKey(projectId),
+          context.previousTasks,
+        );
+      }
+    },
+    onSuccess: (updatedTask) => {
+      queryClient.setQueryData<Task[]>(
+        tasksQueryKey(projectId),
+        (current = []) =>
+          current.map((item) =>
+            item.id === updatedTask.id ? updatedTask : item,
+          ),
+      );
+    },
+  });
 
   const mutationMessage = (error: unknown) => error instanceof Error ? error.message : 'Не удалось выполнить действие';
 
@@ -168,7 +236,25 @@ export function ProjectEditorPage() {
           await dateMutation.mutateAsync({ task, dates });
         }}
         onTaskDetails={setDetailsTask}
+        onTaskOrderChange={async (nextTasks) => {
+          structureMutation.reset();
+          await structureMutation.mutateAsync(nextTasks);
+        }}
+        onToggleTaskCollapsed={async (task) => {
+          collapseMutation.reset();
+          await collapseMutation.mutateAsync(task);
+        }}
         project={project.data}
+        isSavingStructure={
+          structureMutation.isPending || collapseMutation.isPending
+        }
+        structureChangeError={
+          structureMutation.isError
+            ? mutationMessage(structureMutation.error)
+            : collapseMutation.isError
+              ? mutationMessage(collapseMutation.error)
+              : undefined
+        }
         tasks={tasks.data}
         updatingTaskId={
           dateMutation.isPending ? dateMutation.variables?.task.id : undefined
@@ -178,7 +264,7 @@ export function ProjectEditorPage() {
       {isCreateOpen ? <TaskDialog isPending={createMutation.isPending} onClose={() => setIsCreateOpen(false)} onSubmit={(input) => createMutation.mutate(input)} serverError={createMutation.isError ? mutationMessage(createMutation.error) : undefined} /> : null}
       {detailsTask ? <TaskDetailsDialog onClose={() => setDetailsTask(null)} onDelete={() => { deleteMutation.reset(); setDetailsTask(null); setDeletingTask(detailsTask); }} onEdit={() => { updateMutation.reset(); setDetailsTask(null); setEditingTask(detailsTask); }} task={detailsTask} /> : null}
       {editingTask ? <TaskDialog isPending={updateMutation.isPending} onClose={() => setEditingTask(null)} onSubmit={(input) => updateMutation.mutate({ id: editingTask.id, input })} serverError={updateMutation.isError ? mutationMessage(updateMutation.error) : undefined} task={editingTask} /> : null}
-      {deletingTask ? <DeleteTaskDialog isPending={deleteMutation.isPending} onClose={() => setDeletingTask(null)} onConfirm={() => deleteMutation.mutate(deletingTask.id)} serverError={deleteMutation.isError ? mutationMessage(deleteMutation.error) : undefined} task={deletingTask} /> : null}
+      {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks.data, deletingTask.id)} isPending={deleteMutation.isPending} onClose={() => setDeletingTask(null)} onConfirm={() => deleteMutation.mutate(deletingTask.id)} serverError={deleteMutation.isError ? mutationMessage(deleteMutation.error) : undefined} task={deletingTask} /> : null}
     </main>
   );
 }

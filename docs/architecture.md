@@ -418,6 +418,27 @@ SimpleGant - это простой онлайн-сервис для создан
 - `PATCH /projects/:id`;
 - `DELETE /projects/:id`.
 
+### Tasks
+
+До перехода редактора на единое агрегатное сохранение используются защищенные
+owner-only endpoints задач:
+
+- `GET /projects/:projectId/tasks`;
+- `POST /projects/:projectId/tasks`;
+- `GET /projects/:projectId/tasks/:taskId`;
+- `PATCH /projects/:projectId/tasks/:taskId`;
+- `DELETE /projects/:projectId/tasks/:taskId`;
+- `PUT /projects/:projectId/tasks/order`.
+
+`PUT /projects/:projectId/tasks/order` принимает полный набор задач проекта с
+`id`, `parentId` и `orderIndex`. Backend проверяет полный состав, родителей,
+циклы, непрерывный порядок и ограничение в пять уровней, самостоятельно
+вычисляет `level` и применяет изменения транзакцией.
+
+Удаление родительской задачи удаляет все ее вложенные задачи. После реализации
+агрегатного `PUT /projects/:id/gantt` редактор должен сохранять порядок и
+вложенность через общий черновик.
+
 ### Gantt
 
 Основной запрос для редактора:

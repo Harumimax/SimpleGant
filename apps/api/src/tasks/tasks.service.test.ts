@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TasksRepository } from './tasks.repository.js';
@@ -29,8 +29,17 @@ const task = {
 function repositoryMock() {
   return {
     findOwnedProject: vi.fn(), list: vi.fn(), find: vi.fn(), nextOrderIndex: vi.fn(),
-    create: vi.fn(), update: vi.fn(), delete: vi.fn(),
+    create: vi.fn(), update: vi.fn(), updateOrder: vi.fn(), deleteMany: vi.fn(),
   };
+}
+
+function nestedTask(
+  id: string,
+  parentId: string | null,
+  orderIndex: number,
+  level: number,
+) {
+  return { ...task, id, parentId, orderIndex, level };
 }
 
 describe('TasksService', () => {
@@ -98,5 +107,91 @@ describe('TasksService', () => {
       title: task.title,
       assignee: task.assignee,
     }));
+  });
+
+  it('derives hierarchy levels and saves a complete deterministic order', async () => {
+    const repository = repositoryMock();
+    const rootId = '11111111-1111-4111-8111-111111111111';
+    const childId = '22222222-2222-4222-8222-222222222222';
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.list.mockResolvedValue([
+      nestedTask(rootId, null, 0, 0),
+      nestedTask(childId, null, 1, 0),
+    ]);
+    repository.updateOrder.mockResolvedValue([
+      nestedTask(rootId, null, 0, 0),
+      nestedTask(childId, rootId, 0, 1),
+    ]);
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await service.reorder(projectId, ownerId, {
+      tasks: [
+        { id: rootId, parentId: null, orderIndex: 0 },
+        { id: childId, parentId: rootId, orderIndex: 0 },
+      ],
+    });
+
+    expect(repository.updateOrder).toHaveBeenCalledWith(projectId, [
+      { id: rootId, parentId: null, orderIndex: 0, level: 0 },
+      { id: childId, parentId: rootId, orderIndex: 0, level: 1 },
+    ]);
+  });
+
+  it('rejects hierarchy cycles and a sixth total level', async () => {
+    const ids = Array.from(
+      { length: 6 },
+      (_, index) => `${index + 1}0000000-0000-4000-8000-000000000000`,
+    );
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.list.mockResolvedValue(
+      ids.map((id, index) =>
+        nestedTask(id, index === 0 ? null : ids[index - 1]!, 0, index),
+      ),
+    );
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await expect(
+      service.reorder(projectId, ownerId, {
+        tasks: ids.map((id, index) => ({
+          id,
+          parentId: index === 0 ? null : ids[index - 1]!,
+          orderIndex: 0,
+        })),
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    await expect(
+      service.reorder(projectId, ownerId, {
+        tasks: ids.map((id, index) => ({
+          id,
+          parentId: index === 0 ? ids[1]! : index === 1 ? ids[0]! : null,
+          orderIndex: index > 1 ? index - 2 : 0,
+        })),
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.updateOrder).not.toHaveBeenCalled();
+  });
+
+  it('deletes a task together with all descendants', async () => {
+    const repository = repositoryMock();
+    const childId = '22222222-2222-4222-8222-222222222222';
+    const grandchildId = '33333333-3333-4333-8333-333333333333';
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.find.mockResolvedValue(task);
+    repository.list.mockResolvedValue([
+      task,
+      nestedTask(childId, task.id, 0, 1),
+      nestedTask(grandchildId, childId, 0, 2),
+    ]);
+    repository.deleteMany.mockResolvedValue(3);
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await service.delete(projectId, task.id, ownerId);
+
+    expect(repository.deleteMany).toHaveBeenCalledWith(
+      projectId,
+      expect.arrayContaining([task.id, childId, grandchildId]),
+    );
   });
 });

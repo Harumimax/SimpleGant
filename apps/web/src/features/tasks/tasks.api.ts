@@ -43,6 +43,11 @@ export type TaskInput = {
 
 export type TaskUpdateInput = Partial<
   Omit<TaskInput, 'excludeWeekends'>
+> & { isCollapsed?: boolean };
+
+export type TaskPositionInput = Pick<
+  Task,
+  'id' | 'parentId' | 'orderIndex'
 >;
 
 export function listTasks(projectId: string) {
@@ -70,5 +75,12 @@ export function updateTask(
 export function deleteTask(projectId: string, taskId: string) {
   return apiRequest<void>(`/projects/${projectId}/tasks/${taskId}`, {
     method: 'DELETE',
+  });
+}
+
+export function reorderTasks(projectId: string, tasks: TaskPositionInput[]) {
+  return apiRequest<Task[]>(`/projects/${projectId}/tasks/order`, {
+    method: 'PUT',
+    body: JSON.stringify({ tasks }),
   });
 }
