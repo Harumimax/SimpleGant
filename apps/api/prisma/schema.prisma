@@ -30,9 +30,37 @@ model Project {
   updatedAt   DateTime        @updatedAt @map("updated_at")
   owner       User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   columns     ProjectColumn[]
+  tasks       Task[]
 
   @@index([ownerId, updatedAt])
   @@map("projects")
+}
+
+model Task {
+  id           String    @id @default(uuid()) @db.Uuid
+  projectId    String    @map("project_id") @db.Uuid
+  parentId     String?   @map("parent_id") @db.Uuid
+  orderIndex   Int       @map("order_index")
+  level        Int       @default(0)
+  title        String    @db.VarChar(200)
+  workType     String?   @map("work_type") @db.VarChar(200)
+  assignee     String    @db.VarChar(200)
+  estimate     String?   @db.VarChar(100)
+  status       String    @default("Ожидает") @db.VarChar(30)
+  startDate    DateTime? @map("start_date") @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  color        String    @default("sage") @db.VarChar(20)
+  isCollapsed  Boolean   @default(false) @map("is_collapsed")
+  customFields Json      @default("{}") @map("custom_fields")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent       Task?     @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children     Task[]    @relation("TaskHierarchy")
+
+  @@index([projectId, orderIndex])
+  @@index([parentId])
+  @@map("tasks")
 }
 
 model ProjectColumn {

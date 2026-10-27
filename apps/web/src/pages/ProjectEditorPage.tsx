@@ -1,10 +1,17 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { ArrowLeft, CalendarRange, ChartNoAxesGantt } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import { useState } from 'react';
 
 import { GanttWorkspace } from '../features/gantt/GanttWorkspace';
 import { useProject } from '../features/projects/projects.queries';
+import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
+import { TaskDetailsDialog } from '../features/tasks/TaskDetailsDialog';
+import { TaskDialog } from '../features/tasks/TaskDialog';
+import { createTask, deleteTask, updateTask, type Task, type TaskInput } from '../features/tasks/tasks.api';
+import { tasksQueryKey, useTasks } from '../features/tasks/tasks.queries';
 
 function formatDate(value: string) {
   return format(parseISO(value), 'd MMMM yyyy', { locale: ru });
@@ -13,8 +20,38 @@ function formatDate(value: string) {
 export function ProjectEditorPage() {
   const { projectId = '' } = useParams();
   const project = useProject(projectId);
+  const tasks = useTasks(projectId);
+  const queryClient = useQueryClient();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [detailsTask, setDetailsTask] = useState<Task | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deletingTask, setDeletingTask] = useState<Task | null>(null);
 
-  if (project.isPending) {
+  const createMutation = useMutation({
+    mutationFn: (input: TaskInput) => createTask(projectId, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey(projectId) });
+      setIsCreateOpen(false);
+    },
+  });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: TaskInput }) => updateTask(projectId, id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey(projectId) });
+      setEditingTask(null);
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteTask(projectId, id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey(projectId) });
+      setDeletingTask(null);
+    },
+  });
+
+  const mutationMessage = (error: unknown) => error instanceof Error ? error.message : 'Не удалось выполнить действие';
+
+  if (project.isPending || tasks.isPending) {
     return (
       <main
         className="grid min-h-screen place-items-center bg-[var(--color-canvas)] text-[var(--color-text-muted)]"
@@ -25,7 +62,7 @@ export function ProjectEditorPage() {
     );
   }
 
-  if (project.isError) {
+  if (project.isError || tasks.isError) {
     return (
       <main
         className="grid min-h-screen place-items-center bg-[var(--color-canvas)] px-5 text-center text-[var(--color-text)]"
@@ -77,7 +114,17 @@ export function ProjectEditorPage() {
         </div>
       </header>
 
-      <GanttWorkspace project={project.data} />
+      <GanttWorkspace
+        onAddTask={() => { createMutation.reset(); setIsCreateOpen(true); }}
+        onTaskDetails={setDetailsTask}
+        project={project.data}
+        tasks={tasks.data}
+      />
+
+      {isCreateOpen ? <TaskDialog isPending={createMutation.isPending} onClose={() => setIsCreateOpen(false)} onSubmit={(input) => createMutation.mutate(input)} serverError={createMutation.isError ? mutationMessage(createMutation.error) : undefined} /> : null}
+      {detailsTask ? <TaskDetailsDialog onClose={() => setDetailsTask(null)} onDelete={() => { deleteMutation.reset(); setDetailsTask(null); setDeletingTask(detailsTask); }} onEdit={() => { updateMutation.reset(); setDetailsTask(null); setEditingTask(detailsTask); }} task={detailsTask} /> : null}
+      {editingTask ? <TaskDialog isPending={updateMutation.isPending} onClose={() => setEditingTask(null)} onSubmit={(input) => updateMutation.mutate({ id: editingTask.id, input })} serverError={updateMutation.isError ? mutationMessage(updateMutation.error) : undefined} task={editingTask} /> : null}
+      {deletingTask ? <DeleteTaskDialog isPending={deleteMutation.isPending} onClose={() => setDeletingTask(null)} onConfirm={() => deleteMutation.mutate(deletingTask.id)} serverError={deleteMutation.isError ? mutationMessage(deleteMutation.error) : undefined} task={deletingTask} /> : null}
     </main>
   );
 }

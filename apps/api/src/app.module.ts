@@ -8,12 +8,14 @@ import { AuthModule } from './auth/auth.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
 import { CsrfOriginGuard } from './security/csrf-origin.guard.js';
+import { TasksModule } from './tasks/tasks.module.js';
 
 @Module({
   imports: [
     DatabaseModule,
     AuthModule,
     ProjectsModule,
+    TasksModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
   ],
   controllers: [AppController],

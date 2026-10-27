@@ -1,30 +1,58 @@
-import { CalendarDays, Monitor, Plus } from 'lucide-react';
+import { CalendarDays, Ellipsis, Monitor, Plus } from 'lucide-react';
+import { useRef, type UIEvent } from 'react';
 
 import type { ProjectDetail } from '../projects/projects.api';
+import type { Task } from '../tasks/tasks.api';
 import {
   buildTimeline,
   GANTT_DAY_WIDTH,
   GANTT_HEADER_HEIGHT,
   GANTT_ROW_HEIGHT,
 } from './timeline';
-
-const EMPTY_ROWS = Array.from({ length: 20 }, (_, index) => index + 1);
+import { TaskBar } from './TaskBar';
 
 type GanttWorkspaceProps = {
   project: ProjectDetail;
+  tasks: Task[];
+  onAddTask: () => void;
+  onTaskDetails: (task: Task) => void;
 };
 
 function columnTemplate(columnCount: number) {
   const extraColumns = Math.max(columnCount - 1, 0);
-  return `42px minmax(190px, 2fr) repeat(${extraColumns}, minmax(104px, 1fr))`;
+  return `42px minmax(190px, 2fr) repeat(${extraColumns}, minmax(104px, 1fr)) 48px`;
 }
 
-export function GanttWorkspace({ project }: GanttWorkspaceProps) {
+function taskValue(task: Task, key: string) {
+  if (key === 'title') return task.title;
+  if (key === 'workType') return task.workType || '—';
+  if (key === 'assignee') return task.assignee;
+  if (key === 'estimate') return task.estimate || '—';
+  if (key === 'status') return task.status;
+  return task.customFields[key] || '—';
+}
+
+export function GanttWorkspace({ project, tasks, onAddTask, onTaskDetails }: GanttWorkspaceProps) {
+  const taskPaneRef = useRef<HTMLElement>(null);
+  const timelinePaneRef = useRef<HTMLDivElement>(null);
   const timeline = buildTimeline(project.startDate, project.endDate);
   const columns = project.columns
     .filter(({ isVisible }) => isVisible)
     .sort((left, right) => left.orderIndex - right.orderIndex);
   const taskGridTemplate = columnTemplate(columns.length);
+  const rows: Array<Task | null> = [
+    ...tasks,
+    ...Array.from({ length: Math.max(20 - tasks.length, 0) }, () => null),
+  ];
+
+  function syncVerticalScroll(
+    event: UIEvent<HTMLElement>,
+    target: HTMLElement | null,
+  ) {
+    if (target && target.scrollTop !== event.currentTarget.scrollTop) {
+      target.scrollTop = event.currentTarget.scrollTop;
+    }
+  }
 
   return (
     <>
@@ -60,9 +88,8 @@ export function GanttWorkspace({ project }: GanttWorkspaceProps) {
           </div>
 
           <button
-            className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-border-strong)] px-3 text-sm font-semibold text-[var(--color-text-muted)] opacity-55"
-            disabled
-            title="Создание задач будет реализовано следующим шагом"
+            className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 text-sm font-semibold text-white shadow-[var(--shadow-button)] hover:bg-[var(--color-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+            onClick={onAddTask}
             type="button"
           >
             <Plus aria-hidden className="size-4" />
@@ -71,9 +98,14 @@ export function GanttWorkspace({ project }: GanttWorkspaceProps) {
         </div>
 
         <div className="gantt-shell min-h-0 flex-1">
-          <section className="gantt-task-pane" aria-label="Таблица задач">
+          <section
+            className="gantt-task-pane"
+            aria-label="Таблица задач"
+            onScroll={(event) => syncVerticalScroll(event, timelinePaneRef.current)}
+            ref={taskPaneRef}
+          >
             <div
-              className="border-b border-[var(--color-border-strong)] bg-[var(--color-surface-subtle)]"
+              className="sticky top-0 z-20 border-b border-[var(--color-border-strong)] bg-[var(--color-surface-subtle)]"
               style={{ height: GANTT_HEADER_HEIGHT }}
             >
               <div className="flex h-8 items-center border-b border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text-muted)]">
@@ -95,38 +127,43 @@ export function GanttWorkspace({ project }: GanttWorkspaceProps) {
                     <span className="truncate">{column.name}</span>
                   </div>
                 ))}
+                <div aria-label="Действия" className="border-l border-[var(--color-border)]" />
               </div>
             </div>
 
             <div className="relative bg-white">
-              {EMPTY_ROWS.map((rowNumber) => (
+              {rows.map((task, index) => (
                 <div
-                  aria-hidden="true"
-                  className="grid border-b border-[var(--color-border)]"
-                  key={rowNumber}
+                  aria-hidden={task ? undefined : true}
+                  className={`grid border-b border-[var(--color-border)] ${task ? 'bg-white hover:bg-[var(--color-surface-hover)]' : ''}`}
+                  key={task?.id ?? `empty-${index}`}
                   style={{
                     gridTemplateColumns: taskGridTemplate,
                     height: GANTT_ROW_HEIGHT,
                   }}
                 >
-                  <div className="border-r border-[var(--color-border)]" />
+                  <div className="grid place-items-center border-r border-[var(--color-border)] text-xs tabular-nums text-[var(--color-text-faint)]">{task ? index + 1 : null}</div>
                   {columns.map((column) => (
                     <div
-                      className="border-r border-[var(--color-border)] last:border-r-0"
+                      className="flex min-w-0 items-center border-r border-[var(--color-border)] px-3 text-xs text-[var(--color-text)]"
                       key={column.id}
-                    />
+                      title={task ? String(taskValue(task, column.key)) : undefined}
+                    >
+                      {task ? <span className={`truncate ${column.key === 'title' ? 'font-semibold' : ''}`}>{taskValue(task, column.key)}</span> : null}
+                    </div>
                   ))}
+                  <div className="grid place-items-center">{task ? <button aria-label={`Подробно: ${task.title}`} className="grid size-8 place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]" onClick={() => onTaskDetails(task)} type="button"><Ellipsis aria-hidden className="size-4" /></button> : null}</div>
                 </div>
               ))}
 
-              <div className="pointer-events-none absolute inset-x-8 top-20 rounded-lg border border-dashed border-[var(--color-border-strong)] bg-white/95 px-5 py-6 text-center shadow-sm">
+              {tasks.length === 0 ? <div className="pointer-events-none absolute inset-x-8 top-20 rounded-lg border border-dashed border-[var(--color-border-strong)] bg-white/95 px-5 py-6 text-center shadow-sm">
                 <p className="text-sm font-semibold text-[var(--color-text)]">
                   В проекте пока нет задач
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
                   Здесь появятся строки задач и их поля.
                 </p>
-              </div>
+              </div> : null}
             </div>
           </section>
 
@@ -134,6 +171,8 @@ export function GanttWorkspace({ project }: GanttWorkspaceProps) {
             <div
               aria-label="Горизонтальная прокрутка временной шкалы"
               className="gantt-timeline-scroll focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent)]"
+              onScroll={(event) => syncVerticalScroll(event, taskPaneRef.current)}
+              ref={timelinePaneRef}
               role="region"
               tabIndex={0}
             >
@@ -184,11 +223,11 @@ export function GanttWorkspace({ project }: GanttWorkspaceProps) {
                 </div>
 
                 <div className="relative">
-                  {EMPTY_ROWS.map((rowNumber) => (
+                  {rows.map((task, rowIndex) => (
                     <div
-                      aria-hidden="true"
-                      className="flex border-b border-[var(--color-border)]"
-                      key={rowNumber}
+                      aria-hidden={task ? undefined : true}
+                      className="relative flex border-b border-[var(--color-border)]"
+                      key={task?.id ?? `empty-${rowIndex}`}
                       style={{ height: GANTT_ROW_HEIGHT }}
                     >
                       {timeline.days.map((day) => (
@@ -198,6 +237,14 @@ export function GanttWorkspace({ project }: GanttWorkspaceProps) {
                           style={{ width: GANTT_DAY_WIDTH }}
                         />
                       ))}
+                      {task ? (
+                        <TaskBar
+                          onOpen={onTaskDetails}
+                          task={task}
+                          timelineEndDate={project.endDate}
+                          timelineStartDate={project.startDate}
+                        />
+                      ) : null}
                     </div>
                   ))}
                 </div>

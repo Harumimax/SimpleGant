@@ -1,7 +1,10 @@
 import {
+  differenceInCalendarDays,
   eachDayOfInterval,
   format,
   getISOWeek,
+  isAfter,
+  isBefore,
   isWeekend,
   parseISO,
 } from 'date-fns';
@@ -29,6 +32,13 @@ export type TimelineModel = {
   months: TimelineGroup[];
   weeks: TimelineGroup[];
   width: number;
+};
+
+export type TaskBarGeometry = {
+  left: number;
+  width: number;
+  isClippedStart: boolean;
+  isClippedEnd: boolean;
 };
 
 function capitalize(value: string) {
@@ -81,5 +91,41 @@ export function buildTimeline(startDate: string, endDate: string): TimelineModel
     months,
     weeks,
     width: days.length * GANTT_DAY_WIDTH,
+  };
+}
+
+export function calculateTaskBarGeometry(
+  taskStartDate: string | null,
+  taskEndDate: string | null,
+  timelineStartDate: string,
+  timelineEndDate: string,
+): TaskBarGeometry | null {
+  if (!taskStartDate || !taskEndDate) return null;
+
+  const taskStart = parseISO(taskStartDate);
+  const taskEnd = parseISO(taskEndDate);
+  const timelineStart = parseISO(timelineStartDate);
+  const timelineEnd = parseISO(timelineEndDate);
+
+  if (
+    isAfter(taskStart, taskEnd) ||
+    isBefore(taskEnd, timelineStart) ||
+    isAfter(taskStart, timelineEnd)
+  ) {
+    return null;
+  }
+
+  const isClippedStart = isBefore(taskStart, timelineStart);
+  const isClippedEnd = isAfter(taskEnd, timelineEnd);
+  const visibleStart = isClippedStart ? timelineStart : taskStart;
+  const visibleEnd = isClippedEnd ? timelineEnd : taskEnd;
+
+  return {
+    left: differenceInCalendarDays(visibleStart, timelineStart) * GANTT_DAY_WIDTH,
+    width:
+      (differenceInCalendarDays(visibleEnd, visibleStart) + 1) *
+      GANTT_DAY_WIDTH,
+    isClippedStart,
+    isClippedEnd,
   };
 }

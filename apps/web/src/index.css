@@ -31,6 +31,36 @@
   --color-chart-blue: #90b4cf;
   --color-chart-green: #72a994;
   --color-chart-sand: #d2a475;
+  --color-task-sage: #8db7a5;
+  --color-task-sage-border: #659783;
+  --color-task-sage-text: #173e33;
+  --color-task-blue: #91b4ce;
+  --color-task-blue-border: #6c94b2;
+  --color-task-blue-text: #173b55;
+  --color-task-sky: #9bc4d2;
+  --color-task-sky-border: #73a4b5;
+  --color-task-sky-text: #16414d;
+  --color-task-lavender: #aaa9ce;
+  --color-task-lavender-border: #8583b1;
+  --color-task-lavender-text: #302f61;
+  --color-task-plum: #c2a5bd;
+  --color-task-plum-border: #9f7d98;
+  --color-task-plum-text: #56344e;
+  --color-task-rose: #d1a5ae;
+  --color-task-rose-border: #ae7d88;
+  --color-task-rose-text: #5f303b;
+  --color-task-coral: #d5a294;
+  --color-task-coral-border: #b47c6c;
+  --color-task-coral-text: #633428;
+  --color-task-sand: #d4b58e;
+  --color-task-sand-border: #b18f66;
+  --color-task-sand-text: #5e431f;
+  --color-task-amber: #d2bb79;
+  --color-task-amber-border: #ae9656;
+  --color-task-amber-text: #55430d;
+  --color-task-teal: #81b9b5;
+  --color-task-teal-border: #57938f;
+  --color-task-teal-text: #15433f;
   --color-focus: #2d7d68;
   --color-danger: #b5473a;
   --color-danger-hover: #96392f;
@@ -167,7 +197,8 @@ a[href] {
 .gantt-task-pane {
   z-index: 20;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   border-right: 1px solid var(--color-border-strong);
   box-shadow: 5px 0 14px rgb(24 35 31 / 5%);
 }
@@ -181,8 +212,7 @@ a[href] {
 
 .gantt-timeline-scroll {
   height: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: auto;
   scrollbar-color: #aebbb5 #eef1ef;
   scrollbar-width: thin;
 }
@@ -199,6 +229,85 @@ a[href] {
   border: 2px solid #eef1ef;
   border-radius: 999px;
   background: #aebbb5;
+}
+
+.gantt-task-bar {
+  border: 1px solid var(--task-bar-border);
+  border-radius: 0.5rem;
+  color: var(--task-bar-text);
+  background: var(--task-bar-background);
+}
+
+.gantt-task-bar[data-clipped-start="true"] {
+  border-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.gantt-task-bar[data-clipped-end="true"] {
+  border-right: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.gantt-task-bar[data-color="sage"] {
+  --task-bar-background: var(--color-task-sage);
+  --task-bar-border: var(--color-task-sage-border);
+  --task-bar-text: var(--color-task-sage-text);
+}
+
+.gantt-task-bar[data-color="blue"] {
+  --task-bar-background: var(--color-task-blue);
+  --task-bar-border: var(--color-task-blue-border);
+  --task-bar-text: var(--color-task-blue-text);
+}
+
+.gantt-task-bar[data-color="sky"] {
+  --task-bar-background: var(--color-task-sky);
+  --task-bar-border: var(--color-task-sky-border);
+  --task-bar-text: var(--color-task-sky-text);
+}
+
+.gantt-task-bar[data-color="lavender"] {
+  --task-bar-background: var(--color-task-lavender);
+  --task-bar-border: var(--color-task-lavender-border);
+  --task-bar-text: var(--color-task-lavender-text);
+}
+
+.gantt-task-bar[data-color="plum"] {
+  --task-bar-background: var(--color-task-plum);
+  --task-bar-border: var(--color-task-plum-border);
+  --task-bar-text: var(--color-task-plum-text);
+}
+
+.gantt-task-bar[data-color="rose"] {
+  --task-bar-background: var(--color-task-rose);
+  --task-bar-border: var(--color-task-rose-border);
+  --task-bar-text: var(--color-task-rose-text);
+}
+
+.gantt-task-bar[data-color="coral"] {
+  --task-bar-background: var(--color-task-coral);
+  --task-bar-border: var(--color-task-coral-border);
+  --task-bar-text: var(--color-task-coral-text);
+}
+
+.gantt-task-bar[data-color="sand"] {
+  --task-bar-background: var(--color-task-sand);
+  --task-bar-border: var(--color-task-sand-border);
+  --task-bar-text: var(--color-task-sand-text);
+}
+
+.gantt-task-bar[data-color="amber"] {
+  --task-bar-background: var(--color-task-amber);
+  --task-bar-border: var(--color-task-amber-border);
+  --task-bar-text: var(--color-task-amber-text);
+}
+
+.gantt-task-bar[data-color="teal"] {
+  --task-bar-background: var(--color-task-teal);
+  --task-bar-border: var(--color-task-teal-border);
+  --task-bar-text: var(--color-task-teal-text);
 }
 
 @media (width < 1024px) {
