@@ -30,6 +30,10 @@ export function listProjects() {
   return apiRequest<Project[]>('/projects');
 }
 
+export function getProject(id: string) {
+  return apiRequest<ProjectDetail>(`/projects/${id}`);
+}
+
 export function createProject(input: ProjectInput) {
   return apiRequest<ProjectDetail>('/projects', {
     method: 'POST',

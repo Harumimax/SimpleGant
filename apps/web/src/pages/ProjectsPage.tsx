@@ -1,7 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { CalendarRange, ChartNoAxesGantt, FolderOpen, LogOut, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarRange,
+  ChartNoAxesGantt,
+  FolderOpen,
+  LogOut,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -133,6 +142,14 @@ export function ProjectsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 sm:justify-end">
+                  <button
+                    className="mr-1 flex h-11 items-center gap-2 rounded-md border border-[#cbd5d0] bg-white px-3 text-sm font-semibold text-[#286b59] hover:border-[#9eb5aa] hover:bg-[#f7faf8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#286b59]"
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                    type="button"
+                  >
+                    Открыть
+                    <ArrowRight aria-hidden className="size-4" />
+                  </button>
                   <button aria-label={`Редактировать ${project.name}`} className="grid size-11 place-items-center rounded-md text-[#5c6c65] hover:bg-[#eaf0ed] hover:text-[#286b59] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#286b59]" onClick={() => openEdit(project)} title="Редактировать" type="button"><Pencil aria-hidden className="size-4" /></button>
                   <button aria-label={`Удалить ${project.name}`} className="grid size-11 place-items-center rounded-md text-[#76837d] hover:bg-[#fff0ed] hover:text-[#a3382a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a3382a]" onClick={() => openDelete(project)} title="Удалить" type="button"><Trash2 aria-hidden className="size-4" /></button>
                 </div>

@@ -1,6 +1,17 @@
 @import "tailwindcss";
 
 :root {
+  --color-canvas: #f4f6f3;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f7f9f7;
+  --color-border: #e1e6e3;
+  --color-border-strong: #cbd5d0;
+  --color-text: #18231f;
+  --color-text-muted: #607069;
+  --color-text-faint: #8b9892;
+  --color-accent: #286b59;
+  --color-accent-soft: #e7f0ec;
+  --color-weekend: #f2f4f3;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -8,6 +19,56 @@
   background: #f8fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+}
+
+.gantt-shell {
+  display: grid;
+  grid-template-columns: clamp(600px, 48vw, 720px) minmax(0, 1fr);
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.gantt-task-pane {
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--color-border-strong);
+  box-shadow: 5px 0 14px rgb(24 35 31 / 5%);
+  z-index: 20;
+}
+
+.gantt-timeline-pane,
+.gantt-timeline-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.gantt-timeline-scroll {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-color: #aebbb5 #eef1ef;
+  scrollbar-width: thin;
+}
+
+.gantt-timeline-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.gantt-timeline-scroll::-webkit-scrollbar-track {
+  background: #eef1ef;
+}
+
+.gantt-timeline-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid #eef1ef;
+  border-radius: 999px;
+  background: #aebbb5;
+}
+
+@media (width < 1024px) {
+  .gantt-shell {
+    grid-template-columns: 600px minmax(0, 1fr);
+  }
 }
 
 body {
