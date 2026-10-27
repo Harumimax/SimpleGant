@@ -14,6 +14,14 @@ const titleColumn: ProjectColumn = {
   isDefault: true,
 };
 
+const durationColumn: ProjectColumn = {
+  ...titleColumn,
+  id: 'column-duration',
+  name: 'Длительность',
+  key: 'duration',
+  orderIndex: 1,
+};
+
 const task: Task = {
   id: 'task-1',
   projectId: 'project-1',
@@ -24,6 +32,7 @@ const task: Task = {
   workType: '',
   assignee: 'Максим',
   estimate: '',
+  duration: 12,
   status: 'Ожидает',
   startDate: '2026-10-19',
   endDate: '2026-10-30',
@@ -58,5 +67,25 @@ describe('TaskTableRow', () => {
 
     expect(onDetails).toHaveBeenCalledOnce();
     expect(onDetails).toHaveBeenCalledWith(task);
+  });
+
+  it('renders duration derived from the task dates', () => {
+    render(
+      <TaskTableRow
+        canIndent={false}
+        canOutdent={false}
+        columns={[titleColumn, durationColumn]}
+        gridTemplateColumns="42px minmax(190px, 2fr) 104px 96px"
+        hasChildren={false}
+        onDetails={vi.fn()}
+        onIndent={vi.fn()}
+        onOutdent={vi.fn()}
+        onToggleCollapsed={vi.fn()}
+        rowNumber={1}
+        task={task}
+      />,
+    );
+
+    expect(screen.getByText('12 дн.')).toBeInTheDocument();
   });
 });

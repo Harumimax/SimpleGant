@@ -10,6 +10,11 @@ export function dateOnly(value: Date | null) {
   return value?.toISOString().slice(0, 10) ?? null;
 }
 
+export function calculateDuration(startDate: Date | null, endDate: Date | null) {
+  if (!startDate || !endDate || startDate > endDate) return null;
+  return Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
+}
+
 function moveDays(date: Date, amount: number) {
   const next = new Date(date);
   next.setUTCDate(next.getUTCDate() + amount);
@@ -35,9 +40,24 @@ export function normalizeCreationDates(
   startValue?: string,
   endValue?: string,
   excludeWeekends = true,
+  duration?: number,
 ) {
   let startDate = startValue ? parseDateOnly(startValue) : null;
   let endDate = endValue ? parseDateOnly(endValue) : null;
+
+  if (duration !== undefined) {
+    if (startDate) {
+      endDate = moveDays(startDate, duration - 1);
+    } else if (endDate) {
+      startDate = moveDays(endDate, -(duration - 1));
+    } else {
+      throw new BadRequestException(
+        'Для расчета длительности укажите начало или конец задачи',
+      );
+    }
+    return { startDate, endDate };
+  }
+
   const calendarDays = DEFAULT_TASK_DURATION * 7 / 5 - 1;
 
   if (startDate && !endDate) {

@@ -20,6 +20,7 @@ export type Task = {
   workType: string | null;
   assignee: string;
   estimate: string | null;
+  duration: number | null;
   status: TaskStatus;
   startDate: string | null;
   endDate: string | null;
@@ -35,6 +36,7 @@ export type TaskInput = {
   workType?: string | null;
   assignee: string;
   estimate?: string | null;
+  duration?: number;
   status: TaskStatus;
   startDate?: string | null;
   endDate?: string | null;

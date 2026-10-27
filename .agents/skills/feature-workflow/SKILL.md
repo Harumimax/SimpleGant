@@ -36,7 +36,7 @@ If architecture, security assumptions, persisted entities, API contracts, or mod
 - Public responses expose only project data intended for the viewer; never expose owner credentials, password hashes, internal session data, or other private records.
 - A project has a required start and end date and is loaded as one Gantt aggregate: project, columns, tasks, milestones, and non-working days.
 - A project supports at most 10 task columns. Custom columns are text-only in the MVP and belong to one project.
-- Default columns are `Название`, `Тип работ`, `Исполнитель`, `Оценка`, and `Статус`.
+- Default columns are `Название`, `Тип работ`, `Исполнитель`, `Длительность`, and `Статус`.
 - Task statuses are fixed: `Ожидает`, `В работе`, `На паузе`, `Завершено`, and `Заблокировано`.
 - Task dates have day precision. Persist `startDate` and `endDate`; derive duration instead of storing an independent duration value.
 - When only one boundary date is supplied during task creation, calculate the other from the default two-week duration. The default creation option excludes weekends and project non-working days.

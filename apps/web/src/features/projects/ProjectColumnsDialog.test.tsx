@@ -8,7 +8,7 @@ const columns: ProjectColumn[] = [
   ['title', 'Название'],
   ['workType', 'Тип работ'],
   ['assignee', 'Исполнитель'],
-  ['estimate', 'Оценка'],
+  ['duration', 'Длительность'],
   ['status', 'Статус'],
 ].map(([key, name], orderIndex) => ({
   id: `00000000-0000-4000-8000-00000000000${orderIndex}`,
@@ -34,7 +34,7 @@ describe('ProjectColumnsDialog', () => {
     fireEvent.change(screen.getByLabelText('Название колонки 1'), {
       target: { value: 'Задача' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Скрыть колонку Оценка' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Скрыть колонку Длительность' }));
     fireEvent.click(screen.getByRole('button', { name: 'Поднять колонку Статус' }));
     fireEvent.click(screen.getByRole('button', { name: 'Добавить колонку' }));
     fireEvent.submit(screen.getByRole('button', { name: 'Сохранить колонки' }).closest('form')!);
@@ -44,7 +44,7 @@ describe('ProjectColumnsDialog', () => {
       expect.objectContaining({ name: 'Тип работ' }),
       expect.objectContaining({ name: 'Исполнитель' }),
       expect.objectContaining({ name: 'Статус' }),
-      expect.objectContaining({ name: 'Оценка', isVisible: false }),
+      expect.objectContaining({ name: 'Длительность', isVisible: false }),
       { name: 'Новая колонка 1', isVisible: true },
     ]);
   });

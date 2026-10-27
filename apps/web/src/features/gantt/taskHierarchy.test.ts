@@ -27,6 +27,7 @@ function task(
     workType: null,
     assignee: 'Анна',
     estimate: null,
+    duration: null,
     status: 'Ожидает',
     startDate: null,
     endDate: null,
@@ -111,10 +112,12 @@ describe('task hierarchy', () => {
     expect(result.find(({ id }) => id === 'group')).toMatchObject({
       startDate: '2026-02-10',
       endDate: '2026-02-14',
+      duration: 5,
     });
     expect(result.find(({ id }) => id === 'root')).toMatchObject({
       startDate: '2026-02-01',
       endDate: '2026-02-14',
+      duration: 14,
     });
   });
 });

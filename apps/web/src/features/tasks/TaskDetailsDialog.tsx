@@ -12,7 +12,12 @@ export function TaskDetailsDialog({ task, onClose, onEdit, onDelete }: Props) {
   const rows = [
     ['Тип работ', task.workType || '—'],
     ['Ответственный', task.assignee],
-    ['Оценка', task.estimate || '—'],
+    [
+      'Длительность',
+      task.duration === null || task.duration === undefined
+        ? '—'
+        : `${task.duration} дн.`,
+    ],
     ['Статус', task.status],
     ['Начало', task.startDate || 'Не указано'],
     ['Окончание', task.endDate || 'Не указано'],

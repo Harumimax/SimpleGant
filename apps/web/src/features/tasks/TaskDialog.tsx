@@ -1,4 +1,5 @@
 import { CalendarDays, X } from 'lucide-react';
+import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { useId, useRef, useState, type FormEvent } from 'react';
 
 import { Alert } from '../../components/ui/Alert';
@@ -25,7 +26,11 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
   const [title, setTitle] = useState(task?.title ?? '');
   const [workType, setWorkType] = useState(task?.workType ?? '');
   const [assignee, setAssignee] = useState(task?.assignee ?? '');
-  const [estimate, setEstimate] = useState(task?.estimate ?? '');
+  const [duration, setDuration] = useState(
+    task?.duration === null || task?.duration === undefined
+      ? ''
+      : String(task.duration),
+  );
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? 'Ожидает');
   const [startDate, setStartDate] = useState(task?.startDate ?? '');
   const [endDate, setEndDate] = useState(task?.endDate ?? '');
@@ -46,11 +51,40 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
     return value || undefined;
   }
 
+  function syncDuration(nextStartDate: string, nextEndDate: string) {
+    if (nextStartDate && nextEndDate && nextStartDate <= nextEndDate) {
+      setDuration(String(
+        differenceInCalendarDays(
+          parseISO(nextEndDate),
+          parseISO(nextStartDate),
+        ) + 1,
+      ));
+    }
+  }
+
+  function changeStartDate(value: string) {
+    setStartDate(value);
+    syncDuration(value, endDate);
+  }
+
+  function changeEndDate(value: string) {
+    setEndDate(value);
+    syncDuration(startDate, value);
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (startDate && endDate && startDate > endDate) {
       setFormError('Дата окончания не может быть раньше даты начала');
       endDateRef.current?.focus();
+      return;
+    }
+    const parsedDuration = duration ? Number(duration) : undefined;
+    if (
+      parsedDuration !== undefined &&
+      (!Number.isInteger(parsedDuration) || parsedDuration < 1)
+    ) {
+      setFormError('Длительность должна быть целым числом не меньше одного дня');
       return;
     }
     setFormError('');
@@ -69,11 +103,11 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
       title: title.trim(),
       workType: optionalValue(workType),
       assignee: assignee.trim(),
-      estimate: optionalValue(estimate),
       status,
       ...(!datesReadOnly ? {
         startDate: optionalDate(startDate),
         endDate: optionalDate(endDate),
+        duration: parsedDuration,
       } : {}),
       ...(!task ? { excludeWeekends } : {}),
       customFields: normalizedCustomFields,
@@ -89,7 +123,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
               {task ? 'Редактировать задачу' : 'Новая задача'}
             </h2>
             <p className="mt-1.5 text-sm leading-6 text-[var(--color-text-muted)]">
-              Название и ответственный обязательны. Если указать одну дату, сервис рассчитает вторую.
+              Название и ответственный обязательны. Длительность задаёт длину полосы в календарных днях.
             </p>
           </div>
           <Button aria-label="Закрыть" disabled={isPending} onClick={onClose} size="icon" type="button" variant="ghost">
@@ -104,7 +138,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
             </div>
             <TextField disabled={isPending} label="Тип работ" maxLength={200} onChange={(event) => setWorkType(event.target.value)} value={workType} />
             <TextField disabled={isPending} label="Ответственный" maxLength={200} onChange={(event) => setAssignee(event.target.value)} required value={assignee} />
-            <TextField disabled={isPending} label="Оценка" maxLength={100} onChange={(event) => setEstimate(event.target.value)} placeholder="Например, 5 дней" value={estimate} />
+            <TextField disabled={isPending || datesReadOnly} label="Длительность, дней" min="1" onChange={(event) => setDuration(event.target.value)} placeholder="Например, 7" step="1" type="number" value={duration} />
             <SelectField disabled={isPending} label="Статус" onChange={(event) => setStatus(event.target.value as TaskStatus)} value={status}>
               {TASK_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
             </SelectField>
@@ -121,8 +155,8 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
                 value={customFields[column.key] ?? ''}
               />
             ))}
-            <TextField disabled={isPending || datesReadOnly} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Начало задачи" onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
-            <TextField disabled={isPending || datesReadOnly} error={formError || undefined} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Конец задачи" min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} ref={endDateRef} type="date" value={endDate} />
+            <TextField disabled={isPending || datesReadOnly} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Начало задачи" onChange={(event) => changeStartDate(event.target.value)} type="date" value={startDate} />
+            <TextField disabled={isPending || datesReadOnly} error={formError || undefined} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Конец задачи" min={startDate || undefined} onChange={(event) => changeEndDate(event.target.value)} ref={endDateRef} type="date" value={endDate} />
           </div>
 
           {datesReadOnly ? <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">Даты родительской задачи рассчитываются автоматически по вложенным задачам.</p> : null}
@@ -130,7 +164,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
           {!task ? (
             <label className="mt-5 flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-4 text-sm">
               <input checked={excludeWeekends} className="mt-0.5 size-4 accent-[var(--color-primary)]" disabled={isPending} onChange={(event) => setExcludeWeekends(event.target.checked)} type="checkbox" />
-              <span><span className="font-semibold">Не учитывать выходные дни</span><span className="mt-1 block text-xs leading-5 text-[var(--color-text-muted)]">Применяется только когда заполнена одна из дат.</span></span>
+              <span><span className="font-semibold">Не учитывать выходные дни</span><span className="mt-1 block text-xs leading-5 text-[var(--color-text-muted)]">Применяется к длительности по умолчанию, когда заполнена одна дата и длительность не указана.</span></span>
             </label>
           ) : null}
 

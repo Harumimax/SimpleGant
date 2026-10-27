@@ -95,6 +95,24 @@ describe('TasksService', () => {
     expect(result.endDate).toBe('2026-11-20');
   });
 
+  it('creates an inclusive seven-day range from an explicit duration', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.nextOrderIndex.mockResolvedValue(0);
+    repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    const result = await service.create(projectId, ownerId, {
+      title: task.title,
+      assignee: task.assignee,
+      startDate: '2026-11-02',
+      duration: 7,
+    });
+
+    expect(result.endDate).toBe('2026-11-08');
+    expect(result.duration).toBe(7);
+  });
+
   it('clears optional fields while preserving server-owned task fields', async () => {
     const repository = repositoryMock();
     repository.findOwnedProject.mockResolvedValue({ id: projectId });
@@ -177,6 +195,25 @@ describe('TasksService', () => {
         endDate: new Date('2026-12-10T00:00:00.000Z'),
       }],
     );
+  });
+
+  it('returns a recalculated duration after a direct date resize', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.list.mockResolvedValue([task]);
+    repository.updateWithParentDates.mockResolvedValue([{
+      ...task,
+      startDate: new Date('2026-11-02T00:00:00.000Z'),
+      endDate: new Date('2026-11-08T00:00:00.000Z'),
+    }]);
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    const result = await service.update(projectId, task.id, ownerId, {
+      startDate: '2026-11-02',
+      endDate: '2026-11-08',
+    });
+
+    expect(result[0]?.duration).toBe(7);
   });
 
   it('rejects manual date changes for a parent task', async () => {

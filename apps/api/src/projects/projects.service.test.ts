@@ -62,7 +62,7 @@ describe('ProjectsService', () => {
       'Название',
       'Тип работ',
       'Исполнитель',
-      'Оценка',
+      'Длительность',
       'Статус',
     ]);
     expect(result).not.toHaveProperty('publicToken');

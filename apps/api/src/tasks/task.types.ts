@@ -10,6 +10,7 @@ export type TaskView = {
   workType: string | null;
   assignee: string;
   estimate: string | null;
+  duration: number | null;
   status: TaskStatus;
   startDate: string | null;
   endDate: string | null;

@@ -6,7 +6,7 @@ export const DEFAULT_PROJECT_COLUMNS = [
   { name: 'Название', key: 'title', orderIndex: 0 },
   { name: 'Тип работ', key: 'workType', orderIndex: 1 },
   { name: 'Исполнитель', key: 'assignee', orderIndex: 2 },
-  { name: 'Оценка', key: 'estimate', orderIndex: 3 },
+  { name: 'Длительность', key: 'duration', orderIndex: 3 },
   { name: 'Статус', key: 'status', orderIndex: 4 },
 ] as const;
 

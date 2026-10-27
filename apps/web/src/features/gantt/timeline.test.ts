@@ -4,9 +4,17 @@ import {
   buildTimeline,
   calculateTaskDateChange,
   calculateTaskBarGeometry,
+  calculateTaskDuration,
   calculateMilestoneLeft,
   GANTT_DAY_WIDTH,
 } from './timeline';
+
+describe('calculateTaskDuration', () => {
+  it('calculates inclusive task duration from resized boundaries', () => {
+    expect(calculateTaskDuration('2026-11-02', '2026-11-08')).toBe(7);
+    expect(calculateTaskDuration('2026-11-02', '2026-11-02')).toBe(1);
+  });
+});
 
 describe('buildTimeline', () => {
   it('builds an inclusive day range and marks weekends', () => {

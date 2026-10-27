@@ -31,7 +31,11 @@ function taskValue(task: Task, key: string) {
   if (key === 'title') return task.title;
   if (key === 'workType') return task.workType || '—';
   if (key === 'assignee') return task.assignee;
-  if (key === 'estimate') return task.estimate || '—';
+  if (key === 'duration' || key === 'estimate') {
+    return task.duration === null || task.duration === undefined
+      ? '—'
+      : `${task.duration} дн.`;
+  }
   if (key === 'status') return task.status;
   return task.customFields[key] || '—';
 }
@@ -111,7 +115,7 @@ export function TaskTableRow({
                 <span className="mr-1 size-6 shrink-0" />
               )}
               <button
-                className="min-w-0 truncate rounded-sm text-left font-semibold hover:text-[var(--color-primary)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+                className="task-title-button min-w-0 truncate rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
                 onClick={() => onDetails(task)}
                 type="button"
               >

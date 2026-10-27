@@ -138,6 +138,17 @@ export function calculateTaskBarGeometry(
   };
 }
 
+export function calculateTaskDuration(
+  taskStartDate: string | null,
+  taskEndDate: string | null,
+) {
+  if (!taskStartDate || !taskEndDate) return null;
+  const taskStart = parseISO(taskStartDate);
+  const taskEnd = parseISO(taskEndDate);
+  if (isAfter(taskStart, taskEnd)) return null;
+  return differenceInCalendarDays(taskEnd, taskStart) + 1;
+}
+
 export function calculateMilestoneLeft(
   milestoneDate: string,
   timelineStartDate: string,

@@ -14,6 +14,7 @@ const task: Task = {
   workType: 'Дизайн',
   assignee: 'Анна',
   estimate: '3 дня',
+  duration: 3,
   status: 'В работе',
   startDate: '2026-11-03',
   endDate: '2026-11-05',

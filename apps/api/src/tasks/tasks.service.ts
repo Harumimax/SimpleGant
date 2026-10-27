@@ -15,7 +15,13 @@ import {
   TASK_STATUSES,
   type TaskStatus,
 } from './task.constants.js';
-import { dateOnly, normalizeCreationDates, parseDateOnly, validateDateRange } from './task-dates.js';
+import {
+  calculateDuration,
+  dateOnly,
+  normalizeCreationDates,
+  parseDateOnly,
+  validateDateRange,
+} from './task-dates.js';
 import {
   changedParentDates,
   recalculateParentDates,
@@ -49,6 +55,7 @@ export class TasksService {
       input.startDate,
       input.endDate,
       input.excludeWeekends ?? true,
+      input.duration,
     );
     const customFields = await this.validateCustomFields(
       projectId,
@@ -83,19 +90,33 @@ export class TasksService {
     const hasChildren = currentTasks.some(({ parentId }) => parentId === taskId);
     if (
       hasChildren &&
-      (input.startDate !== undefined || input.endDate !== undefined)
+      (
+        input.startDate !== undefined ||
+        input.endDate !== undefined ||
+        input.duration !== undefined
+      )
     ) {
       throw new BadRequestException(
         'Даты родительской задачи рассчитываются автоматически',
       );
     }
 
-    const startDate = input.startDate === undefined
+    let startDate = input.startDate === undefined
       ? current.startDate
       : input.startDate === null ? null : parseDateOnly(input.startDate);
-    const endDate = input.endDate === undefined
+    let endDate = input.endDate === undefined
       ? current.endDate
       : input.endDate === null ? null : parseDateOnly(input.endDate);
+    if (input.duration !== undefined) {
+      const normalized = normalizeCreationDates(
+        dateOnly(startDate) ?? undefined,
+        dateOnly(endDate) ?? undefined,
+        false,
+        input.duration,
+      );
+      startDate = normalized.startDate;
+      endDate = normalized.endDate;
+    }
     validateDateRange(startDate, endDate);
 
     const taskUpdate = {
@@ -339,6 +360,7 @@ export class TasksService {
     return {
       ...task,
       status: task.status as TaskStatus,
+      duration: calculateDuration(task.startDate, task.endDate),
       startDate: dateOnly(task.startDate),
       endDate: dateOnly(task.endDate),
       customFields: task.customFields as Record<string, string>,

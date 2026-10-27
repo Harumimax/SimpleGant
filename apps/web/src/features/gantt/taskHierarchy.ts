@@ -1,4 +1,5 @@
 import type { Task, TaskPositionInput } from '../tasks/tasks.api';
+import { calculateTaskDuration } from './timeline';
 
 export const MAX_TASK_LEVEL = 4;
 
@@ -73,7 +74,13 @@ export function recalculateParentTaskDates(tasks: Task[]) {
   };
 
   tasks.forEach(({ id }) => resolve(id));
-  return tasks.map(({ id }) => byId.get(id)!);
+  return tasks.map(({ id }) => {
+    const task = byId.get(id)!;
+    return {
+      ...task,
+      duration: calculateTaskDuration(task.startDate, task.endDate),
+    };
+  });
 }
 
 export function countTaskDescendants(tasks: Task[], taskId: string) {

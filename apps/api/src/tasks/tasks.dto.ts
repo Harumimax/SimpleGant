@@ -60,6 +60,12 @@ export class CreateTaskDto {
   estimate?: string;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Длительность должна быть целым числом дней' })
+  @Min(1, { message: 'Длительность должна быть не меньше одного дня' })
+  duration?: number;
+
+  @IsOptional()
   @IsIn(TASK_STATUSES, { message: 'Выберите допустимый статус задачи' })
   status?: TaskStatus;
 
@@ -106,6 +112,12 @@ export class UpdateTaskDto {
   @IsString()
   @MaxLength(100)
   estimate?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Длительность должна быть целым числом дней' })
+  @Min(1, { message: 'Длительность должна быть не меньше одного дня' })
+  duration?: number;
 
   @IsOptional()
   @IsIn(TASK_STATUSES, { message: 'Выберите допустимый статус задачи' })

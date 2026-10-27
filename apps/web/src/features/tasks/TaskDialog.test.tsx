@@ -15,6 +15,7 @@ const parentTask: Task = {
   workType: null,
   assignee: 'Ирина',
   estimate: null,
+  duration: 10,
   status: 'Ожидает',
   startDate: '2026-11-01',
   endDate: '2026-11-10',
@@ -66,6 +67,22 @@ describe('TaskDialog', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Дата окончания не может быть раньше даты начала');
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('submits an explicit duration as a number of calendar days', () => {
+    const onSubmit = vi.fn();
+    render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Задача на неделю' } });
+    fireEvent.change(screen.getByLabelText('Ответственный'), { target: { value: 'Ирина' } });
+    fireEvent.change(screen.getByLabelText('Начало задачи'), { target: { value: '2026-11-02' } });
+    fireEvent.change(screen.getByLabelText('Длительность, дней'), { target: { value: '7' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Создать задачу' }).closest('form')!);
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      startDate: '2026-11-02',
+      duration: 7,
+    }));
   });
 
   it('disables and omits dates when editing a parent task', () => {
