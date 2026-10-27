@@ -8,6 +8,9 @@ import { ProjectsPage } from './pages/ProjectsPage';
 export function App() {
   return (
     <BrowserRouter>
+      <a className="skip-link" href="#main-content">
+        Перейти к содержимому
+      </a>
       <Routes>
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />

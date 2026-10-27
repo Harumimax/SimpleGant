@@ -9,7 +9,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (currentUser.isPending) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f4f6f3] text-[#20312c]">
+      <main
+        className="grid min-h-screen place-items-center bg-[var(--color-canvas)] text-[var(--color-text)]"
+        id="main-content"
+      >
         <div className="flex items-center gap-3 text-sm font-medium">
           <LoaderCircle aria-hidden className="size-5 animate-spin" />
           Загружаем рабочее пространство

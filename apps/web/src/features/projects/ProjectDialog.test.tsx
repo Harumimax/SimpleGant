@@ -56,6 +56,7 @@ describe('ProjectDialog', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Дата окончания не может быть раньше даты начала',
     );
+    expect(screen.getByLabelText('Дата окончания')).toHaveFocus();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });

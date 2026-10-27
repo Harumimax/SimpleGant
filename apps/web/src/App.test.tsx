@@ -18,7 +18,7 @@ describe('App', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Войти в аккаунт' }),
+      screen.getByRole('heading', { name: 'Войти в SimpleGant' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Войти' })).toBeEnabled();
   });

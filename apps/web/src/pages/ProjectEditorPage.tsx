@@ -16,7 +16,10 @@ export function ProjectEditorPage() {
 
   if (project.isPending) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[var(--color-canvas)] text-[var(--color-text-muted)]">
+      <main
+        className="grid min-h-screen place-items-center bg-[var(--color-canvas)] text-[var(--color-text-muted)]"
+        id="main-content"
+      >
         <p className="text-sm">Загружаем проект…</p>
       </main>
     );
@@ -24,7 +27,10 @@ export function ProjectEditorPage() {
 
   if (project.isError) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[var(--color-canvas)] px-5 text-center text-[var(--color-text)]">
+      <main
+        className="grid min-h-screen place-items-center bg-[var(--color-canvas)] px-5 text-center text-[var(--color-text)]"
+        id="main-content"
+      >
         <div>
           <h1 className="text-xl font-semibold">Проект не найден</h1>
           <p className="mt-2 text-sm text-[var(--color-text-muted)]">
@@ -42,7 +48,10 @@ export function ProjectEditorPage() {
   }
 
   return (
-    <main className="flex h-screen min-h-[560px] flex-col overflow-hidden bg-[var(--color-canvas)] text-[var(--color-text)]">
+    <main
+      className="flex h-screen min-h-[560px] flex-col overflow-hidden bg-[var(--color-canvas)] text-[var(--color-text)]"
+      id="main-content"
+    >
       <header className="shrink-0 border-b border-[var(--color-border)] bg-white">
         <div className="flex min-h-16 items-center gap-3 px-4 sm:px-6">
           <Link

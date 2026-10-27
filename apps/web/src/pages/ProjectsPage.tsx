@@ -1,32 +1,52 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, parseISO } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import {
+  AlertCircle,
   ArrowRight,
   CalendarRange,
-  ChartNoAxesGantt,
+  FolderKanban,
   FolderOpen,
-  LogOut,
   Pencil,
   Plus,
   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
+import { AppHeader } from '../components/ui/AppHeader';
+import { Button } from '../components/ui/Button';
+import { buttonClassName } from '../components/ui/button.styles';
+import { EmptyState } from '../components/ui/EmptyState';
+import { LoadingState } from '../components/ui/LoadingState';
 import { logout } from '../features/auth/auth.api';
 import { currentUserQueryKey, useCurrentUser } from '../features/auth/auth.queries';
 import { DeleteProjectDialog } from '../features/projects/DeleteProjectDialog';
 import { ProjectDialog } from '../features/projects/ProjectDialog';
-import { createProject, deleteProject, updateProject, type Project, type ProjectInput } from '../features/projects/projects.api';
-import { projectsQueryKey, useProjects } from '../features/projects/projects.queries';
+import {
+  createProject,
+  deleteProject,
+  updateProject,
+  type Project,
+  type ProjectInput,
+} from '../features/projects/projects.api';
+import {
+  projectsQueryKey,
+  useProjects,
+} from '../features/projects/projects.queries';
+
+const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
 
 function mutationMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Не удалось выполнить действие';
+  return error instanceof Error
+    ? error.message
+    : 'Не удалось выполнить действие. Попробуйте ещё раз.';
 }
 
 function formatDate(value: string) {
-  return format(parseISO(value), 'd MMM yyyy', { locale: ru });
+  return dateFormatter.format(new Date(value));
 }
 
 export function ProjectsPage() {
@@ -54,7 +74,8 @@ export function ProjectsPage() {
     },
   });
   const updateMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: ProjectInput }) => updateProject(id, input),
+    mutationFn: ({ id, input }: { id: string; input: ProjectInput }) =>
+      updateProject(id, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: projectsQueryKey });
       setEditingProject(null);
@@ -84,84 +105,181 @@ export function ProjectsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f6f3] text-[#18231f]">
-      <header className="border-b border-[#dce2de] bg-white">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
-          <div className="flex items-center gap-2 text-lg font-semibold">
-            <ChartNoAxesGantt aria-hidden className="size-5 text-[#286b59]" />
-            SimpleGant
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden max-w-56 truncate text-sm text-[#607069] sm:block">{currentUser.data?.email}</span>
-            <button aria-label="Выйти" className="grid size-11 place-items-center rounded-md text-[#51615a] hover:bg-[#eef2ef] hover:text-[#18231f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#286b59] disabled:opacity-50" disabled={logoutMutation.isPending} onClick={() => logoutMutation.mutate()} title="Выйти" type="button">
-              <LogOut aria-hidden className="size-5" />
-            </button>
-          </div>
-        </div>
-      </header>
+    <main
+      className="min-h-screen bg-[var(--color-canvas)] text-[var(--color-text)]"
+      id="main-content"
+    >
+      <AppHeader
+        email={currentUser.data?.email}
+        isLoggingOut={logoutMutation.isPending}
+        onLogout={() => logoutMutation.mutate()}
+      />
 
-      <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
-        <div className="flex flex-col items-start justify-between gap-5 border-b border-[#d4dcd7] pb-6 sm:flex-row sm:items-end">
+      <section className="mx-auto max-w-[var(--container-content)] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+        <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end">
           <div>
-            <h1 className="text-2xl font-semibold tracking-[-0.02em]">Проекты</h1>
-            <p className="mt-1 text-sm text-[#607069]">Рабочие планы и диаграммы Ганта.</p>
+            <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.035em] text-balance sm:text-[32px]">
+              Проекты
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+              Все рабочие планы и диаграммы Ганта в одном месте.
+            </p>
           </div>
-          <button className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#286b59] px-4 text-sm font-semibold text-white hover:bg-[#215949] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#286b59] sm:w-auto" onClick={openCreate} type="button">
+          <Button className="w-full sm:w-auto" onClick={openCreate} type="button">
             <Plus aria-hidden className="size-4" />
             Создать проект
-          </button>
+          </Button>
         </div>
 
-        {projects.isPending ? (
-          <div aria-label="Загрузка проектов" className="divide-y divide-[#e1e6e3]">
-            {[0, 1, 2].map((item) => <div className="h-24 animate-pulse bg-white/35" key={item} />)}
-          </div>
-        ) : projects.isError ? (
-          <div className="border-b border-[#e1e6e3] py-14 text-center">
-            <p className="text-sm font-semibold">Не удалось загрузить проекты</p>
-            <button className="mt-3 h-11 rounded-md border border-[#cbd5d0] px-4 text-sm font-semibold hover:bg-white" onClick={() => projects.refetch()} type="button">Повторить</button>
-          </div>
-        ) : projects.data.length === 0 ? (
-          <div className="grid min-h-80 place-items-center border-b border-[#e1e6e3] py-16 text-center">
-            <div className="max-w-sm">
-              <div className="mx-auto grid size-12 place-items-center rounded-full border border-[#ced8d2] bg-white text-[#286b59]"><FolderOpen aria-hidden className="size-5" /></div>
-              <p className="mt-4 font-semibold">Начните с первого проекта</p>
-              <p className="mt-2 text-sm leading-6 text-[#71817a]">Укажите название и период — стандартные колонки для задач появятся автоматически.</p>
-              <button className="mt-5 h-11 rounded-md border border-[#b9c9c1] bg-white px-4 text-sm font-semibold text-[#286b59] hover:border-[#286b59]" onClick={openCreate} type="button">Создать проект</button>
-            </div>
-          </div>
-        ) : (
-          <div className="divide-y divide-[#dce3df] border-b border-[#dce3df]">
-            {projects.data.map((project) => (
-              <article className="group grid gap-4 bg-white/45 px-0 py-5 transition-colors hover:bg-white sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-4" key={project.id}>
-                <div className="min-w-0">
-                  <h2 className="truncate font-semibold text-[#1c2a25]">{project.name}</h2>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[#66756e]">
-                    <span className="flex items-center gap-2"><CalendarRange aria-hidden className="size-4 text-[#87958f]" />{formatDate(project.startDate)} — {formatDate(project.endDate)}</span>
-                    <span>Обновлён {formatDate(project.updatedAt)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 sm:justify-end">
-                  <button
-                    className="mr-1 flex h-11 items-center gap-2 rounded-md border border-[#cbd5d0] bg-white px-3 text-sm font-semibold text-[#286b59] hover:border-[#9eb5aa] hover:bg-[#f7faf8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#286b59]"
-                    onClick={() => navigate(`/projects/${project.id}`)}
-                    type="button"
+        <div className="mt-8 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgb(23_35_31_/_3%)]">
+          {projects.isPending ? (
+            <LoadingState />
+          ) : projects.isError ? (
+            <EmptyState
+              action={
+                <Button onClick={() => projects.refetch()} variant="secondary">
+                  Повторить загрузку
+                </Button>
+              }
+              description="Проверьте подключение к серверу и повторите попытку."
+              icon={<AlertCircle aria-hidden className="size-5" />}
+              title="Не удалось загрузить проекты"
+            />
+          ) : projects.data.length === 0 ? (
+            <EmptyState
+              action={
+                <Button onClick={openCreate}>
+                  <Plus aria-hidden className="size-4" />
+                  Создать первый проект
+                </Button>
+              }
+              description="Укажите название и период — стандартные колонки для задач появятся автоматически."
+              icon={<FolderOpen aria-hidden className="size-5" />}
+              title="Начните с первого проекта"
+            />
+          ) : (
+            <div>
+              <div className="hidden grid-cols-[minmax(0,1fr)_240px_176px] gap-4 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-2.5 text-xs font-semibold text-[var(--color-text-muted)] md:grid">
+                <span>Название</span>
+                <span>Период</span>
+                <span className="sr-only">Действия</span>
+              </div>
+              <div className="divide-y divide-[var(--color-border)]">
+                {projects.data.map((project) => (
+                  <article
+                    className="grid gap-4 px-4 py-4 transition-[background-color] duration-150 hover:bg-[var(--color-surface-hover)] sm:px-5 md:grid-cols-[minmax(0,1fr)_240px_176px] md:items-center"
+                    key={project.id}
                   >
-                    Открыть
-                    <ArrowRight aria-hidden className="size-4" />
-                  </button>
-                  <button aria-label={`Редактировать ${project.name}`} className="grid size-11 place-items-center rounded-md text-[#5c6c65] hover:bg-[#eaf0ed] hover:text-[#286b59] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#286b59]" onClick={() => openEdit(project)} title="Редактировать" type="button"><Pencil aria-hidden className="size-4" /></button>
-                  <button aria-label={`Удалить ${project.name}`} className="grid size-11 place-items-center rounded-md text-[#76837d] hover:bg-[#fff0ed] hover:text-[#a3382a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a3382a]" onClick={() => openDelete(project)} title="Удалить" type="button"><Trash2 aria-hidden className="size-4" /></button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
+                        <FolderKanban aria-hidden className="size-[18px]" />
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="truncate text-sm font-semibold text-[var(--color-text)]">
+                          <Link
+                            className="rounded-sm hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2"
+                            to={`/projects/${project.id}`}
+                          >
+                            {project.name}
+                          </Link>
+                        </h2>
+                        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                          Обновлён {formatDate(project.updatedAt)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] md:min-w-0">
+                      <CalendarRange
+                        aria-hidden
+                        className="size-4 shrink-0 text-[var(--color-text-faint)]"
+                      />
+                      <span className="truncate tabular-nums">
+                        {formatDate(project.startDate)} — {formatDate(project.endDate)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 md:justify-end">
+                      <Link
+                        className={buttonClassName({
+                          variant: 'secondary',
+                          className: 'mr-1',
+                        })}
+                        to={`/projects/${project.id}`}
+                      >
+                        Открыть
+                        <ArrowRight aria-hidden className="size-4" />
+                      </Link>
+                      <Button
+                        aria-label={`Редактировать ${project.name}`}
+                        onClick={() => openEdit(project)}
+                        size="icon"
+                        title="Редактировать"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Pencil aria-hidden className="size-4" />
+                      </Button>
+                      <Button
+                        aria-label={`Удалить ${project.name}`}
+                        className="hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]"
+                        onClick={() => openDelete(project)}
+                        size="icon"
+                        title="Удалить"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Trash2 aria-hidden className="size-4" />
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
-      {isCreateOpen ? <ProjectDialog isPending={createMutation.isPending} onClose={() => setIsCreateOpen(false)} onSubmit={(input) => createMutation.mutate(input)} serverError={createMutation.isError ? mutationMessage(createMutation.error) : undefined} /> : null}
-      {editingProject ? <ProjectDialog isPending={updateMutation.isPending} onClose={() => setEditingProject(null)} onSubmit={(input) => updateMutation.mutate({ id: editingProject.id, input })} project={editingProject} serverError={updateMutation.isError ? mutationMessage(updateMutation.error) : undefined} /> : null}
-      {deletingProject ? <DeleteProjectDialog isPending={deleteMutation.isPending} onClose={() => setDeletingProject(null)} onConfirm={() => deleteMutation.mutate(deletingProject.id)} project={deletingProject} serverError={deleteMutation.isError ? mutationMessage(deleteMutation.error) : undefined} /> : null}
+      {isCreateOpen ? (
+        <ProjectDialog
+          isPending={createMutation.isPending}
+          onClose={() => setIsCreateOpen(false)}
+          onSubmit={(input) => createMutation.mutate(input)}
+          serverError={
+            createMutation.isError
+              ? mutationMessage(createMutation.error)
+              : undefined
+          }
+        />
+      ) : null}
+      {editingProject ? (
+        <ProjectDialog
+          isPending={updateMutation.isPending}
+          onClose={() => setEditingProject(null)}
+          onSubmit={(input) =>
+            updateMutation.mutate({ id: editingProject.id, input })
+          }
+          project={editingProject}
+          serverError={
+            updateMutation.isError
+              ? mutationMessage(updateMutation.error)
+              : undefined
+          }
+        />
+      ) : null}
+      {deletingProject ? (
+        <DeleteProjectDialog
+          isPending={deleteMutation.isPending}
+          onClose={() => setDeletingProject(null)}
+          onConfirm={() => deleteMutation.mutate(deletingProject.id)}
+          project={deletingProject}
+          serverError={
+            deleteMutation.isError
+              ? mutationMessage(deleteMutation.error)
+              : undefined
+          }
+        />
+      ) : null}
     </main>
   );
 }
