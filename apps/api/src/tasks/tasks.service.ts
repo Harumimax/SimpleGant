@@ -16,6 +16,10 @@ import {
   type TaskStatus,
 } from './task.constants.js';
 import { dateOnly, normalizeCreationDates, parseDateOnly, validateDateRange } from './task-dates.js';
+import {
+  changedParentDates,
+  recalculateParentDates,
+} from './parent-task-dates.js';
 import { TasksRepository } from './tasks.repository.js';
 import type { TaskView } from './task.types.js';
 
@@ -65,9 +69,22 @@ export class TasksService {
     taskId: string,
     ownerId: string,
     input: UpdateTaskDto,
-  ): Promise<TaskView> {
+  ): Promise<TaskView[]> {
     await this.ensureOwnedProject(projectId, ownerId);
-    const current = await this.findTask(projectId, taskId);
+    const currentTasks = await this.repository.list(projectId);
+    const current = currentTasks.find(({ id }) => id === taskId);
+    if (!current) throw new NotFoundException('Задача не найдена');
+
+    const hasChildren = currentTasks.some(({ parentId }) => parentId === taskId);
+    if (
+      hasChildren &&
+      (input.startDate !== undefined || input.endDate !== undefined)
+    ) {
+      throw new BadRequestException(
+        'Даты родительской задачи рассчитываются автоматически',
+      );
+    }
+
     const startDate = input.startDate === undefined
       ? current.startDate
       : input.startDate === null ? null : parseDateOnly(input.startDate);
@@ -76,7 +93,7 @@ export class TasksService {
       : input.endDate === null ? null : parseDateOnly(input.endDate);
     validateDateRange(startDate, endDate);
 
-    const task = await this.repository.update(taskId, {
+    const taskUpdate = {
       title: input.title ?? current.title,
       workType: input.workType === undefined ? current.workType : input.workType,
       assignee: input.assignee ?? current.assignee,
@@ -85,8 +102,27 @@ export class TasksService {
       startDate,
       endDate,
       isCollapsed: input.isCollapsed ?? current.isCollapsed,
-    });
-    return this.toView(task);
+    };
+    const recalculated = recalculateParentDates(
+      currentTasks.map((task) =>
+        task.id === taskId ? { ...task, ...taskUpdate } : task,
+      ),
+    );
+    const recalculatedCurrent = recalculated.find(({ id }) => id === taskId);
+    const persistedTaskUpdate = hasChildren && recalculatedCurrent
+      ? {
+          ...taskUpdate,
+          startDate: recalculatedCurrent.startDate,
+          endDate: recalculatedCurrent.endDate,
+        }
+      : taskUpdate;
+    const tasks = await this.repository.updateWithParentDates(
+      projectId,
+      taskId,
+      persistedTaskUpdate,
+      changedParentDates(currentTasks, recalculated),
+    );
+    return tasks.map((task) => this.toView(task));
   }
 
   async reorder(
@@ -121,11 +157,26 @@ export class TasksService {
 
     this.validateSiblingOrder(input.tasks);
     const levels = this.resolveLevels(positions);
+    const positionedTasks = currentTasks.map((task) => {
+      const position = positions.get(task.id)!;
+      return {
+        ...task,
+        parentId: position.parentId,
+        orderIndex: position.orderIndex,
+        level: levels.get(task.id) ?? 0,
+      };
+    });
+    const recalculated = recalculateParentDates(positionedTasks);
+    const recalculatedById = new Map(
+      recalculated.map((task) => [task.id, task]),
+    );
     const tasks = await this.repository.updateOrder(
       projectId,
       input.tasks.map((position) => ({
         ...position,
         level: levels.get(position.id) ?? 0,
+        startDate: recalculatedById.get(position.id)?.startDate ?? null,
+        endDate: recalculatedById.get(position.id)?.endDate ?? null,
       })),
     );
     return tasks.map((task) => this.toView(task));
@@ -136,7 +187,13 @@ export class TasksService {
     await this.findTask(projectId, taskId);
     const tasks = await this.repository.list(projectId);
     const taskIds = this.collectSubtreeIds(tasks, taskId);
-    await this.repository.deleteMany(projectId, taskIds);
+    const remainingTasks = tasks.filter(({ id }) => !taskIds.includes(id));
+    const recalculated = recalculateParentDates(remainingTasks);
+    await this.repository.deleteMany(
+      projectId,
+      taskIds,
+      changedParentDates(tasks, recalculated),
+    );
   }
 
   private validateSiblingOrder(

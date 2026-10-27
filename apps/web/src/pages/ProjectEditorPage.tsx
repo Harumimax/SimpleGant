@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { GanttWorkspace } from '../features/gantt/GanttWorkspace';
 import {
   countTaskDescendants,
+  recalculateParentTaskDates,
   toTaskPositions,
 } from '../features/gantt/taskHierarchy';
 import type { TaskDateRange } from '../features/gantt/timeline';
@@ -48,8 +49,8 @@ export function ProjectEditorPage() {
   });
   const updateMutation = useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskInput }) => updateTask(projectId, id, input),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: tasksQueryKey(projectId) });
+    onSuccess: (updatedTasks) => {
+      queryClient.setQueryData(tasksQueryKey(projectId), updatedTasks);
       setEditingTask(null);
     },
   });
@@ -68,8 +69,10 @@ export function ProjectEditorPage() {
       await queryClient.cancelQueries({ queryKey });
       const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
       queryClient.setQueryData<Task[]>(queryKey, (current = []) =>
-        current.map((item) =>
-          item.id === task.id ? { ...item, ...dates } : item,
+        recalculateParentTaskDates(
+          current.map((item) =>
+            item.id === task.id ? { ...item, ...dates } : item,
+          ),
         ),
       );
       return { previousTasks };
@@ -82,14 +85,8 @@ export function ProjectEditorPage() {
         );
       }
     },
-    onSuccess: (updatedTask) => {
-      queryClient.setQueryData<Task[]>(
-        tasksQueryKey(projectId),
-        (current = []) =>
-          current.map((item) =>
-            item.id === updatedTask.id ? updatedTask : item,
-          ),
-      );
+    onSuccess: (updatedTasks) => {
+      queryClient.setQueryData(tasksQueryKey(projectId), updatedTasks);
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({
@@ -150,14 +147,8 @@ export function ProjectEditorPage() {
         );
       }
     },
-    onSuccess: (updatedTask) => {
-      queryClient.setQueryData<Task[]>(
-        tasksQueryKey(projectId),
-        (current = []) =>
-          current.map((item) =>
-            item.id === updatedTask.id ? updatedTask : item,
-          ),
-      );
+    onSuccess: (updatedTasks) => {
+      queryClient.setQueryData(tasksQueryKey(projectId), updatedTasks);
     },
   });
 
@@ -263,7 +254,7 @@ export function ProjectEditorPage() {
 
       {isCreateOpen ? <TaskDialog isPending={createMutation.isPending} onClose={() => setIsCreateOpen(false)} onSubmit={(input) => createMutation.mutate(input)} serverError={createMutation.isError ? mutationMessage(createMutation.error) : undefined} /> : null}
       {detailsTask ? <TaskDetailsDialog onClose={() => setDetailsTask(null)} onDelete={() => { deleteMutation.reset(); setDetailsTask(null); setDeletingTask(detailsTask); }} onEdit={() => { updateMutation.reset(); setDetailsTask(null); setEditingTask(detailsTask); }} task={detailsTask} /> : null}
-      {editingTask ? <TaskDialog isPending={updateMutation.isPending} onClose={() => setEditingTask(null)} onSubmit={(input) => updateMutation.mutate({ id: editingTask.id, input })} serverError={updateMutation.isError ? mutationMessage(updateMutation.error) : undefined} task={editingTask} /> : null}
+      {editingTask ? <TaskDialog datesReadOnly={countTaskDescendants(tasks.data, editingTask.id) > 0} isPending={updateMutation.isPending} onClose={() => setEditingTask(null)} onSubmit={(input) => updateMutation.mutate({ id: editingTask.id, input })} serverError={updateMutation.isError ? mutationMessage(updateMutation.error) : undefined} task={editingTask} /> : null}
       {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks.data, deletingTask.id)} isPending={deleteMutation.isPending} onClose={() => setDeletingTask(null)} onConfirm={() => deleteMutation.mutate(deletingTask.id)} serverError={deleteMutation.isError ? mutationMessage(deleteMutation.error) : undefined} task={deletingTask} /> : null}
     </main>
   );

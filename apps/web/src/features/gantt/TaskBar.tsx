@@ -32,6 +32,7 @@ type TaskBarProps = {
     dates: TaskDateRange,
   ) => Promise<void>;
   isSaving?: boolean;
+  isDateLocked?: boolean;
 };
 
 type Interaction = {
@@ -47,6 +48,7 @@ export function TaskBar({
   onOpen,
   onDateChange,
   isSaving = false,
+  isDateLocked = false,
 }: TaskBarProps) {
   const interactionRef = useRef<Interaction | null>(null);
   const previewRef = useRef<TaskDateRange | null>(null);
@@ -78,7 +80,7 @@ export function TaskBar({
     event: PointerEvent<HTMLElement>,
     mode: TaskDateChangeMode,
   ) {
-    if (isSaving || event.button !== 0) return;
+    if (isSaving || isDateLocked || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -149,9 +151,9 @@ export function TaskBar({
 
   return (
     <button
-      aria-label={`Подробно: ${task.title}, ${period}`}
+      aria-label={`Подробно: ${task.title}, ${period}${isDateLocked ? ', даты рассчитываются автоматически' : ''}`}
       aria-busy={isSaving || undefined}
-      className="gantt-task-bar group absolute top-2 z-[2] flex h-7 cursor-grab items-center overflow-hidden px-2.5 text-left text-[11px] font-semibold shadow-sm outline-none transition-[filter,box-shadow,opacity] hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70"
+      className={`gantt-task-bar group absolute top-2 z-[2] flex h-7 items-center overflow-hidden px-2.5 text-left text-[11px] font-semibold shadow-sm outline-none transition-[filter,box-shadow,opacity] hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70 ${isDateLocked ? 'cursor-pointer' : 'cursor-grab'}`}
       data-clipped-end={geometry.isClippedEnd || undefined}
       data-clipped-start={geometry.isClippedStart || undefined}
       data-color={color}
@@ -173,22 +175,22 @@ export function TaskBar({
         left: geometry.left + startInset,
         width: Math.max(geometry.width - startInset - endInset, 8),
       }}
-      title={`${task.title}\n${period}`}
+      title={`${task.title}\n${period}${isDateLocked ? '\nДаты рассчитываются по вложенным задачам' : ''}`}
       type="button"
     >
-      <span
+      {!isDateLocked ? <span
         aria-hidden="true"
         className="gantt-task-resize-handle -ml-2.5 cursor-ew-resize"
         onPointerDown={(event) => startInteraction(event, 'resize-start')}
-      />
+      /> : null}
       <span className="min-w-0 flex-1 truncate text-center">
         {activeMode ? period : task.title}
       </span>
-      <span
+      {!isDateLocked ? <span
         aria-hidden="true"
         className="gantt-task-resize-handle -mr-2.5 cursor-ew-resize"
         onPointerDown={(event) => startInteraction(event, 'resize-end')}
-      />
+      /> : null}
     </button>
   );
 }

@@ -347,6 +347,7 @@ export function GanttWorkspace({
                       ))}
                       {task ? (
                         <TaskBar
+                          isDateLocked={taskHasChildren(tasks, task.id)}
                           isSaving={updatingTaskId === task.id}
                           onDateChange={onTaskDatesChange}
                           onOpen={onTaskDetails}

@@ -42,6 +42,40 @@ export function taskHasChildren(tasks: Task[], taskId: string) {
   return tasks.some(({ parentId }) => parentId === taskId);
 }
 
+export function recalculateParentTaskDates(tasks: Task[]) {
+  const byId = new Map(tasks.map((task) => [task.id, { ...task }]));
+  const children = new Map<string, string[]>();
+  for (const task of tasks) {
+    if (!task.parentId) continue;
+    const ids = children.get(task.parentId) ?? [];
+    ids.push(task.id);
+    children.set(task.parentId, ids);
+  }
+
+  const resolved = new Set<string>();
+  const visiting = new Set<string>();
+  const resolve = (taskId: string) => {
+    if (resolved.has(taskId) || visiting.has(taskId)) return;
+    visiting.add(taskId);
+    const childIds = children.get(taskId) ?? [];
+    childIds.forEach(resolve);
+    const task = byId.get(taskId);
+    if (task && childIds.length > 0) {
+      const boundaries = childIds.flatMap((childId) => {
+        const child = byId.get(childId);
+        return child ? [child.startDate, child.endDate].filter(Boolean) as string[] : [];
+      });
+      task.startDate = boundaries.length > 0 ? boundaries.sort()[0]! : null;
+      task.endDate = boundaries.length > 0 ? boundaries.sort().at(-1)! : null;
+    }
+    visiting.delete(taskId);
+    resolved.add(taskId);
+  };
+
+  tasks.forEach(({ id }) => resolve(id));
+  return tasks.map(({ id }) => byId.get(id)!);
+}
+
 export function countTaskDescendants(tasks: Task[], taskId: string) {
   const visited = new Set<string>();
   const visit = (parentId: string) => {
@@ -123,7 +157,7 @@ function placeTask(
     });
   }
 
-  return deriveLevels(next);
+  return recalculateParentTaskDates(deriveLevels(next));
 }
 
 export function indentTask(tasks: Task[], taskId: string) {

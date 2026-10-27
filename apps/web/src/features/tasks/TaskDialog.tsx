@@ -14,9 +14,10 @@ type TaskDialogProps = {
   serverError?: string;
   onClose: () => void;
   onSubmit: (input: TaskInput) => void;
+  datesReadOnly?: boolean;
 };
 
-export function TaskDialog({ task, isPending, serverError, onClose, onSubmit }: TaskDialogProps) {
+export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, datesReadOnly = false }: TaskDialogProps) {
   const titleId = useId();
   const endDateRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(task?.title ?? '');
@@ -54,8 +55,10 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit }: 
       assignee: assignee.trim(),
       estimate: optionalValue(estimate),
       status,
-      startDate: optionalDate(startDate),
-      endDate: optionalDate(endDate),
+      ...(!datesReadOnly ? {
+        startDate: optionalDate(startDate),
+        endDate: optionalDate(endDate),
+      } : {}),
       ...(!task ? { excludeWeekends } : {}),
     });
   }
@@ -88,9 +91,11 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit }: 
             <SelectField disabled={isPending} label="Статус" onChange={(event) => setStatus(event.target.value as TaskStatus)} value={status}>
               {TASK_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
             </SelectField>
-            <TextField disabled={isPending} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Начало задачи" onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
-            <TextField disabled={isPending} error={formError || undefined} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Конец задачи" min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} ref={endDateRef} type="date" value={endDate} />
+            <TextField disabled={isPending || datesReadOnly} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Начало задачи" onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
+            <TextField disabled={isPending || datesReadOnly} error={formError || undefined} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Конец задачи" min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} ref={endDateRef} type="date" value={endDate} />
           </div>
+
+          {datesReadOnly ? <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">Даты родительской задачи рассчитываются автоматически по вложенным задачам.</p> : null}
 
           {!task ? (
             <label className="mt-5 flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-4 text-sm">

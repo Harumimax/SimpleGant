@@ -94,4 +94,28 @@ describe('TaskBar', () => {
     });
     expect(onOpen).not.toHaveBeenCalled();
   });
+
+  it('opens a parent task but does not allow dragging its derived dates', () => {
+    const onDateChange = vi.fn().mockResolvedValue(undefined);
+    const onOpen = vi.fn();
+    render(
+      <TaskBar
+        isDateLocked
+        onDateChange={onDateChange}
+        onOpen={onOpen}
+        task={task}
+        timelineEndDate="2026-11-30"
+        timelineStartDate="2026-11-01"
+      />,
+    );
+
+    const bar = screen.getByRole('button', { name: /рассчитываются автоматически/ });
+    fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 });
+    fireEvent.pointerMove(bar, { clientX: 136, pointerId: 1 });
+    fireEvent.pointerUp(bar, { clientX: 136, pointerId: 1 });
+    fireEvent.click(bar);
+
+    expect(onDateChange).not.toHaveBeenCalled();
+    expect(onOpen).toHaveBeenCalledWith(task);
+  });
 });

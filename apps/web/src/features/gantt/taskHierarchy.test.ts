@@ -7,6 +7,7 @@ import {
   indentTask,
   moveTask,
   outdentTask,
+  recalculateParentTaskDates,
 } from './taskHierarchy';
 
 function task(
@@ -96,5 +97,24 @@ describe('task hierarchy', () => {
 
     expect(moveTask(chain, 'a', 'c', 1)).toBeNull();
     expect(moveTask(chain, 'root', 'e', 1)).toBeNull();
+  });
+
+  it('recalculates parent dates from all nested task boundaries', () => {
+    const tasks = [
+      { ...task('root', null, 0), startDate: '2026-01-01', endDate: '2026-01-02' },
+      { ...task('group', 'root', 0, 1), startDate: null, endDate: null },
+      { ...task('child', 'group', 0, 2), startDate: '2026-02-10', endDate: '2026-02-14' },
+      { ...task('sibling', 'root', 1, 1), startDate: '2026-02-01', endDate: null },
+    ];
+
+    const result = recalculateParentTaskDates(tasks);
+    expect(result.find(({ id }) => id === 'group')).toMatchObject({
+      startDate: '2026-02-10',
+      endDate: '2026-02-14',
+    });
+    expect(result.find(({ id }) => id === 'root')).toMatchObject({
+      startDate: '2026-02-01',
+      endDate: '2026-02-14',
+    });
   });
 });

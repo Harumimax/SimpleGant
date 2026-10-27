@@ -66,7 +66,7 @@ export function updateTask(
   taskId: string,
   input: TaskUpdateInput,
 ) {
-  return apiRequest<Task>(`/projects/${projectId}/tasks/${taskId}`, {
+  return apiRequest<Task[]>(`/projects/${projectId}/tasks/${taskId}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });

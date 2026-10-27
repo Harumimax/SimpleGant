@@ -50,7 +50,8 @@ export class TasksRepository {
     return this.prisma.task.create({ data: input });
   }
 
-  update(
+  async updateWithParentDates(
+    projectId: string,
     id: string,
     input: {
       title: string;
@@ -62,8 +63,21 @@ export class TasksRepository {
       endDate: Date | null;
       isCollapsed: boolean;
     },
+    parentDates: Array<{
+      id: string;
+      startDate: Date | null;
+      endDate: Date | null;
+    }>,
   ) {
-    return this.prisma.task.update({ where: { id }, data: input });
+    await this.prisma.$transaction([
+      this.prisma.task.update({ where: { id }, data: input }),
+      ...parentDates
+        .filter((parent) => parent.id !== id)
+        .map(({ id: parentId, ...dates }) =>
+          this.prisma.task.update({ where: { id: parentId }, data: dates }),
+        ),
+    ]);
+    return this.list(projectId);
   }
 
   async updateOrder(
@@ -73,6 +87,8 @@ export class TasksRepository {
       parentId: string | null;
       orderIndex: number;
       level: number;
+      startDate: Date | null;
+      endDate: Date | null;
     }>,
   ) {
     await this.prisma.$transaction(
@@ -83,10 +99,23 @@ export class TasksRepository {
     return this.list(projectId);
   }
 
-  async deleteMany(projectId: string, taskIds: string[]) {
-    const result = await this.prisma.task.deleteMany({
-      where: { id: { in: taskIds }, projectId },
-    });
+  async deleteMany(
+    projectId: string,
+    taskIds: string[],
+    parentDates: Array<{
+      id: string;
+      startDate: Date | null;
+      endDate: Date | null;
+    }> = [],
+  ) {
+    const [result] = await this.prisma.$transaction([
+      this.prisma.task.deleteMany({
+        where: { id: { in: taskIds }, projectId },
+      }),
+      ...parentDates.map(({ id, ...dates }) =>
+        this.prisma.task.update({ where: { id }, data: dates }),
+      ),
+    ]);
     return result.count;
   }
 }

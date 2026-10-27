@@ -29,7 +29,8 @@ const task = {
 function repositoryMock() {
   return {
     findOwnedProject: vi.fn(), list: vi.fn(), find: vi.fn(), nextOrderIndex: vi.fn(),
-    create: vi.fn(), update: vi.fn(), updateOrder: vi.fn(), deleteMany: vi.fn(),
+    create: vi.fn(), updateWithParentDates: vi.fn(),
+    updateOrder: vi.fn(), deleteMany: vi.fn(),
   };
 }
 
@@ -95,18 +96,76 @@ describe('TasksService', () => {
   it('clears optional fields while preserving server-owned task fields', async () => {
     const repository = repositoryMock();
     repository.findOwnedProject.mockResolvedValue({ id: projectId });
-    repository.find.mockResolvedValue(task);
-    repository.update.mockResolvedValue({ ...task, workType: null, estimate: null });
+    repository.list.mockResolvedValue([task]);
+    repository.updateWithParentDates.mockResolvedValue([
+      { ...task, workType: null, estimate: null },
+    ]);
     const service = new TasksService(repository as unknown as TasksRepository);
 
     await service.update(projectId, task.id, ownerId, { workType: null, estimate: null });
 
-    expect(repository.update).toHaveBeenCalledWith(task.id, expect.objectContaining({
+    expect(repository.updateWithParentDates).toHaveBeenCalledWith(
+      projectId,
+      task.id,
+      expect.objectContaining({
       workType: null,
       estimate: null,
       title: task.title,
       assignee: task.assignee,
-    }));
+      }),
+      [],
+    );
+  });
+
+  it('recalculates ancestor dates when a child range changes', async () => {
+    const repository = repositoryMock();
+    const childId = '22222222-2222-4222-8222-222222222222';
+    const child = {
+      ...nestedTask(childId, task.id, 0, 1),
+      startDate: new Date('2026-11-04T00:00:00.000Z'),
+      endDate: new Date('2026-11-06T00:00:00.000Z'),
+    };
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.list.mockResolvedValue([task, child]);
+    repository.updateWithParentDates.mockResolvedValue([
+      { ...task, startDate: new Date('2026-12-01T00:00:00.000Z'), endDate: new Date('2026-12-10T00:00:00.000Z') },
+      { ...child, startDate: new Date('2026-12-01T00:00:00.000Z'), endDate: new Date('2026-12-10T00:00:00.000Z') },
+    ]);
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await service.update(projectId, childId, ownerId, {
+      startDate: '2026-12-01',
+      endDate: '2026-12-10',
+    });
+
+    expect(repository.updateWithParentDates).toHaveBeenCalledWith(
+      projectId,
+      childId,
+      expect.objectContaining({
+        startDate: new Date('2026-12-01T00:00:00.000Z'),
+        endDate: new Date('2026-12-10T00:00:00.000Z'),
+      }),
+      [{
+        id: task.id,
+        startDate: new Date('2026-12-01T00:00:00.000Z'),
+        endDate: new Date('2026-12-10T00:00:00.000Z'),
+      }],
+    );
+  });
+
+  it('rejects manual date changes for a parent task', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.list.mockResolvedValue([
+      task,
+      nestedTask('22222222-2222-4222-8222-222222222222', task.id, 0, 1),
+    ]);
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await expect(service.update(projectId, task.id, ownerId, {
+      startDate: '2026-12-01',
+    })).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.updateWithParentDates).not.toHaveBeenCalled();
   });
 
   it('derives hierarchy levels and saves a complete deterministic order', async () => {
@@ -132,8 +191,8 @@ describe('TasksService', () => {
     });
 
     expect(repository.updateOrder).toHaveBeenCalledWith(projectId, [
-      { id: rootId, parentId: null, orderIndex: 0, level: 0 },
-      { id: childId, parentId: rootId, orderIndex: 0, level: 1 },
+      { id: rootId, parentId: null, orderIndex: 0, level: 0, startDate: task.startDate, endDate: task.endDate },
+      { id: childId, parentId: rootId, orderIndex: 0, level: 1, startDate: task.startDate, endDate: task.endDate },
     ]);
   });
 
@@ -192,6 +251,7 @@ describe('TasksService', () => {
     expect(repository.deleteMany).toHaveBeenCalledWith(
       projectId,
       expect.arrayContaining([task.id, childId, grandchildId]),
+      [],
     );
   });
 });
