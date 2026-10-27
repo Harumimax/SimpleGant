@@ -110,7 +110,13 @@ export function TaskTableRow({
               ) : (
                 <span className="mr-1 size-6 shrink-0" />
               )}
-              <span className="truncate font-semibold">{task.title}</span>
+              <button
+                className="min-w-0 truncate rounded-sm text-left font-semibold hover:text-[var(--color-primary)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+                onClick={() => onDetails(task)}
+                type="button"
+              >
+                {task.title}
+              </button>
             </div>
           ) : (
             <span className="truncate">{taskValue(task, column.key)}</span>

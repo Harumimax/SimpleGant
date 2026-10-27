@@ -159,7 +159,7 @@ export function ProjectsPage() {
             />
           ) : (
             <div>
-              <div className="hidden grid-cols-[minmax(0,1fr)_240px_176px] gap-4 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-2.5 text-xs font-semibold text-[var(--color-text-muted)] md:grid">
+              <div className="hidden grid-cols-[minmax(0,1fr)_240px_224px] gap-4 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-2.5 text-xs font-semibold text-[var(--color-text-muted)] md:grid">
                 <span>Название</span>
                 <span>Период</span>
                 <span className="sr-only">Действия</span>
@@ -167,7 +167,7 @@ export function ProjectsPage() {
               <div className="divide-y divide-[var(--color-border)]">
                 {projects.data.map((project) => (
                   <article
-                    className="grid gap-4 px-4 py-4 transition-[background-color] duration-150 hover:bg-[var(--color-surface-hover)] sm:px-5 md:grid-cols-[minmax(0,1fr)_240px_176px] md:items-center"
+                    className="grid gap-4 px-4 py-4 transition-[background-color] duration-150 hover:bg-[var(--color-surface-hover)] sm:px-5 md:grid-cols-[minmax(0,1fr)_240px_224px] md:items-center"
                     key={project.id}
                   >
                     <div className="flex min-w-0 items-start gap-3">
@@ -194,7 +194,7 @@ export function ProjectsPage() {
                         aria-hidden
                         className="size-4 shrink-0 text-[var(--color-text-faint)]"
                       />
-                      <span className="truncate tabular-nums">
+                      <span className="min-w-0 flex-1 truncate tabular-nums">
                         {formatDate(project.startDate)} — {formatDate(project.endDate)}
                       </span>
                     </div>
