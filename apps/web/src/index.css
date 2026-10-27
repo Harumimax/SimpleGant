@@ -236,6 +236,39 @@ a[href] {
   border-radius: 0.5rem;
   color: var(--task-bar-text);
   background: var(--task-bar-background);
+  touch-action: none;
+  user-select: none;
+}
+
+.gantt-task-bar[data-dragging] {
+  z-index: 4;
+  cursor: grabbing;
+  filter: brightness(0.98);
+  box-shadow: 0 4px 12px rgb(23 35 31 / 20%);
+}
+
+.gantt-task-resize-handle {
+  width: 10px;
+  align-self: stretch;
+  flex: 0 0 10px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.gantt-task-resize-handle::after {
+  display: block;
+  width: 2px;
+  height: 14px;
+  margin: 6px auto 0;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+}
+
+.gantt-task-bar:hover .gantt-task-resize-handle,
+.gantt-task-bar:focus-visible .gantt-task-resize-handle,
+.gantt-task-bar[data-dragging] .gantt-task-resize-handle {
+  opacity: 0.55;
 }
 
 .gantt-task-bar[data-clipped-start="true"] {

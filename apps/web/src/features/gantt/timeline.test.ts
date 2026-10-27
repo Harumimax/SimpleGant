@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildTimeline,
+  calculateTaskDateChange,
   calculateTaskBarGeometry,
   GANTT_DAY_WIDTH,
 } from './timeline';
@@ -33,6 +34,70 @@ describe('buildTimeline', () => {
       { key: '2026-11', dayCount: 3 },
     ]);
     expect(timeline.weeks.map(({ dayCount }) => dayCount)).toEqual([3, 2]);
+  });
+});
+
+describe('calculateTaskDateChange', () => {
+  it('moves both dates by calendar days without skipping a weekend', () => {
+    expect(
+      calculateTaskDateChange(
+        '2026-11-06',
+        '2026-11-09',
+        1,
+        'move',
+        '2026-11-01',
+        '2026-11-30',
+      ),
+    ).toEqual({ startDate: '2026-11-07', endDate: '2026-11-10' });
+  });
+
+  it('keeps a moved task inside the project period', () => {
+    expect(
+      calculateTaskDateChange(
+        '2026-11-03',
+        '2026-11-05',
+        -10,
+        'move',
+        '2026-11-01',
+        '2026-11-30',
+      ),
+    ).toEqual({ startDate: '2026-11-01', endDate: '2026-11-03' });
+  });
+
+  it('resizes either boundary and preserves at least one day', () => {
+    expect(
+      calculateTaskDateChange(
+        '2026-11-03',
+        '2026-11-05',
+        1,
+        'resize-start',
+        '2026-11-01',
+        '2026-11-30',
+      ),
+    ).toEqual({ startDate: '2026-11-04', endDate: '2026-11-05' });
+    expect(
+      calculateTaskDateChange(
+        '2026-11-03',
+        '2026-11-05',
+        -20,
+        'resize-end',
+        '2026-11-01',
+        '2026-11-30',
+      ),
+    ).toEqual({ startDate: '2026-11-03', endDate: '2026-11-03' });
+  });
+
+  it('keeps resized boundaries inside the project period', () => {
+    expect(
+      calculateTaskDateChange(
+        '2026-11-03',
+        '2026-11-05',
+        50,
+        'resize-end',
+        '2026-11-01',
+        '2026-11-30',
+      ),
+    ).toEqual({ startDate: '2026-11-03', endDate: '2026-11-30' });
   });
 });
 

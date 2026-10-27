@@ -41,6 +41,10 @@ export type TaskInput = {
   excludeWeekends?: boolean;
 };
 
+export type TaskUpdateInput = Partial<
+  Omit<TaskInput, 'excludeWeekends'>
+>;
+
 export function listTasks(projectId: string) {
   return apiRequest<Task[]>(`/projects/${projectId}/tasks`);
 }
@@ -52,7 +56,11 @@ export function createTask(projectId: string, input: TaskInput) {
   });
 }
 
-export function updateTask(projectId: string, taskId: string, input: TaskInput) {
+export function updateTask(
+  projectId: string,
+  taskId: string,
+  input: TaskUpdateInput,
+) {
   return apiRequest<Task>(`/projects/${projectId}/tasks/${taskId}`, {
     method: 'PATCH',
     body: JSON.stringify(input),

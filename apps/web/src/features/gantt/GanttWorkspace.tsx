@@ -1,4 +1,11 @@
-import { CalendarDays, Ellipsis, Monitor, Plus } from 'lucide-react';
+import {
+  CalendarDays,
+  CircleAlert,
+  Ellipsis,
+  LoaderCircle,
+  Monitor,
+  Plus,
+} from 'lucide-react';
 import { useRef, type UIEvent } from 'react';
 
 import type { ProjectDetail } from '../projects/projects.api';
@@ -8,6 +15,7 @@ import {
   GANTT_DAY_WIDTH,
   GANTT_HEADER_HEIGHT,
   GANTT_ROW_HEIGHT,
+  type TaskDateRange,
 } from './timeline';
 import { TaskBar } from './TaskBar';
 
@@ -16,6 +24,9 @@ type GanttWorkspaceProps = {
   tasks: Task[];
   onAddTask: () => void;
   onTaskDetails: (task: Task) => void;
+  onTaskDatesChange: (task: Task, dates: TaskDateRange) => Promise<void>;
+  updatingTaskId?: string;
+  dateChangeError?: string;
 };
 
 function columnTemplate(columnCount: number) {
@@ -32,7 +43,15 @@ function taskValue(task: Task, key: string) {
   return task.customFields[key] || '—';
 }
 
-export function GanttWorkspace({ project, tasks, onAddTask, onTaskDetails }: GanttWorkspaceProps) {
+export function GanttWorkspace({
+  project,
+  tasks,
+  onAddTask,
+  onTaskDetails,
+  onTaskDatesChange,
+  updatingTaskId,
+  dateChangeError,
+}: GanttWorkspaceProps) {
   const taskPaneRef = useRef<HTMLElement>(null);
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const timeline = buildTimeline(project.startDate, project.endDate);
@@ -87,14 +106,27 @@ export function GanttWorkspace({ project, tasks, onAddTask, onTaskDetails }: Gan
             </button>
           </div>
 
-          <button
-            className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 text-sm font-semibold text-white shadow-[var(--shadow-button)] hover:bg-[var(--color-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-            onClick={onAddTask}
-            type="button"
-          >
-            <Plus aria-hidden className="size-4" />
-            Добавить задачу
-          </button>
+          <div className="flex items-center gap-3">
+            {dateChangeError ? (
+              <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-danger)]" role="alert">
+                <CircleAlert aria-hidden className="size-4" />
+                Не удалось сохранить сроки
+              </span>
+            ) : updatingTaskId ? (
+              <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]" role="status">
+                <LoaderCircle aria-hidden className="size-4 animate-spin" />
+                Сохраняем сроки…
+              </span>
+            ) : null}
+            <button
+              className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 text-sm font-semibold text-white shadow-[var(--shadow-button)] hover:bg-[var(--color-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              onClick={onAddTask}
+              type="button"
+            >
+              <Plus aria-hidden className="size-4" />
+              Добавить задачу
+            </button>
+          </div>
         </div>
 
         <div className="gantt-shell min-h-0 flex-1">
@@ -239,6 +271,8 @@ export function GanttWorkspace({ project, tasks, onAddTask, onTaskDetails }: Gan
                       ))}
                       {task ? (
                         <TaskBar
+                          isSaving={updatingTaskId === task.id}
+                          onDateChange={onTaskDatesChange}
                           onOpen={onTaskDetails}
                           task={task}
                           timelineEndDate={project.endDate}

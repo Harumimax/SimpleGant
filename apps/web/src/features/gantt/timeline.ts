@@ -1,4 +1,5 @@
 import {
+  addDays,
   differenceInCalendarDays,
   eachDayOfInterval,
   format,
@@ -39,6 +40,13 @@ export type TaskBarGeometry = {
   width: number;
   isClippedStart: boolean;
   isClippedEnd: boolean;
+};
+
+export type TaskDateChangeMode = 'move' | 'resize-start' | 'resize-end';
+
+export type TaskDateRange = {
+  startDate: string;
+  endDate: string;
 };
 
 function capitalize(value: string) {
@@ -127,5 +135,47 @@ export function calculateTaskBarGeometry(
       GANTT_DAY_WIDTH,
     isClippedStart,
     isClippedEnd,
+  };
+}
+
+export function calculateTaskDateChange(
+  taskStartDate: string,
+  taskEndDate: string,
+  dayDelta: number,
+  mode: TaskDateChangeMode,
+  timelineStartDate: string,
+  timelineEndDate: string,
+): TaskDateRange {
+  const taskStart = parseISO(taskStartDate);
+  const taskEnd = parseISO(taskEndDate);
+  const timelineStart = parseISO(timelineStartDate);
+  const timelineEnd = parseISO(timelineEndDate);
+
+  let nextStart = taskStart;
+  let nextEnd = taskEnd;
+
+  if (mode === 'move') {
+    const minimumDelta = differenceInCalendarDays(timelineStart, taskStart);
+    const maximumDelta = differenceInCalendarDays(timelineEnd, taskEnd);
+    const boundedDelta = minimumDelta <= maximumDelta
+      ? Math.min(Math.max(dayDelta, minimumDelta), maximumDelta)
+      : 0;
+    nextStart = addDays(taskStart, boundedDelta);
+    nextEnd = addDays(taskEnd, boundedDelta);
+  } else if (mode === 'resize-start') {
+    const candidate = addDays(taskStart, dayDelta);
+    nextStart = isBefore(candidate, timelineStart)
+      ? timelineStart
+      : isAfter(candidate, taskEnd) ? taskEnd : candidate;
+  } else {
+    const candidate = addDays(taskEnd, dayDelta);
+    nextEnd = isAfter(candidate, timelineEnd)
+      ? timelineEnd
+      : isBefore(candidate, taskStart) ? taskStart : candidate;
+  }
+
+  return {
+    startDate: format(nextStart, 'yyyy-MM-dd'),
+    endDate: format(nextEnd, 'yyyy-MM-dd'),
   };
 }

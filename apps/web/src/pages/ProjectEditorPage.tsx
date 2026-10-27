@@ -6,11 +6,18 @@ import { Link, useParams } from 'react-router-dom';
 import { useState } from 'react';
 
 import { GanttWorkspace } from '../features/gantt/GanttWorkspace';
+import type { TaskDateRange } from '../features/gantt/timeline';
 import { useProject } from '../features/projects/projects.queries';
 import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
 import { TaskDetailsDialog } from '../features/tasks/TaskDetailsDialog';
 import { TaskDialog } from '../features/tasks/TaskDialog';
-import { createTask, deleteTask, updateTask, type Task, type TaskInput } from '../features/tasks/tasks.api';
+import {
+  createTask,
+  deleteTask,
+  updateTask,
+  type Task,
+  type TaskInput,
+} from '../features/tasks/tasks.api';
 import { tasksQueryKey, useTasks } from '../features/tasks/tasks.queries';
 
 function formatDate(value: string) {
@@ -46,6 +53,43 @@ export function ProjectEditorPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: tasksQueryKey(projectId) });
       setDeletingTask(null);
+    },
+  });
+  const dateMutation = useMutation({
+    mutationFn: ({ task, dates }: { task: Task; dates: TaskDateRange }) =>
+      updateTask(projectId, task.id, dates),
+    onMutate: async ({ task, dates }) => {
+      const queryKey = tasksQueryKey(projectId);
+      await queryClient.cancelQueries({ queryKey });
+      const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
+      queryClient.setQueryData<Task[]>(queryKey, (current = []) =>
+        current.map((item) =>
+          item.id === task.id ? { ...item, ...dates } : item,
+        ),
+      );
+      return { previousTasks };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(
+          tasksQueryKey(projectId),
+          context.previousTasks,
+        );
+      }
+    },
+    onSuccess: (updatedTask) => {
+      queryClient.setQueryData<Task[]>(
+        tasksQueryKey(projectId),
+        (current = []) =>
+          current.map((item) =>
+            item.id === updatedTask.id ? updatedTask : item,
+          ),
+      );
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: tasksQueryKey(projectId),
+      });
     },
   });
 
@@ -115,10 +159,20 @@ export function ProjectEditorPage() {
       </header>
 
       <GanttWorkspace
+        dateChangeError={
+          dateMutation.isError ? mutationMessage(dateMutation.error) : undefined
+        }
         onAddTask={() => { createMutation.reset(); setIsCreateOpen(true); }}
+        onTaskDatesChange={async (task, dates) => {
+          dateMutation.reset();
+          await dateMutation.mutateAsync({ task, dates });
+        }}
         onTaskDetails={setDetailsTask}
         project={project.data}
         tasks={tasks.data}
+        updatingTaskId={
+          dateMutation.isPending ? dateMutation.variables?.task.id : undefined
+        }
       />
 
       {isCreateOpen ? <TaskDialog isPending={createMutation.isPending} onClose={() => setIsCreateOpen(false)} onSubmit={(input) => createMutation.mutate(input)} serverError={createMutation.isError ? mutationMessage(createMutation.error) : undefined} /> : null}
