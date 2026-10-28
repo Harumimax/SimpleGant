@@ -30,6 +30,7 @@ function repositoryMock() {
   return {
     findOwnedProject: vi.fn(), list: vi.fn(), find: vi.fn(), nextOrderIndex: vi.fn(),
     listCustomColumns: vi.fn().mockResolvedValue([]),
+    listNonWorkingDates: vi.fn().mockResolvedValue([]),
     create: vi.fn(), updateWithParentDates: vi.fn(),
     updateOrder: vi.fn(), deleteMany: vi.fn(),
   };
@@ -70,6 +71,20 @@ describe('TasksService', () => {
     expect(result.endDate).toBe('2026-11-13');
   });
 
+  it('creates a task without an assignee', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.nextOrderIndex.mockResolvedValue(0);
+    repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await service.create(projectId, ownerId, { title: task.title });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ assignee: '' }),
+    );
+  });
+
   it('does not list tasks when the project is not owned by the user', async () => {
     const repository = repositoryMock();
     repository.findOwnedProject.mockResolvedValue(null);
@@ -95,7 +110,7 @@ describe('TasksService', () => {
     expect(result.endDate).toBe('2026-11-20');
   });
 
-  it('creates an inclusive seven-day range from an explicit duration', async () => {
+  it('creates a seven-working-day range from an explicit duration by default', async () => {
     const repository = repositoryMock();
     repository.findOwnedProject.mockResolvedValue({ id: projectId });
     repository.nextOrderIndex.mockResolvedValue(0);
@@ -109,8 +124,47 @@ describe('TasksService', () => {
       duration: 7,
     });
 
+    expect(result.endDate).toBe('2026-11-10');
+    expect(result.duration).toBe(9);
+  });
+
+  it('creates a seven-calendar-day range when weekends are included', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.nextOrderIndex.mockResolvedValue(0);
+    repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    const result = await service.create(projectId, ownerId, {
+      title: task.title,
+      assignee: task.assignee,
+      startDate: '2026-11-02',
+      duration: 7,
+      excludeWeekends: false,
+    });
+
     expect(result.endDate).toBe('2026-11-08');
     expect(result.duration).toBe(7);
+  });
+
+  it('skips a project non-working day during automatic calculation', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.nextOrderIndex.mockResolvedValue(0);
+    repository.listNonWorkingDates.mockResolvedValue([
+      { date: new Date('2026-11-04T00:00:00.000Z') },
+    ]);
+    repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    const result = await service.create(projectId, ownerId, {
+      title: task.title,
+      startDate: '2026-11-02',
+      duration: 7,
+      excludeWeekends: true,
+    });
+
+    expect(result.endDate).toBe('2026-11-11');
   });
 
   it('creates and updates a task with a color from the fixed palette', async () => {

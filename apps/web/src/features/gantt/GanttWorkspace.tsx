@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/sortable';
 import {
   CalendarDays,
+  CalendarOff,
   CircleAlert,
   Columns3,
   Eye,
@@ -27,6 +28,7 @@ import { useRef, useState, type UIEvent } from 'react';
 
 import type { ProjectDetail } from '../projects/projects.api';
 import type { Milestone } from '../milestones/milestones.api';
+import type { NonWorkingDay } from '../calendar/non-working-days.api';
 import type { Task } from '../tasks/tasks.api';
 import {
   flattenVisibleTasks,
@@ -50,9 +52,11 @@ type GanttWorkspaceProps = {
   project: ProjectDetail;
   tasks: Task[];
   milestones: Milestone[];
+  nonWorkingDays: NonWorkingDay[];
   onAddTask: () => void;
   onConfigureColumns: () => void;
   onConfigureMilestones: () => void;
+  onConfigureNonWorkingDays: () => void;
   onTaskDetails: (task: Task) => void;
   onTaskDatesChange: (task: Task, dates: TaskDateRange) => Promise<void>;
   updatingTaskId?: string;
@@ -78,9 +82,11 @@ export function GanttWorkspace({
   project,
   tasks,
   milestones,
+  nonWorkingDays,
   onAddTask,
   onConfigureColumns,
   onConfigureMilestones,
+  onConfigureNonWorkingDays,
   onTaskDetails,
   onTaskDatesChange,
   updatingTaskId,
@@ -94,6 +100,9 @@ export function GanttWorkspace({
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
   const timeline = buildTimeline(project.startDate, project.endDate);
+  const nonWorkingDaysByDate = new Map(
+    nonWorkingDays.map((day) => [day.date, day]),
+  );
   const configuredColumns = [...project.columns]
     .sort((left, right) => left.orderIndex - right.orderIndex);
   const columns = configuredColumns.filter((column) =>
@@ -182,6 +191,15 @@ export function GanttWorkspace({
             ) : null}
             <button
               className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-white px-3 text-sm font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-subtle)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              onClick={onConfigureNonWorkingDays}
+              title="Нерабочие дни"
+              type="button"
+            >
+              <CalendarOff aria-hidden className="size-4" />
+              Календарь
+            </button>
+            <button
+              className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-white px-3 text-sm font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-subtle)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               onClick={onConfigureMilestones}
               type="button"
             >
@@ -207,7 +225,10 @@ export function GanttWorkspace({
           </div>
         </div>
 
-        <div className="gantt-shell min-h-0 flex-1">
+        <div
+          className="gantt-shell min-h-0 flex-1"
+          data-columns-collapsed={areAdditionalColumnsHidden}
+        >
           <section
             className="gantt-task-pane"
             aria-label="Таблица задач"
@@ -223,13 +244,15 @@ export function GanttWorkspace({
                 <div className="flex h-8 items-center border-b border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text-muted)]">
                   <span>Структура проекта</span>
                   <button
+                    aria-label={areAdditionalColumnsHidden ? 'Показать дополнительные колонки' : 'Скрыть дополнительные колонки'}
                     aria-pressed={areAdditionalColumnsHidden}
                     className="sticky right-2 ml-auto flex h-7 items-center gap-1.5 rounded-md bg-[var(--color-surface-subtle)] px-2 text-[11px] font-semibold text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-focus)]"
                     onClick={() => setAreAdditionalColumnsHidden((current) => !current)}
+                    title={areAdditionalColumnsHidden ? 'Показать дополнительные колонки' : 'Скрыть дополнительные колонки'}
                     type="button"
                   >
                     {areAdditionalColumnsHidden ? <Eye aria-hidden className="size-3.5" /> : <EyeOff aria-hidden className="size-3.5" />}
-                    {areAdditionalColumnsHidden ? 'Показать дополнительные колонки' : 'Скрыть дополнительные колонки'}
+                    {areAdditionalColumnsHidden ? 'Показать' : 'Скрыть'}
                   </button>
                 </div>
                 <div
@@ -362,21 +385,20 @@ export function GanttWorkspace({
                     ))}
                   </div>
                   <div className="flex h-[34px]">
-                    {timeline.days.map((day) => (
-                      <div
-                        className={`flex shrink-0 flex-col items-center justify-center border-r border-[var(--color-border)] text-[10px] ${day.isWeekend ? 'bg-[var(--color-weekend)] text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'}`}
-                        key={day.date}
-                        style={{ width: GANTT_DAY_WIDTH }}
-                        title={day.date}
-                      >
-                        <span className="font-semibold leading-none">
-                          {day.dayNumber}
-                        </span>
-                        <span className="mt-0.5 text-[9px] leading-none">
-                          {day.weekday}
-                        </span>
-                      </div>
-                    ))}
+                    {timeline.days.map((day) => {
+                      const nonWorkingDay = nonWorkingDaysByDate.get(day.date);
+                      return (
+                        <div
+                          className={`flex shrink-0 flex-col items-center justify-center border-r border-[var(--color-border)] text-[10px] ${nonWorkingDay ? 'bg-[var(--color-non-working)] text-[var(--color-warning)]' : day.isWeekend ? 'bg-[var(--color-weekend)] text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'}`}
+                          key={day.date}
+                          style={{ width: GANTT_DAY_WIDTH }}
+                          title={nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : day.date}
+                        >
+                          <span className="font-semibold leading-none">{day.dayNumber}</span>
+                          <span className="mt-0.5 text-[9px] leading-none">{day.weekday}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -388,13 +410,17 @@ export function GanttWorkspace({
                       key={task?.id ?? `empty-${rowIndex}`}
                       style={{ height: GANTT_ROW_HEIGHT }}
                     >
-                      {timeline.days.map((day) => (
-                        <div
-                          className={`shrink-0 border-r border-[var(--color-border)] ${day.isWeekend ? 'bg-[var(--color-weekend)]' : 'bg-white'}`}
-                          key={day.date}
-                          style={{ width: GANTT_DAY_WIDTH }}
-                        />
-                      ))}
+                      {timeline.days.map((day) => {
+                        const nonWorkingDay = nonWorkingDaysByDate.get(day.date);
+                        return (
+                          <div
+                            className={`shrink-0 border-r border-[var(--color-border)] ${nonWorkingDay ? 'bg-[var(--color-non-working)]' : day.isWeekend ? 'bg-[var(--color-weekend)]' : 'bg-white'}`}
+                            key={day.date}
+                            style={{ width: GANTT_DAY_WIDTH }}
+                            title={nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : undefined}
+                          />
+                        );
+                      })}
                       {task ? (
                         <TaskBar
                           isDateLocked={taskHasChildren(tasks, task.id)}

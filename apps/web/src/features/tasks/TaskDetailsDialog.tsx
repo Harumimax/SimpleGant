@@ -11,7 +11,7 @@ export function TaskDetailsDialog({ task, onClose, onEdit, onDelete }: Props) {
   const titleId = useId();
   const rows = [
     ['Тип работ', task.workType || '—'],
-    ['Ответственный', task.assignee],
+    ['Ответственный', task.assignee || '—'],
     [
       'Длительность',
       task.duration === null || task.duration === undefined

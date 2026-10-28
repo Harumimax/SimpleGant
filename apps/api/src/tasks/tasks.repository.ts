@@ -34,6 +34,14 @@ export class TasksRepository {
     });
   }
 
+  listNonWorkingDates(projectId: string) {
+    return this.prisma.nonWorkingDay.findMany({
+      where: { projectId },
+      select: { date: true },
+      orderBy: { date: 'asc' },
+    });
+  }
+
   async nextOrderIndex(projectId: string) {
     const result = await this.prisma.task.aggregate({
       where: { projectId },

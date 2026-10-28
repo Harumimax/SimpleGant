@@ -6,6 +6,16 @@ import { Link, useParams } from 'react-router-dom';
 import { useState } from 'react';
 
 import { GanttWorkspace } from '../features/gantt/GanttWorkspace';
+import { NonWorkingDaysDialog } from '../features/calendar/NonWorkingDaysDialog';
+import {
+  createNonWorkingDay,
+  deleteNonWorkingDay,
+  type NonWorkingDayInput,
+} from '../features/calendar/non-working-days.api';
+import {
+  nonWorkingDaysQueryKey,
+  useNonWorkingDays,
+} from '../features/calendar/non-working-days.queries';
 import {
   countTaskDescendants,
   recalculateParentTaskDates,
@@ -53,6 +63,7 @@ export function ProjectEditorPage() {
   const project = useProject(projectId);
   const tasks = useTasks(projectId);
   const milestones = useMilestones(projectId);
+  const nonWorkingDays = useNonWorkingDays(projectId);
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [detailsTask, setDetailsTask] = useState<Task | null>(null);
@@ -60,6 +71,7 @@ export function ProjectEditorPage() {
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
   const [isMilestonesOpen, setIsMilestonesOpen] = useState(false);
+  const [isNonWorkingDaysOpen, setIsNonWorkingDaysOpen] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: (input: TaskInput) => createTask(projectId, input),
@@ -206,10 +218,26 @@ export function ProjectEditorPage() {
       setIsMilestonesOpen(false);
     },
   });
+  const createNonWorkingDayMutation = useMutation({
+    mutationFn: (input: NonWorkingDayInput) => createNonWorkingDay(projectId, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: nonWorkingDaysQueryKey(projectId),
+      });
+    },
+  });
+  const deleteNonWorkingDayMutation = useMutation({
+    mutationFn: (id: string) => deleteNonWorkingDay(projectId, id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: nonWorkingDaysQueryKey(projectId),
+      });
+    },
+  });
 
   const mutationMessage = (error: unknown) => error instanceof Error ? error.message : 'Не удалось выполнить действие';
 
-  if (project.isPending || tasks.isPending || milestones.isPending) {
+  if (project.isPending || tasks.isPending || milestones.isPending || nonWorkingDays.isPending) {
     return (
       <main
         className="grid min-h-screen place-items-center bg-[var(--color-canvas)] text-[var(--color-text-muted)]"
@@ -220,7 +248,7 @@ export function ProjectEditorPage() {
     );
   }
 
-  if (project.isError || tasks.isError || milestones.isError) {
+  if (project.isError || tasks.isError || milestones.isError || nonWorkingDays.isError) {
     return (
       <main
         className="grid min-h-screen place-items-center bg-[var(--color-canvas)] px-5 text-center text-[var(--color-text)]"
@@ -284,6 +312,11 @@ export function ProjectEditorPage() {
           deleteMilestoneMutation.reset();
           setIsMilestonesOpen(true);
         }}
+        onConfigureNonWorkingDays={() => {
+          createNonWorkingDayMutation.reset();
+          deleteNonWorkingDayMutation.reset();
+          setIsNonWorkingDaysOpen(true);
+        }}
         onTaskDatesChange={async (task, dates) => {
           dateMutation.reset();
           await dateMutation.mutateAsync({ task, dates });
@@ -299,6 +332,7 @@ export function ProjectEditorPage() {
         }}
         project={project.data}
         milestones={milestones.data}
+        nonWorkingDays={nonWorkingDays.data}
         isSavingStructure={
           structureMutation.isPending || collapseMutation.isPending
         }
@@ -321,6 +355,7 @@ export function ProjectEditorPage() {
       {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks.data, deletingTask.id)} isPending={deleteMutation.isPending} onClose={() => setDeletingTask(null)} onConfirm={() => deleteMutation.mutate(deletingTask.id)} serverError={deleteMutation.isError ? mutationMessage(deleteMutation.error) : undefined} task={deletingTask} /> : null}
       {isColumnsOpen ? <ProjectColumnsDialog columns={project.data.columns} isPending={columnsMutation.isPending} onClose={() => setIsColumnsOpen(false)} onSubmit={(columns) => columnsMutation.mutate(columns)} serverError={columnsMutation.isError ? mutationMessage(columnsMutation.error) : undefined} /> : null}
       {isMilestonesOpen ? <MilestonesDialog isPending={createMilestoneMutation.isPending || updateMilestoneMutation.isPending || deleteMilestoneMutation.isPending} milestones={milestones.data} onClose={() => setIsMilestonesOpen(false)} onDelete={(id) => deleteMilestoneMutation.mutate(id)} onSave={(input, id) => id ? updateMilestoneMutation.mutate({ id, input }) : createMilestoneMutation.mutate(input)} projectEndDate={project.data.endDate} projectStartDate={project.data.startDate} serverError={createMilestoneMutation.isError ? mutationMessage(createMilestoneMutation.error) : updateMilestoneMutation.isError ? mutationMessage(updateMilestoneMutation.error) : deleteMilestoneMutation.isError ? mutationMessage(deleteMilestoneMutation.error) : undefined} /> : null}
+      {isNonWorkingDaysOpen ? <NonWorkingDaysDialog days={nonWorkingDays.data} isPending={createNonWorkingDayMutation.isPending || deleteNonWorkingDayMutation.isPending} onAdd={(input) => createNonWorkingDayMutation.mutate(input)} onClose={() => setIsNonWorkingDaysOpen(false)} onDelete={(id) => deleteNonWorkingDayMutation.mutate(id)} projectEndDate={project.data.endDate} projectStartDate={project.data.startDate} serverError={createNonWorkingDayMutation.isError ? mutationMessage(createNonWorkingDayMutation.error) : deleteNonWorkingDayMutation.isError ? mutationMessage(deleteNonWorkingDayMutation.error) : undefined} /> : null}
     </main>
   );
 }

@@ -55,6 +55,20 @@ describe('TaskDialog', () => {
     }));
   });
 
+  it('creates a task without an assignee', () => {
+    const onSubmit = vi.fn();
+    render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Задача без исполнителя' } });
+    expect(screen.getByLabelText('Ответственный')).not.toBeRequired();
+    fireEvent.submit(screen.getByRole('button', { name: 'Создать задачу' }).closest('form')!);
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Задача без исполнителя',
+      assignee: '',
+    }));
+  });
+
   it('rejects an end date earlier than the start date', () => {
     const onSubmit = vi.fn();
     render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
@@ -69,7 +83,7 @@ describe('TaskDialog', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('submits an explicit duration as a number of calendar days', () => {
+  it('submits an explicit duration with the weekend preference', () => {
     const onSubmit = vi.fn();
     render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
 
@@ -82,6 +96,7 @@ describe('TaskDialog', () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       startDate: '2026-11-02',
       duration: 7,
+      excludeWeekends: true,
     }));
   });
 

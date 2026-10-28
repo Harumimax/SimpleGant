@@ -31,6 +31,7 @@ function createRepositoryMock() {
     create: vi.fn(),
     update: vi.fn(),
     countMilestonesOutsideRange: vi.fn().mockResolvedValue(0),
+    countNonWorkingDaysOutsideRange: vi.fn().mockResolvedValue(0),
     deleteOwned: vi.fn(),
   };
 }
@@ -126,6 +127,20 @@ describe('ProjectsService', () => {
     await expect(service.update(project.id, project.ownerId, {
       endDate: '2026-12-31',
     })).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it('does not shrink the project period past an existing non-working day', async () => {
+    const repository = createRepositoryMock();
+    repository.findOwned.mockResolvedValue(project);
+    repository.countNonWorkingDaysOutsideRange.mockResolvedValue(1);
+    const service = new ProjectsService(
+      repository as unknown as ProjectsRepository,
+    );
+
+    await expect(service.update(project.id, project.ownerId, {
+      endDate: '2026-12-31',
+    })).rejects.toThrow('Новый период проекта не должен исключать вехи или нерабочие дни');
     expect(repository.update).not.toHaveBeenCalled();
   });
 });

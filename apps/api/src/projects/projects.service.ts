@@ -50,16 +50,16 @@ export class ProjectsService {
     const startDate = input.startDate ?? this.dateOnly(current.startDate);
     const endDate = input.endDate ?? this.dateOnly(current.endDate);
     const dates = this.validateDates(startDate, endDate);
-    if (
-      (input.startDate !== undefined || input.endDate !== undefined) &&
-      await this.repository.countMilestonesOutsideRange(
-        id,
-        dates.startDate,
-        dates.endDate,
-      ) > 0
-    ) {
+    const periodChanged = input.startDate !== undefined || input.endDate !== undefined;
+    const [milestonesOutside, nonWorkingDaysOutside] = periodChanged
+      ? await Promise.all([
+          this.repository.countMilestonesOutsideRange(id, dates.startDate, dates.endDate),
+          this.repository.countNonWorkingDaysOutsideRange(id, dates.startDate, dates.endDate),
+        ])
+      : [0, 0];
+    if (milestonesOutside > 0 || nonWorkingDaysOutside > 0) {
       throw new BadRequestException(
-        'Новый период проекта не должен исключать существующие вехи',
+        'Новый период проекта не должен исключать вехи или нерабочие дни',
       );
     }
     const project = await this.repository.update(id, {

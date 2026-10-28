@@ -22,6 +22,14 @@ const durationColumn: ProjectColumn = {
   orderIndex: 1,
 };
 
+const assigneeColumn: ProjectColumn = {
+  ...titleColumn,
+  id: 'column-assignee',
+  name: 'Исполнитель',
+  key: 'assignee',
+  orderIndex: 1,
+};
+
 const task: Task = {
   id: 'task-1',
   projectId: 'project-1',
@@ -87,5 +95,25 @@ describe('TaskTableRow', () => {
     );
 
     expect(screen.getByText('12 дн.')).toBeInTheDocument();
+  });
+
+  it('renders a dash when the task has no assignee', () => {
+    render(
+      <TaskTableRow
+        canIndent={false}
+        canOutdent={false}
+        columns={[titleColumn, assigneeColumn]}
+        gridTemplateColumns="42px minmax(190px, 2fr) 104px 96px"
+        hasChildren={false}
+        onDetails={vi.fn()}
+        onIndent={vi.fn()}
+        onOutdent={vi.fn()}
+        onToggleCollapsed={vi.fn()}
+        rowNumber={1}
+        task={{ ...task, assignee: '' }}
+      />,
+    );
+
+    expect(screen.getByText('—')).toBeInTheDocument();
   });
 });

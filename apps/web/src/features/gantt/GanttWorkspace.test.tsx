@@ -26,9 +26,11 @@ describe('GanttWorkspace', () => {
     render(
       <GanttWorkspace
         milestones={[]}
+        nonWorkingDays={[]}
         onAddTask={vi.fn()}
         onConfigureColumns={vi.fn()}
         onConfigureMilestones={vi.fn()}
+        onConfigureNonWorkingDays={vi.fn()}
         onTaskDatesChange={vi.fn()}
         onTaskDetails={vi.fn()}
         onTaskOrderChange={vi.fn()}
@@ -50,9 +52,11 @@ describe('GanttWorkspace', () => {
     render(
       <GanttWorkspace
         milestones={[]}
+        nonWorkingDays={[]}
         onAddTask={vi.fn()}
         onConfigureColumns={vi.fn()}
         onConfigureMilestones={vi.fn()}
+        onConfigureNonWorkingDays={vi.fn()}
         onTaskDatesChange={vi.fn()}
         onTaskDetails={vi.fn()}
         onTaskOrderChange={vi.fn()}
@@ -65,6 +69,8 @@ describe('GanttWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Скрыть дополнительные колонки' }));
 
     const taskPane = screen.getByRole('region', { name: 'Таблица задач' });
+    const ganttShell = taskPane.parentElement;
+    expect(ganttShell).toHaveAttribute('data-columns-collapsed', 'true');
     expect(screen.getByText('Название')).toBeInTheDocument();
     expect(screen.queryByText('Колонка 2')).not.toBeInTheDocument();
     expect(taskPane.querySelector('.gantt-task-table')).toHaveStyle({
@@ -73,9 +79,40 @@ describe('GanttWorkspace', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Показать дополнительные колонки' }));
 
+    expect(ganttShell).toHaveAttribute('data-columns-collapsed', 'false');
     expect(screen.getByText('Колонка 2')).toBeInTheDocument();
     expect(taskPane.querySelector('.gantt-task-table')).toHaveStyle({
       minWidth: '1264px',
     });
+  });
+
+  it('highlights project non-working days across the timeline', () => {
+    render(
+      <GanttWorkspace
+        milestones={[]}
+        nonWorkingDays={[{
+          id: 'day-1',
+          projectId: project.id,
+          date: '2026-11-04',
+          label: 'Праздник',
+          createdAt: '2026-10-28T00:00:00.000Z',
+          updatedAt: '2026-10-28T00:00:00.000Z',
+        }]}
+        onAddTask={vi.fn()}
+        onConfigureColumns={vi.fn()}
+        onConfigureMilestones={vi.fn()}
+        onConfigureNonWorkingDays={vi.fn()}
+        onTaskDatesChange={vi.fn()}
+        onTaskDetails={vi.fn()}
+        onTaskOrderChange={vi.fn()}
+        onToggleTaskCollapsed={vi.fn()}
+        project={project}
+        tasks={[]}
+      />,
+    );
+
+    const highlightedCells = screen.getAllByTitle('2026-11-04 — Праздник');
+    expect(highlightedCells.length).toBeGreaterThan(1);
+    expect(highlightedCells[0]).toHaveClass('bg-[var(--color-non-working)]');
   });
 });

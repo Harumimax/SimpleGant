@@ -56,11 +56,16 @@ export class TasksService {
     this.validateWorkType(input.workType);
     const color = input.color ?? DEFAULT_TASK_COLOR;
     this.validateTaskColor(color);
+    const nonWorkingDates = new Set(
+      (await this.repository.listNonWorkingDates(projectId))
+        .map(({ date }) => dateOnly(date)!),
+    );
     const dates = normalizeCreationDates(
       input.startDate,
       input.endDate,
       input.excludeWeekends ?? true,
       input.duration,
+      nonWorkingDates,
     );
     const customFields = await this.validateCustomFields(
       projectId,
@@ -71,7 +76,7 @@ export class TasksService {
       orderIndex: await this.repository.nextOrderIndex(projectId),
       title: input.title,
       workType: input.workType,
-      assignee: input.assignee,
+      assignee: input.assignee ?? '',
       estimate: input.estimate,
       status: input.status ?? TASK_STATUSES[0],
       ...dates,

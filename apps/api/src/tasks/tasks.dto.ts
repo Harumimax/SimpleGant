@@ -52,11 +52,11 @@ export class CreateTaskDto {
   @MaxLength(200)
   workType?: string;
 
+  @IsOptional()
   @Transform(trim)
   @IsString()
-  @MinLength(1, { message: 'Укажите ответственного' })
   @MaxLength(200, { message: 'Ответственный должен быть не длиннее 200 символов' })
-  assignee!: string;
+  assignee?: string;
 
   @IsOptional()
   @Transform(optionalTrim)
@@ -112,7 +112,6 @@ export class UpdateTaskDto {
   @IsOptional()
   @Transform(trim)
   @IsString()
-  @MinLength(1, { message: 'Укажите ответственного' })
   @MaxLength(200, { message: 'Ответственный должен быть не длиннее 200 символов' })
   assignee?: string;
 

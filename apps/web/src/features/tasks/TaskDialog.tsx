@@ -152,7 +152,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
               {task ? 'Редактировать задачу' : 'Новая задача'}
             </h2>
             <p className="mt-1.5 text-sm leading-6 text-[var(--color-text-muted)]">
-              Название и ответственный обязательны. Длительность задаёт длину полосы в календарных днях.
+              Обязательно только название. Длительность задаёт длину полосы в календарных днях.
             </p>
           </div>
           <Button aria-label="Закрыть" disabled={isPending} onClick={onClose} size="icon" type="button" variant="ghost">
@@ -170,7 +170,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
               {hasLegacyWorkType ? <option value={task!.workType!}>{task!.workType} (ранее выбранное)</option> : null}
               {TASK_WORK_TYPES.map((item) => <option key={item} value={item}>{item}</option>)}
             </SelectField>
-            <TextField disabled={isPending} label="Ответственный" maxLength={200} onChange={(event) => setAssignee(event.target.value)} required value={assignee} />
+            <TextField disabled={isPending} label="Ответственный" maxLength={200} onChange={(event) => setAssignee(event.target.value)} value={assignee} />
             <TextField disabled={isPending || datesReadOnly} label="Длительность, дней" min="1" onChange={(event) => setDuration(event.target.value)} placeholder="Например, 7" step="1" type="number" value={duration} />
             <SelectField disabled={isPending} label="Статус" onChange={(event) => setStatus(event.target.value as TaskStatus)} value={status}>
               {TASK_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
@@ -215,7 +215,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
           {!task ? (
             <label className="mt-5 flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-4 text-sm">
               <input checked={excludeWeekends} className="mt-0.5 size-4 accent-[var(--color-primary)]" disabled={isPending} onChange={(event) => setExcludeWeekends(event.target.checked)} type="checkbox" />
-              <span><span className="font-semibold">Не учитывать выходные дни</span><span className="mt-1 block text-xs leading-5 text-[var(--color-text-muted)]">Применяется к длительности по умолчанию, когда заполнена одна дата и длительность не указана.</span></span>
+              <span><span className="font-semibold">Не учитывать выходные дни</span><span className="mt-1 block text-xs leading-5 text-[var(--color-text-muted)]">При одной указанной дате длительность считается в рабочих днях. Если указаны обе даты, диапазон сохраняется без пересчёта.</span></span>
             </label>
           ) : null}
 

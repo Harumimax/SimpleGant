@@ -39,7 +39,7 @@ If architecture, security assumptions, persisted entities, API contracts, or mod
 - Default columns are `Название`, `Тип работ`, `Исполнитель`, `Длительность`, and `Статус`.
 - Task statuses are fixed: `Ожидает`, `В работе`, `На паузе`, `Завершено`, and `Заблокировано`.
 - Task dates have day precision. Persist `startDate` and `endDate`; derive duration instead of storing an independent duration value.
-- When only one boundary date is supplied during task creation, calculate the other from the default two-week duration. The default creation option excludes weekends and project non-working days.
+- When only one boundary date is supplied during task creation, calculate the other from the explicit duration or the default two-week duration. The creation option excludes weekends and project non-working days for either duration; two explicit boundaries take precedence and are not recalculated.
 - Dragging or resizing a task bar sets its dates directly. Do not skip weekends or non-working days during this interaction.
 - Task nesting is limited to five levels. Prevent cycles and cross-project parent references.
 - Parent task dates are derived from descendants and cannot be edited directly while the task has children.

@@ -66,7 +66,7 @@ export type Task = {
 export type TaskInput = {
   title: string;
   workType?: string | null;
-  assignee: string;
+  assignee?: string;
   estimate?: string | null;
   duration?: number;
   status: TaskStatus;

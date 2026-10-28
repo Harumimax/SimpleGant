@@ -21,17 +21,22 @@ function moveDays(date: Date, amount: number) {
   return next;
 }
 
-function isWorkingDay(date: Date) {
+function isWorkingDay(date: Date, nonWorkingDates: ReadonlySet<string>) {
   const weekday = date.getUTCDay();
-  return weekday !== 0 && weekday !== 6;
+  return weekday !== 0 && weekday !== 6 && !nonWorkingDates.has(dateOnly(date)!);
 }
 
-function moveWorkingDays(date: Date, count: number, direction: 1 | -1) {
+function moveWorkingDays(
+  date: Date,
+  count: number,
+  direction: 1 | -1,
+  nonWorkingDates: ReadonlySet<string>,
+) {
   let next = new Date(date);
   let remaining = count;
   while (remaining > 0) {
     next = moveDays(next, direction);
-    if (isWorkingDay(next)) remaining -= 1;
+    if (isWorkingDay(next, nonWorkingDates)) remaining -= 1;
   }
   return next;
 }
@@ -41,15 +46,35 @@ export function normalizeCreationDates(
   endValue?: string,
   excludeWeekends = true,
   duration?: number,
+  nonWorkingDates: ReadonlySet<string> = new Set(),
 ) {
   let startDate = startValue ? parseDateOnly(startValue) : null;
   let endDate = endValue ? parseDateOnly(endValue) : null;
 
+  if (startDate && endDate) {
+    validateDateRange(startDate, endDate);
+    return { startDate, endDate };
+  }
+
   if (duration !== undefined) {
     if (startDate) {
-      endDate = moveDays(startDate, duration - 1);
+      endDate = excludeWeekends
+        ? moveWorkingDays(
+            startDate,
+            duration - (isWorkingDay(startDate, nonWorkingDates) ? 1 : 0),
+            1,
+            nonWorkingDates,
+          )
+        : moveDays(startDate, duration - 1);
     } else if (endDate) {
-      startDate = moveDays(endDate, -(duration - 1));
+      startDate = excludeWeekends
+        ? moveWorkingDays(
+            endDate,
+            duration - (isWorkingDay(endDate, nonWorkingDates) ? 1 : 0),
+            -1,
+            nonWorkingDates,
+          )
+        : moveDays(endDate, -(duration - 1));
     } else {
       throw new BadRequestException(
         'Для расчета длительности укажите начало или конец задачи',
@@ -64,16 +89,18 @@ export function normalizeCreationDates(
     endDate = excludeWeekends
       ? moveWorkingDays(
           startDate,
-          DEFAULT_TASK_DURATION - (isWorkingDay(startDate) ? 1 : 0),
+          DEFAULT_TASK_DURATION - (isWorkingDay(startDate, nonWorkingDates) ? 1 : 0),
           1,
+          nonWorkingDates,
         )
       : moveDays(startDate, calendarDays);
   } else if (!startDate && endDate) {
     startDate = excludeWeekends
       ? moveWorkingDays(
           endDate,
-          DEFAULT_TASK_DURATION - (isWorkingDay(endDate) ? 1 : 0),
+          DEFAULT_TASK_DURATION - (isWorkingDay(endDate, nonWorkingDates) ? 1 : 0),
           -1,
+          nonWorkingDates,
         )
       : moveDays(endDate, -calendarDays);
   }
