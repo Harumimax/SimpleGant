@@ -19,7 +19,7 @@ Call out only risks that apply. Typical SimpleGant risks are:
 - data migration, transaction boundaries, partial aggregate saves, and stale client state;
 - invalid task hierarchy, cycles, depth above five levels, or incorrect parent date ranges;
 - table/timeline row drift, date rounding, zoom calculations, drag/resize behavior, and performance near 150 tasks;
-- breaking the read-only public viewer or exposing editing operations on mobile.
+- breaking the desktop read-only public viewer or exposing editing operations through a public link.
 
 After the review, implement the agreed scope unless the user explicitly asked for review only. Prefer one coherent feature slice over a broad rewrite.
 

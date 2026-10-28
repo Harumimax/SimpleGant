@@ -5,6 +5,7 @@ import {
   calculateTaskBarGeometry,
   calculateTaskDateChange,
   GANTT_DAY_WIDTH,
+  GANTT_ROW_HEIGHT,
   type TaskDateChangeMode,
   type TaskDateRange,
 } from './timeline';
@@ -31,6 +32,7 @@ type TaskBarProps = {
     task: Task,
     dates: TaskDateRange,
   ) => Promise<void>;
+  onVerticalMove?: (task: Task, rowDelta: number) => Promise<void>;
   isSaving?: boolean;
   isDateLocked?: boolean;
 };
@@ -38,8 +40,12 @@ type TaskBarProps = {
 type Interaction = {
   pointerId: number;
   startX: number;
+  startY: number;
   mode: TaskDateChangeMode;
+  axis: 'horizontal' | 'vertical' | null;
 };
+
+const DRAG_ACTIVATION_DISTANCE = 6;
 
 export function TaskBar({
   task,
@@ -47,6 +53,7 @@ export function TaskBar({
   timelineEndDate,
   onOpen,
   onDateChange,
+  onVerticalMove,
   isSaving = false,
   isDateLocked = false,
 }: TaskBarProps) {
@@ -55,6 +62,7 @@ export function TaskBar({
   const didDragRef = useRef(false);
   const [preview, setPreview] = useState<TaskDateRange | null>(null);
   const [activeMode, setActiveMode] = useState<TaskDateChangeMode | null>(null);
+  const [verticalOffset, setVerticalOffset] = useState(0);
   const taskStartDate = task.startDate;
   const taskEndDate = task.endDate;
   const visibleStartDate = preview?.startDate ?? taskStartDate;
@@ -80,28 +88,55 @@ export function TaskBar({
     event: PointerEvent<HTMLElement>,
     mode: TaskDateChangeMode,
   ) {
-    if (isSaving || isDateLocked || event.button !== 0) return;
+    if (
+      isSaving ||
+      event.button !== 0 ||
+      (mode !== 'move' && isDateLocked)
+    ) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     interactionRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
+      startY: event.clientY,
       mode,
+      axis: mode === 'move' ? null : 'horizontal',
     };
     previewRef.current = null;
     didDragRef.current = false;
     setPreview(null);
-    setActiveMode(mode);
+    setVerticalOffset(0);
+    setActiveMode(mode === 'move' ? null : mode);
   }
 
   function handlePointerMove(event: PointerEvent<HTMLButtonElement>) {
     const interaction = interactionRef.current;
     if (!interaction || interaction.pointerId !== event.pointerId) return;
 
-    const dayDelta = Math.round(
-      (event.clientX - interaction.startX) / GANTT_DAY_WIDTH,
-    );
+    const deltaX = event.clientX - interaction.startX;
+    const deltaY = event.clientY - interaction.startY;
+    if (!interaction.axis) {
+      if (
+        Math.max(Math.abs(deltaX), Math.abs(deltaY)) <
+        DRAG_ACTIVATION_DISTANCE
+      ) return;
+      interaction.axis = Math.abs(deltaY) > Math.abs(deltaX)
+        ? 'vertical'
+        : 'horizontal';
+      if (interaction.axis === 'horizontal' && !isDateLocked) {
+        setActiveMode(interaction.mode);
+      }
+    }
+
+    if (interaction.axis === 'vertical' && interaction.mode === 'move') {
+      didDragRef.current = true;
+      setVerticalOffset(deltaY);
+      return;
+    }
+    if (isDateLocked) return;
+
+    const dayDelta = Math.round(deltaX / GANTT_DAY_WIDTH);
     const dates = calculateTaskDateChange(
       originalStartDate,
       originalEndDate,
@@ -121,6 +156,20 @@ export function TaskBar({
 
     interactionRef.current = null;
     setActiveMode(null);
+    setVerticalOffset(0);
+    if (interaction.axis === 'vertical') {
+      const rowDelta = Math.round(
+        (event.clientY - interaction.startY) / GANTT_ROW_HEIGHT,
+      );
+      if (rowDelta !== 0 && onVerticalMove) {
+        try {
+          await onVerticalMove(task, rowDelta);
+        } catch {
+          // The editor keeps the current structure and reports the error.
+        }
+      }
+      return;
+    }
     const dates = previewRef.current;
     if (
       dates &&
@@ -147,17 +196,18 @@ export function TaskBar({
     didDragRef.current = false;
     setPreview(null);
     setActiveMode(null);
+    setVerticalOffset(0);
   }
 
   return (
     <button
       aria-label={`Подробно: ${task.title}, ${period}${isDateLocked ? ', даты рассчитываются автоматически' : ''}`}
       aria-busy={isSaving || undefined}
-      className={`gantt-task-bar group absolute top-2 z-[2] flex h-7 items-center overflow-hidden px-2.5 text-left text-[11px] font-semibold shadow-sm outline-none transition-[filter,box-shadow,opacity] hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70 ${isDateLocked ? 'cursor-pointer' : 'cursor-grab'}`}
+      className={`gantt-task-bar group absolute top-2 flex h-7 items-center overflow-hidden px-2.5 text-left text-[11px] font-semibold shadow-sm outline-none transition-[filter,box-shadow,opacity] hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70 ${verticalOffset ? 'z-30 cursor-grabbing opacity-80 shadow-lg' : 'z-[2]'} ${isDateLocked && !onVerticalMove ? 'cursor-pointer' : 'cursor-grab'}`}
       data-clipped-end={geometry.isClippedEnd || undefined}
       data-clipped-start={geometry.isClippedStart || undefined}
       data-color={color}
-      data-dragging={activeMode || undefined}
+      data-dragging={verticalOffset ? 'vertical' : activeMode || undefined}
       disabled={isSaving}
       onClick={(event) => {
         if (didDragRef.current) {
@@ -173,6 +223,7 @@ export function TaskBar({
       onPointerUp={finishInteraction}
       style={{
         left: geometry.left + startInset,
+        transform: verticalOffset ? `translateY(${verticalOffset}px)` : undefined,
         width: Math.max(geometry.width - startInset - endInset, 8),
       }}
       title={`${task.title}\n${period}${isDateLocked ? '\nДаты рассчитываются по вложенным задачам' : ''}`}

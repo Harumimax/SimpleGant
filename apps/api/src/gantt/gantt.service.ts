@@ -210,6 +210,7 @@ export class GanttService {
     return {
       project: {
         id: aggregate.id,
+        publicToken: aggregate.publicToken,
         name: aggregate.name,
         startDate: dateOnly(aggregate.startDate)!,
         endDate: dateOnly(aggregate.endDate)!,

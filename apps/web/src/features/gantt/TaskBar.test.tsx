@@ -110,6 +110,88 @@ describe('TaskBar', () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
+  it('moves a task vertically without changing its dates or opening details', async () => {
+    const onDateChange = vi.fn().mockResolvedValue(undefined);
+    const onVerticalMove = vi.fn().mockResolvedValue(undefined);
+    const onOpen = vi.fn();
+    render(
+      <TaskBar
+        onDateChange={onDateChange}
+        onOpen={onOpen}
+        onVerticalMove={onVerticalMove}
+        task={task}
+        timelineEndDate="2026-11-30"
+        timelineStartDate="2026-11-01"
+      />,
+    );
+
+    const bar = screen.getByRole('button');
+    fireEvent.pointerDown(bar, {
+      button: 0,
+      clientX: 100,
+      clientY: 100,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(bar, {
+      clientX: 102,
+      clientY: 144,
+      pointerId: 1,
+    });
+
+    expect(bar).toHaveAttribute('data-dragging', 'vertical');
+    expect(bar).toHaveStyle({ transform: 'translateY(44px)' });
+
+    fireEvent.pointerUp(bar, {
+      clientX: 102,
+      clientY: 144,
+      pointerId: 1,
+    });
+    fireEvent.click(bar);
+
+    await waitFor(() => {
+      expect(onVerticalMove).toHaveBeenCalledWith(task, 1);
+    });
+    expect(onDateChange).not.toHaveBeenCalled();
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('allows a parent task with locked dates to move vertically', async () => {
+    const onVerticalMove = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TaskBar
+        isDateLocked
+        onDateChange={vi.fn().mockResolvedValue(undefined)}
+        onOpen={vi.fn()}
+        onVerticalMove={onVerticalMove}
+        task={task}
+        timelineEndDate="2026-11-30"
+        timelineStartDate="2026-11-01"
+      />,
+    );
+
+    const bar = screen.getByRole('button');
+    fireEvent.pointerDown(bar, {
+      button: 0,
+      clientX: 100,
+      clientY: 100,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(bar, {
+      clientX: 100,
+      clientY: 56,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(bar, {
+      clientX: 100,
+      clientY: 56,
+      pointerId: 1,
+    });
+
+    await waitFor(() => {
+      expect(onVerticalMove).toHaveBeenCalledWith(task, -1);
+    });
+  });
+
   it('opens a parent task but does not allow dragging its derived dates', () => {
     const onDateChange = vi.fn().mockResolvedValue(undefined);
     const onOpen = vi.fn();

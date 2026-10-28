@@ -4,6 +4,7 @@ import { AuthPage } from './features/auth/AuthPage';
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { ProjectEditorPage } from './pages/ProjectEditorPage';
 import { ProjectsPage } from './pages/ProjectsPage';
+import { PublicProjectPage } from './pages/PublicProjectPage';
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
       <Routes>
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
+        <Route path="/public/:publicToken" element={<PublicProjectPage />} />
         <Route
           path="/"
           element={

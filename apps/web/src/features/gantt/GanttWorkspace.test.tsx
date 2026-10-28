@@ -1,8 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ProjectDetail } from '../projects/projects.api';
+import type { Task } from '../tasks/tasks.api';
 import { GanttWorkspace } from './GanttWorkspace';
+import { flattenVisibleTasks } from './taskHierarchy';
 
 const project: ProjectDetail = {
   id: 'project-1',
@@ -20,6 +22,36 @@ const project: ProjectDetail = {
     isDefault: index < 5,
   })),
 };
+
+function task(id: string, orderIndex: number): Task {
+  return {
+    id,
+    projectId: project.id,
+    parentId: null,
+    orderIndex,
+    level: 0,
+    title: id === 'first' ? 'Первая задача' : 'Вторая задача',
+    workType: 'Разработка',
+    assignee: '',
+    estimate: null,
+    duration: 3,
+    status: 'Ожидает',
+    startDate: '2026-11-03',
+    endDate: '2026-11-05',
+    color: 'sage',
+    isCollapsed: false,
+    customFields: {},
+    createdAt: `2026-11-0${orderIndex + 1}T00:00:00.000Z`,
+    updatedAt: '2026-11-01T00:00:00.000Z',
+  };
+}
+
+beforeAll(() => {
+  Object.defineProperty(HTMLElement.prototype, 'setPointerCapture', {
+    configurable: true,
+    value: vi.fn(),
+  });
+});
 
 describe('GanttWorkspace', () => {
   it('shows and triggers explicit saving for a dirty draft', () => {
@@ -140,5 +172,53 @@ describe('GanttWorkspace', () => {
     const highlightedCells = screen.getAllByTitle('2026-11-04 — Праздник');
     expect(highlightedCells.length).toBeGreaterThan(1);
     expect(highlightedCells[0]).toHaveClass('bg-[var(--color-non-working)]');
+  });
+
+  it('reorders the linked task when its timeline bar moves vertically', async () => {
+    const tasks = [task('first', 0), task('second', 1)];
+    const onTaskOrderChange = vi.fn().mockResolvedValue(undefined);
+    render(
+      <GanttWorkspace
+        milestones={[]}
+        nonWorkingDays={[]}
+        onAddTask={vi.fn()}
+        onConfigureColumns={vi.fn()}
+        onConfigureMilestones={vi.fn()}
+        onConfigureNonWorkingDays={vi.fn()}
+        onTaskDatesChange={vi.fn()}
+        onTaskDetails={vi.fn()}
+        onTaskOrderChange={onTaskOrderChange}
+        onToggleTaskCollapsed={vi.fn()}
+        project={project}
+        tasks={tasks}
+      />,
+    );
+
+    const firstBar = screen.getByRole('button', {
+      name: /Подробно: Первая задача,/,
+    });
+    fireEvent.pointerDown(firstBar, {
+      button: 0,
+      clientX: 100,
+      clientY: 100,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(firstBar, {
+      clientX: 101,
+      clientY: 144,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(firstBar, {
+      clientX: 101,
+      clientY: 144,
+      pointerId: 1,
+    });
+
+    await waitFor(() => expect(onTaskOrderChange).toHaveBeenCalledOnce());
+    const reordered = onTaskOrderChange.mock.calls[0]?.[0] as Task[];
+    expect(flattenVisibleTasks(reordered).map(({ id }) => id)).toEqual([
+      'second',
+      'first',
+    ]);
   });
 });

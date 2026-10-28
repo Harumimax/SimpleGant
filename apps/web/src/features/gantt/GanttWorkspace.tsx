@@ -144,6 +144,20 @@ export function GanttWorkspace({
     );
   }
 
+  async function moveTimelineTask(task: Task, rowDelta: number) {
+    if (isSavingStructure) return;
+    const activeIndex = visibleTasks.findIndex(({ id }) => id === task.id);
+    if (activeIndex < 0) return;
+    const targetIndex = Math.min(
+      Math.max(activeIndex + rowDelta, 0),
+      visibleTasks.length - 1,
+    );
+    const target = visibleTasks[targetIndex];
+    if (!target || target.id === task.id) return;
+    const nextTasks = moveTask(tasks, task.id, target.id, 0);
+    if (nextTasks) await onTaskOrderChange(nextTasks);
+  }
+
   function syncVerticalScroll(
     event: UIEvent<HTMLElement>,
     target: HTMLElement | null,
@@ -436,6 +450,7 @@ export function GanttWorkspace({
                           isSaving={updatingTaskId === task.id}
                           onDateChange={onTaskDatesChange}
                           onOpen={onTaskDetails}
+                          onVerticalMove={moveTimelineTask}
                           task={task}
                           timelineEndDate={project.endDate}
                           timelineStartDate={project.startDate}

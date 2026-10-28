@@ -73,6 +73,7 @@ describe('GanttService', () => {
 
     expect(repository.replace).toHaveBeenCalledOnce();
     expect(result.project.id).toBe(projectId);
+    expect(result.project.publicToken).toBe(aggregate.publicToken);
   });
 
   it('rejects cyclic task hierarchy before starting persistence', async () => {

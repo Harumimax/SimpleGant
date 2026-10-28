@@ -26,7 +26,7 @@ Core MVP rules:
 - Milestones are named project-wide vertical timeline markers.
 - Task colors must come from a fixed soft palette.
 - Editing happens in local draft state and is persisted only by the explicit `Сохранить изменения` action.
-- Editing is desktop-first; mobile supports read-only viewing.
+- Editing and public viewing are desktop-first; a mobile interface is outside the MVP.
 
 Out of scope for the MVP: real-time collaboration, edit roles, history, dependencies, export, undo/redo, editable status lists, OAuth, password-protected public links, and comment stickers.
 
@@ -93,7 +93,7 @@ For substantial UI changes:
 2. Choose a restrained, work-focused visual direction suited to a planning tool.
 3. Build reusable, responsive components with accessible interaction states.
 4. Keep the task table and timeline visually aligned during scrolling, dragging, resizing, and collapsing.
-5. Verify the result in a browser at desktop and mobile read-only sizes.
+5. Verify the result in a browser at supported desktop sizes.
 6. Refine visible layout, overflow, contrast, and interaction problems before finishing.
 
 Avoid marketing-style layouts, oversized decorative elements, nested cards, generic dashboard decoration, and visual effects that reduce information density or timeline readability.
@@ -119,7 +119,7 @@ Add or update tests for changed behavior. Prioritize:
 - atomic aggregate saving and rollback;
 - day, week, and month timeline calculations;
 - table/timeline row alignment and collapsed visibility;
-- mobile public viewing;
+- desktop public viewing without mutation controls;
 - UTF-8 handling of Russian text.
 
 Run focused tests first, then broader checks when shared contracts change. For frontend work, verify in a browser and use screenshots when possible.

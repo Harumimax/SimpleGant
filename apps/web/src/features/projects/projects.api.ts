@@ -18,7 +18,10 @@ export type ProjectColumn = {
   isDefault: boolean;
 };
 
-export type ProjectDetail = Project & { columns: ProjectColumn[] };
+export type ProjectDetail = Project & {
+  columns: ProjectColumn[];
+  publicToken?: string;
+};
 
 export type ProjectColumnConfigurationInput = {
   id?: string;

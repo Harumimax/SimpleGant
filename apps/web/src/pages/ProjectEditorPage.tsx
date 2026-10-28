@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { ArrowLeft, CalendarRange, ChartNoAxesGantt } from 'lucide-react';
+import { ArrowLeft, CalendarRange, ChartNoAxesGantt, Share2 } from 'lucide-react';
 import { useEffect, useState, type MouseEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -20,6 +20,7 @@ import { calculateTaskDuration, type TaskDateRange } from '../features/gantt/tim
 import { MilestonesDialog } from '../features/milestones/MilestonesDialog';
 import type { MilestoneInput } from '../features/milestones/milestones.api';
 import { ProjectColumnsDialog } from '../features/projects/ProjectColumnsDialog';
+import { ShareProjectDialog } from '../features/projects/ShareProjectDialog';
 import type { ProjectColumnConfigurationInput } from '../features/projects/projects.api';
 import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
 import { TaskDetailsDialog } from '../features/tasks/TaskDetailsDialog';
@@ -67,6 +68,7 @@ export function ProjectEditorPage() {
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
   const [isMilestonesOpen, setIsMilestonesOpen] = useState(false);
   const [isNonWorkingDaysOpen, setIsNonWorkingDaysOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   useEffect(() => {
     if (gantt.data && draftProjectId !== projectId) initialize(gantt.data);
@@ -310,6 +312,16 @@ export function ProjectEditorPage() {
               {formatDate(project.startDate)} — {formatDate(project.endDate)}
             </p>
           </div>
+          {project.publicToken ? (
+            <button
+              className="ml-auto flex h-9 shrink-0 items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-white px-3 text-sm font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-subtle)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              onClick={() => setIsShareOpen(true)}
+              type="button"
+            >
+              <Share2 aria-hidden className="size-4" />
+              Поделиться
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -355,6 +367,7 @@ export function ProjectEditorPage() {
       {isColumnsOpen ? <ProjectColumnsDialog columns={project.columns} isPending={false} onClose={() => setIsColumnsOpen(false)} onSubmit={configureColumns} /> : null}
       {isMilestonesOpen ? <MilestonesDialog isPending={false} milestones={milestones} onClose={() => setIsMilestonesOpen(false)} onDelete={deleteMilestone} onSave={saveMilestone} projectEndDate={project.endDate} projectStartDate={project.startDate} /> : null}
       {isNonWorkingDaysOpen ? <NonWorkingDaysDialog days={nonWorkingDays} isPending={false} onAdd={addNonWorkingDay} onClose={() => setIsNonWorkingDaysOpen(false)} onDelete={deleteNonWorkingDay} projectEndDate={project.endDate} projectStartDate={project.startDate} /> : null}
+      {isShareOpen && project.publicToken ? <ShareProjectDialog onClose={() => setIsShareOpen(false)} publicUrl={`${window.location.origin}/public/${project.publicToken}`} /> : null}
     </main>
   );
 }

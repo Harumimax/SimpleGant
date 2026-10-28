@@ -11,6 +11,7 @@ import { GanttModule } from './gantt/gantt.module.js';
 import { MilestonesModule } from './milestones/milestones.module.js';
 import { ProjectColumnsModule } from './project-columns/project-columns.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
+import { PublicShareModule } from './public-share/public-share.module.js';
 import { CsrfOriginGuard } from './security/csrf-origin.guard.js';
 import { TasksModule } from './tasks/tasks.module.js';
 
@@ -23,6 +24,7 @@ import { TasksModule } from './tasks/tasks.module.js';
     MilestonesModule,
     ProjectsModule,
     ProjectColumnsModule,
+    PublicShareModule,
     TasksModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
   ],
