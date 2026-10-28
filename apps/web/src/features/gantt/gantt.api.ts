@@ -3,6 +3,7 @@ import type { NonWorkingDay } from '../calendar/non-working-days.api';
 import type { Milestone } from '../milestones/milestones.api';
 import type { ProjectDetail } from '../projects/projects.api';
 import type { Task } from '../tasks/tasks.api';
+import { normalizeTaskOrder } from './taskHierarchy';
 
 export type GanttAggregate = {
   project: ProjectDetail;
@@ -39,13 +40,14 @@ export function getGantt(projectId: string) {
 }
 
 export function saveGantt(projectId: string, aggregate: GanttAggregate) {
+  const tasks = normalizeTaskOrder(aggregate.tasks);
   const input: GanttSaveInput = {
     columns: aggregate.project.columns.map(({ id, name, isVisible }) => ({
       id,
       name,
       isVisible,
     })),
-    tasks: aggregate.tasks.map((task) => ({
+    tasks: tasks.map((task) => ({
       id: task.id,
       parentId: task.parentId,
       orderIndex: task.orderIndex,

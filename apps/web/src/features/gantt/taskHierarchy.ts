@@ -129,6 +129,28 @@ function deriveLevels(tasks: Task[]) {
   return tasks.map((task) => ({ ...task, level: resolve(task) }));
 }
 
+export function normalizeTaskOrder(tasks: Task[]) {
+  const inputOrder = new Map(tasks.map((task, index) => [task.id, index]));
+  const normalizedIndexes = new Map<string, number>();
+  const parentIds = new Set(tasks.map(({ parentId }) => parentId));
+
+  for (const parentId of parentIds) {
+    tasks
+      .filter((task) => task.parentId === parentId)
+      .sort(
+        (left, right) =>
+          left.orderIndex - right.orderIndex
+          || (inputOrder.get(left.id) ?? 0) - (inputOrder.get(right.id) ?? 0),
+      )
+      .forEach((task, orderIndex) => normalizedIndexes.set(task.id, orderIndex));
+  }
+
+  return tasks.map((task) => ({
+    ...task,
+    orderIndex: normalizedIndexes.get(task.id) ?? 0,
+  }));
+}
+
 function placeTask(
   tasks: Task[],
   taskId: string,
@@ -164,7 +186,7 @@ function placeTask(
     });
   }
 
-  return recalculateParentTaskDates(deriveLevels(next));
+  return recalculateParentTaskDates(deriveLevels(normalizeTaskOrder(next)));
 }
 
 export function indentTask(tasks: Task[], taskId: string) {
@@ -214,22 +236,61 @@ export function moveTask(
     );
   }
   if (horizontalIntent < 0) return outdentTask(tasks, activeId);
-  if (descendantIds(tasks, activeId).has(overId)) return null;
 
   const visible = flattenVisibleTasks(tasks);
   const activeIndex = visible.findIndex(({ id }) => id === activeId);
-  const overIndex = visible.findIndex(({ id }) => id === overId);
-  const targetSiblings = siblingTasks(tasks, over.parentId).filter(
+  const rawOverIndex = visible.findIndex(({ id }) => id === overId);
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  let verticalTarget: Task | undefined = over;
+
+  while (verticalTarget && verticalTarget.parentId !== active.parentId) {
+    verticalTarget = verticalTarget.parentId
+      ? byId.get(verticalTarget.parentId)
+      : undefined;
+  }
+  if (!verticalTarget) return null;
+
+  if (verticalTarget.id === activeId) {
+    const siblings = siblingTasks(tasks, active.parentId);
+    const activeSiblingIndex = siblings.findIndex(({ id }) => id === activeId);
+    verticalTarget = rawOverIndex > activeIndex
+      ? siblings[activeSiblingIndex + 1]
+      : siblings[activeSiblingIndex - 1];
+  }
+  if (!verticalTarget) return null;
+
+  const targetSiblings = siblingTasks(tasks, active.parentId).filter(
     ({ id }) => id !== activeId,
   );
-  const targetIndex = targetSiblings.findIndex(({ id }) => id === overId);
-  const insertAfter = activeIndex < overIndex;
+  const targetIndex = targetSiblings.findIndex(
+    ({ id }) => id === verticalTarget.id,
+  );
+  if (targetIndex < 0) return null;
+  const insertAfter = activeIndex < rawOverIndex;
   return placeTask(
     tasks,
     activeId,
-    over.parentId,
+    active.parentId,
     targetIndex + (insertAfter ? 1 : 0),
   );
+}
+
+export function moveTaskByVisibleOffset(
+  tasks: Task[],
+  taskId: string,
+  rowDelta: number,
+) {
+  const visible = flattenVisibleTasks(tasks);
+  const activeIndex = visible.findIndex(({ id }) => id === taskId);
+  if (activeIndex < 0 || rowDelta === 0) return null;
+
+  const targetIndex = Math.min(
+    Math.max(activeIndex + rowDelta, 0),
+    visible.length - 1,
+  );
+  const target = visible[targetIndex];
+  if (!target || target.id === taskId) return null;
+  return moveTask(tasks, taskId, target.id, 0);
 }
 
 export function toTaskPositions(tasks: Task[]): TaskPositionInput[] {

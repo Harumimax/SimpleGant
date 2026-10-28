@@ -184,6 +184,37 @@ describe('TaskBar', () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
+  it('keeps the dragged bar under the pointer while rows adapt around it', () => {
+    const onVerticalMovePreview = vi.fn().mockReturnValue(1);
+    render(
+      <TaskBar
+        onDateChange={vi.fn().mockResolvedValue(undefined)}
+        onOpen={vi.fn()}
+        onVerticalMove={vi.fn().mockResolvedValue(undefined)}
+        onVerticalMovePreview={onVerticalMovePreview}
+        task={task}
+        timelineEndDate="2026-11-30"
+        timelineStartDate="2026-11-01"
+      />,
+    );
+
+    const bar = screen.getByRole('button');
+    fireEvent.pointerDown(bar, {
+      button: 0,
+      clientX: 100,
+      clientY: 100,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(bar, {
+      clientX: 100,
+      clientY: 144,
+      pointerId: 1,
+    });
+
+    expect(onVerticalMovePreview).toHaveBeenCalledWith(task, 1);
+    expect(bar).not.toHaveStyle({ transform: 'translateY(44px)' });
+  });
+
   it('allows a parent task with locked dates to move vertically', async () => {
     const onVerticalMove = vi.fn().mockResolvedValue(undefined);
     render(

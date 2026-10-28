@@ -6,6 +6,8 @@ import {
   flattenVisibleTasks,
   indentTask,
   moveTask,
+  moveTaskByVisibleOffset,
+  normalizeTaskOrder,
   outdentTask,
   recalculateParentTaskDates,
 } from './taskHierarchy';
@@ -85,6 +87,60 @@ describe('task hierarchy', () => {
       parentId: 'a',
       level: 1,
     });
+  });
+
+  it('keeps vertical movement on the same hierarchy level', () => {
+    const tasks = [
+      task('group-a', null, 0),
+      task('child-a', 'group-a', 0, 1),
+      task('group-b', null, 1),
+    ];
+
+    const reordered = moveTask(tasks, 'group-b', 'child-a', 0);
+
+    expect(flattenVisibleTasks(reordered ?? []).map(({ id }) => id)).toEqual([
+      'group-b',
+      'group-a',
+      'child-a',
+    ]);
+    expect(reordered?.find(({ id }) => id === 'group-b')?.parentId).toBeNull();
+
+    const movedAsBlock = moveTask(tasks, 'group-a', 'child-a', 0);
+    expect(flattenVisibleTasks(movedAsBlock ?? []).map(({ id }) => id)).toEqual([
+      'group-b',
+      'group-a',
+      'child-a',
+    ]);
+  });
+
+  it('moves a task by a visible row offset', () => {
+    const tasks = [task('a', null, 0), task('b', null, 1), task('c', null, 2)];
+
+    const reordered = moveTaskByVisibleOffset(tasks, 'a', 1);
+
+    expect(flattenVisibleTasks(reordered ?? []).map(({ id }) => id)).toEqual([
+      'b',
+      'a',
+      'c',
+    ]);
+  });
+
+  it('normalizes duplicate sibling indexes without mixing hierarchy levels', () => {
+    const tasks = [
+      task('root-a', null, 0),
+      task('root-b', null, 0),
+      task('child-a', 'root-a', 0, 1),
+      task('child-b', 'root-a', 0, 1),
+    ];
+
+    const normalized = normalizeTaskOrder(tasks);
+
+    expect(normalized.map(({ id, orderIndex }) => ({ id, orderIndex }))).toEqual([
+      { id: 'root-a', orderIndex: 0 },
+      { id: 'root-b', orderIndex: 1 },
+      { id: 'child-a', orderIndex: 0 },
+      { id: 'child-b', orderIndex: 1 },
+    ]);
   });
 
   it('prevents cycles and a hierarchy deeper than five total levels', () => {

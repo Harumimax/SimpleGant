@@ -34,6 +34,9 @@ type TaskBarProps = {
     dates: TaskDateRange,
   ) => Promise<void>;
   onVerticalMove?: (task: Task, rowDelta: number) => Promise<void>;
+  onVerticalMoveStart?: (task: Task) => void;
+  onVerticalMovePreview?: (task: Task, rowDelta: number) => number;
+  onVerticalMoveCancel?: () => void;
   isSaving?: boolean;
   isDateLocked?: boolean;
 };
@@ -56,6 +59,9 @@ export function TaskBar({
   onOpen,
   onDateChange,
   onVerticalMove,
+  onVerticalMoveStart,
+  onVerticalMovePreview,
+  onVerticalMoveCancel,
   isSaving = false,
   isDateLocked = false,
 }: TaskBarProps) {
@@ -111,6 +117,7 @@ export function TaskBar({
     setPreview(null);
     setVerticalOffset(0);
     setActiveMode(mode === 'move' ? null : mode);
+    if (mode === 'move') onVerticalMoveStart?.(task);
   }
 
   function handlePointerMove(event: PointerEvent<HTMLButtonElement>) {
@@ -134,7 +141,9 @@ export function TaskBar({
 
     if (interaction.axis === 'vertical' && interaction.mode === 'move') {
       didDragRef.current = true;
-      setVerticalOffset(deltaY);
+      const rowDelta = Math.round(deltaY / GANTT_ROW_HEIGHT);
+      const visibleRowDelta = onVerticalMovePreview?.(task, rowDelta) ?? 0;
+      setVerticalOffset(deltaY - visibleRowDelta * GANTT_ROW_HEIGHT);
       return;
     }
     if (isDateLocked) return;
@@ -170,9 +179,12 @@ export function TaskBar({
         } catch {
           // The editor keeps the current structure and reports the error.
         }
+      } else {
+        onVerticalMoveCancel?.();
       }
       return;
     }
+    onVerticalMoveCancel?.();
     const dates = previewRef.current;
     if (
       dates &&
@@ -200,6 +212,7 @@ export function TaskBar({
     setPreview(null);
     setActiveMode(null);
     setVerticalOffset(0);
+    onVerticalMoveCancel?.();
   }
 
   return (

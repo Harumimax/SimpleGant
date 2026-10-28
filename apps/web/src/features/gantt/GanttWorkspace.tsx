@@ -6,6 +6,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragOverEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -35,6 +36,7 @@ import {
   flattenVisibleTasks,
   indentTask,
   moveTask,
+  moveTaskByVisibleOffset,
   outdentTask,
   taskHasChildren,
 } from './taskHierarchy';
@@ -109,6 +111,9 @@ export function GanttWorkspace({
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
   const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
+  const [dragPreviewTasks, setDragPreviewTasks] = useState<Task[] | null>(null);
+  const [dragSource, setDragSource] = useState<'table' | 'timeline' | null>(null);
+  const dragBaseTasksRef = useRef<Task[]>(tasks);
   const timeline = buildTimeline(
     project.startDate,
     project.endDate,
@@ -124,7 +129,12 @@ export function GanttWorkspace({
   );
   const taskGridTemplate = columnTemplate(columns.length);
   const taskTableWidth = taskTableMinWidth(columns.length);
-  const visibleTasks = flattenVisibleTasks(tasks);
+  const tableTasks = dragSource === 'timeline' && dragPreviewTasks
+    ? dragPreviewTasks
+    : tasks;
+  const timelineTasks = dragPreviewTasks ?? tasks;
+  const visibleTasks = flattenVisibleTasks(tableTasks);
+  const timelineVisibleTasks = flattenVisibleTasks(timelineTasks);
   const rows: Array<Task | null> = [
     ...visibleTasks,
     ...Array.from({ length: Math.max(20 - visibleTasks.length, 0) }, () => null),
@@ -141,25 +151,67 @@ export function GanttWorkspace({
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over, delta } = event;
+    setDragPreviewTasks(null);
+    setDragSource(null);
     if (!over) return;
     const horizontalIntent: -1 | 0 | 1 =
-      delta.x > 28 ? 1 : delta.x < -28 ? -1 : 0;
+      delta.x > 48 ? 1 : delta.x < -48 ? -1 : 0;
     saveStructure(
-      moveTask(tasks, String(active.id), String(over.id), horizontalIntent),
+      moveTask(
+        dragBaseTasksRef.current,
+        String(active.id),
+        String(over.id),
+        horizontalIntent,
+      ),
     );
+  }
+
+  function handleTableDragStart() {
+    dragBaseTasksRef.current = tasks;
+    setDragSource('table');
+    setDragPreviewTasks(null);
+  }
+
+  function handleTableDragOver(event: DragOverEvent) {
+    if (!event.over) return;
+    const nextTasks = moveTask(
+      dragBaseTasksRef.current,
+      String(event.active.id),
+      String(event.over.id),
+      0,
+    );
+    setDragPreviewTasks(nextTasks);
+  }
+
+  function clearDragPreview() {
+    setDragPreviewTasks(null);
+    setDragSource(null);
+  }
+
+  function startTimelineTaskMove() {
+    dragBaseTasksRef.current = tasks;
+    setDragSource('timeline');
+    setDragPreviewTasks(null);
+  }
+
+  function previewTimelineTaskMove(task: Task, rowDelta: number) {
+    const baseTasks = dragBaseTasksRef.current;
+    const nextTasks = moveTaskByVisibleOffset(baseTasks, task.id, rowDelta);
+    setDragPreviewTasks(nextTasks);
+    if (!nextTasks) return 0;
+
+    const beforeIndex = flattenVisibleTasks(baseTasks)
+      .findIndex(({ id }) => id === task.id);
+    const afterIndex = flattenVisibleTasks(nextTasks)
+      .findIndex(({ id }) => id === task.id);
+    return beforeIndex < 0 || afterIndex < 0 ? 0 : afterIndex - beforeIndex;
   }
 
   async function moveTimelineTask(task: Task, rowDelta: number) {
     if (isSavingStructure) return;
-    const activeIndex = visibleTasks.findIndex(({ id }) => id === task.id);
-    if (activeIndex < 0) return;
-    const targetIndex = Math.min(
-      Math.max(activeIndex + rowDelta, 0),
-      visibleTasks.length - 1,
-    );
-    const target = visibleTasks[targetIndex];
-    if (!target || target.id === task.id) return;
-    const nextTasks = moveTask(tasks, task.id, target.id, 0);
+    const nextTasks = dragPreviewTasks
+      ?? moveTaskByVisibleOffset(dragBaseTasksRef.current, task.id, rowDelta);
+    clearDragPreview();
     if (nextTasks) await onTaskOrderChange(nextTasks);
   }
 
@@ -333,7 +385,10 @@ export function GanttWorkspace({
               <div className="relative bg-white">
                 <DndContext
                   collisionDetection={closestCenter}
+                  onDragCancel={clearDragPreview}
                   onDragEnd={handleDragEnd}
+                  onDragOver={handleTableDragOver}
+                  onDragStart={handleTableDragStart}
                   sensors={sensors}
                 >
                   <SortableContext
@@ -495,10 +550,17 @@ export function GanttWorkspace({
                 </div>
 
                 <div className="relative">
-                  {rows.map((task, rowIndex) => (
+                  {[
+                    ...timelineVisibleTasks,
+                    ...Array.from(
+                      { length: Math.max(20 - timelineVisibleTasks.length, 0) },
+                      () => null,
+                    ),
+                  ].map((task, rowIndex) => (
                     <div
                       aria-hidden={task ? undefined : true}
                       className="relative flex border-b border-[var(--color-border)]"
+                      data-task-id={task?.id}
                       key={task?.id ?? `empty-${rowIndex}`}
                       style={{ height: GANTT_ROW_HEIGHT }}
                     >
@@ -525,7 +587,10 @@ export function GanttWorkspace({
                           isSaving={updatingTaskId === task.id}
                           onDateChange={onTaskDatesChange}
                           onOpen={onTaskDetails}
+                          onVerticalMoveCancel={clearDragPreview}
                           onVerticalMove={moveTimelineTask}
+                          onVerticalMovePreview={previewTimelineTaskMove}
+                          onVerticalMoveStart={startTimelineTaskMove}
                           task={task}
                           timelineEndDate={project.endDate}
                           timelineStartDate={project.startDate}

@@ -168,19 +168,21 @@ export class GanttService {
   private resolveSiblingOrder(
     tasks: Array<{ id: string; parentId: string | null; orderIndex: number }>,
   ) {
-    const groups = new Map<string, Array<{ id: string; orderIndex: number }>>();
-    for (const task of tasks) {
+    const groups = new Map<string, Array<{
+      id: string;
+      inputIndex: number;
+      orderIndex: number;
+    }>>();
+    tasks.forEach((task, inputIndex) => {
       const key = task.parentId ?? 'root';
-      groups.set(key, [...(groups.get(key) ?? []), task]);
-    }
+      groups.set(key, [...(groups.get(key) ?? []), { ...task, inputIndex }]);
+    });
     const result = new Map<string, number>();
     for (const siblings of groups.values()) {
-      const indexes = siblings.map(({ orderIndex }) => orderIndex);
-      if (new Set(indexes).size !== indexes.length) {
-        throw new BadRequestException('Порядок задач одного уровня не должен повторяться');
-      }
       siblings
-        .sort((left, right) => left.orderIndex - right.orderIndex || left.id.localeCompare(right.id))
+        .sort((left, right) =>
+          left.orderIndex - right.orderIndex || left.inputIndex - right.inputIndex,
+        )
         .forEach(({ id }, index) => result.set(id, index));
     }
     return result;

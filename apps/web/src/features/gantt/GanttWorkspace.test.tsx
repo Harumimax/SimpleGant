@@ -283,6 +283,22 @@ describe('GanttWorkspace', () => {
       clientY: 144,
       pointerId: 1,
     });
+
+    const taskRows = screen.getByRole('region', { name: 'Таблица задач' })
+      .querySelectorAll('[data-task-id]');
+    expect([...taskRows].map((row) => row.getAttribute('data-task-id'))).toEqual([
+      'second',
+      'first',
+    ]);
+
+    const timelineRows = screen.getByRole('region', {
+      name: 'Горизонтальная прокрутка временной шкалы',
+    }).querySelectorAll('[data-task-id]');
+    expect([...timelineRows].map((row) => row.getAttribute('data-task-id'))).toEqual([
+      'second',
+      'first',
+    ]);
+
     fireEvent.pointerUp(firstBar, {
       clientX: 101,
       clientY: 144,

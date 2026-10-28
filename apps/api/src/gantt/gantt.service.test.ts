@@ -51,6 +51,29 @@ function validInput(): UpdateGanttDto {
   };
 }
 
+function validTask(
+  id: string,
+  orderIndex: number,
+  parentId: string | null = null,
+): UpdateGanttDto['tasks'][number] {
+  return {
+    id,
+    parentId,
+    orderIndex,
+    title: id,
+    workType: null,
+    assignee: '',
+    estimate: null,
+    comment: null,
+    status: 'Ожидает',
+    startDate: null,
+    endDate: null,
+    color: 'sage',
+    isCollapsed: false,
+    customFields: {},
+  };
+}
+
 describe('GanttService', () => {
   let repository: ReturnType<typeof repositoryMock>;
   let service: GanttService;
@@ -74,6 +97,27 @@ describe('GanttService', () => {
     expect(repository.replace).toHaveBeenCalledOnce();
     expect(result.project.id).toBe(projectId);
     expect(result.project.publicToken).toBe(aggregate.publicToken);
+  });
+
+  it('normalizes duplicate sibling indexes instead of rejecting the save', async () => {
+    repository.findOwned.mockResolvedValue(aggregate);
+    repository.replace.mockResolvedValue(aggregate);
+    const input = validInput();
+    input.tasks = [
+      validTask('af9d8fc7-a484-49ea-838b-808640483a38', 0),
+      validTask('e46ef151-595a-4ab9-89c2-3c75a65fed15', 0),
+    ];
+
+    await expect(service.update(projectId, ownerId, input)).resolves.toBeDefined();
+
+    const savedTasks = repository.replace.mock.calls[0]?.[1].tasks as Array<{
+      id: string;
+      orderIndex: number;
+    }>;
+    expect(savedTasks.map(({ id, orderIndex }) => ({ id, orderIndex }))).toEqual([
+      { id: 'af9d8fc7-a484-49ea-838b-808640483a38', orderIndex: 0 },
+      { id: 'e46ef151-595a-4ab9-89c2-3c75a65fed15', orderIndex: 1 },
+    ]);
   });
 
   it('rejects cyclic task hierarchy before starting persistence', async () => {

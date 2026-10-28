@@ -54,6 +54,7 @@ export function TaskTableRow({
   return (
     <div
       className={`grid border-b border-[var(--color-border)] bg-white hover:bg-[var(--color-surface-hover)] ${isDragging ? 'relative z-30 opacity-55 shadow-lg' : ''}`}
+      data-task-id={task.id}
       ref={setNodeRef}
       style={{
         gridTemplateColumns,
