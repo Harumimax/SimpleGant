@@ -7,6 +7,7 @@ import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CalendarModule } from './calendar/calendar.module.js';
 import { DatabaseModule } from './database/database.module.js';
+import { GanttModule } from './gantt/gantt.module.js';
 import { MilestonesModule } from './milestones/milestones.module.js';
 import { ProjectColumnsModule } from './project-columns/project-columns.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
@@ -16,6 +17,7 @@ import { TasksModule } from './tasks/tasks.module.js';
 @Module({
   imports: [
     DatabaseModule,
+    GanttModule,
     AuthModule,
     CalendarModule,
     MilestonesModule,

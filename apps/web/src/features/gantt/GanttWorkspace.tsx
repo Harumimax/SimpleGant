@@ -23,6 +23,7 @@ import {
   LoaderCircle,
   Monitor,
   Plus,
+  Save,
 } from 'lucide-react';
 import { useRef, useState, type UIEvent } from 'react';
 
@@ -65,6 +66,10 @@ type GanttWorkspaceProps = {
   onToggleTaskCollapsed: (task: Task) => Promise<void>;
   isSavingStructure?: boolean;
   structureChangeError?: string;
+  isDirty?: boolean;
+  isSaving?: boolean;
+  saveError?: string;
+  onSave?: () => void;
 };
 
 function columnTemplate(columnCount: number) {
@@ -95,6 +100,10 @@ export function GanttWorkspace({
   onToggleTaskCollapsed,
   isSavingStructure = false,
   structureChangeError,
+  isDirty = false,
+  isSaving = false,
+  saveError,
+  onSave,
 }: GanttWorkspaceProps) {
   const taskPaneRef = useRef<HTMLElement>(null);
   const timelinePaneRef = useRef<HTMLDivElement>(null);
@@ -146,7 +155,7 @@ export function GanttWorkspace({
 
   return (
     <>
-      <section className="hidden min-h-0 flex-1 flex-col md:flex">
+      <section className="relative hidden min-h-0 flex-1 flex-col md:flex">
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-white px-5">
           <div className="flex items-center gap-2" aria-label="Масштаб временной шкалы">
             <span className="mr-1 text-sm text-[var(--color-text-muted)]">
@@ -444,6 +453,44 @@ export function GanttWorkspace({
             </div>
           </section>
         </div>
+
+        {onSave ? (
+          <div
+            className={`absolute bottom-5 right-5 z-40 flex items-center gap-3 rounded-xl border bg-white px-3 py-2.5 shadow-lg ${
+              isDirty
+                ? 'border-[var(--color-warning)]'
+                : 'border-[var(--color-border-strong)]'
+            }`}
+          >
+            <div className="hidden text-right lg:block">
+              <p className="text-xs font-semibold text-[var(--color-text)]">
+                {isDirty ? 'Есть несохранённые изменения' : 'Все изменения сохранены'}
+              </p>
+              {saveError ? (
+                <p className="mt-0.5 max-w-64 text-xs text-[var(--color-danger)]" role="alert">
+                  {saveError}
+                </p>
+              ) : (
+                <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
+                  {isDirty ? 'Изменения пока видны только вам' : 'Данные синхронизированы с сервером'}
+                </p>
+              )}
+            </div>
+            <button
+              className="flex h-10 items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 text-sm font-semibold text-white shadow-[var(--shadow-button)] hover:bg-[var(--color-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-45"
+              disabled={!isDirty || isSaving}
+              onClick={onSave}
+              type="button"
+            >
+              {isSaving ? (
+                <LoaderCircle aria-hidden className="size-4 animate-spin" />
+              ) : (
+                <Save aria-hidden className="size-4" />
+              )}
+              {isSaving ? 'Сохраняем…' : 'Сохранить изменения'}
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <section className="grid flex-1 place-items-center px-5 py-12 md:hidden">

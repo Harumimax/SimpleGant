@@ -115,6 +115,10 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
       setFormError('Длительность должна быть целым числом не меньше одного дня');
       return;
     }
+    if (parsedDuration !== undefined && !startDate && !endDate) {
+      setFormError('Для расчёта длительности укажите начало или конец задачи');
+      return;
+    }
     setFormError('');
     const customKeys = new Set(
       columns.filter(({ isDefault }) => !isDefault).map(({ key }) => key),

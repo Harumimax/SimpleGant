@@ -22,6 +22,32 @@ const project: ProjectDetail = {
 };
 
 describe('GanttWorkspace', () => {
+  it('shows and triggers explicit saving for a dirty draft', () => {
+    const onSave = vi.fn();
+    render(
+      <GanttWorkspace
+        isDirty
+        milestones={[]}
+        nonWorkingDays={[]}
+        onAddTask={vi.fn()}
+        onConfigureColumns={vi.fn()}
+        onConfigureMilestones={vi.fn()}
+        onConfigureNonWorkingDays={vi.fn()}
+        onSave={onSave}
+        onTaskDatesChange={vi.fn()}
+        onTaskDetails={vi.fn()}
+        onTaskOrderChange={vi.fn()}
+        onToggleTaskCollapsed={vi.fn()}
+        project={project}
+        tasks={[]}
+      />,
+    );
+
+    expect(screen.getByText('Есть несохранённые изменения')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить изменения' }));
+    expect(onSave).toHaveBeenCalledOnce();
+  });
+
   it('makes a wide task table horizontally scrollable when many columns are visible', () => {
     render(
       <GanttWorkspace

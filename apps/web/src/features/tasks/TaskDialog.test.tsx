@@ -100,6 +100,20 @@ describe('TaskDialog', () => {
     }));
   });
 
+  it('requires a boundary date when duration is specified', () => {
+    const onSubmit = vi.fn();
+    render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Задача' } });
+    fireEvent.change(screen.getByLabelText('Длительность, дней'), { target: { value: '7' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Создать задачу' }).closest('form')!);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Для расчёта длительности укажите начало или конец задачи',
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('submits a work type selected from the fixed list', () => {
     const onSubmit = vi.fn();
     render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
