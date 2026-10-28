@@ -78,6 +78,7 @@ export class TasksService {
       workType: input.workType,
       assignee: input.assignee ?? '',
       estimate: input.estimate,
+      comment: this.normalizeComment(input.comment),
       status: input.status ?? TASK_STATUSES[0],
       ...dates,
       color,
@@ -144,6 +145,9 @@ export class TasksService {
       workType: input.workType === undefined ? current.workType : input.workType,
       assignee: input.assignee ?? current.assignee,
       estimate: input.estimate === undefined ? current.estimate : input.estimate,
+      comment: input.comment === undefined
+        ? current.comment
+        : this.normalizeComment(input.comment),
       status: input.status ?? (current.status as TaskStatus),
       color: input.color ?? current.color,
       startDate,
@@ -242,6 +246,16 @@ export class TasksService {
     if (!isTaskColor(color)) {
       throw new BadRequestException('Выберите допустимый цвет задачи');
     }
+  }
+
+  private normalizeComment(comment: string | null | undefined) {
+    const normalized = comment?.trim() || null;
+    if (normalized && normalized.length > 1000) {
+      throw new BadRequestException(
+        'Комментарий должен быть не длиннее 1000 символов',
+      );
+    }
+    return normalized;
   }
 
   async delete(projectId: string, taskId: string, ownerId: string) {
@@ -381,6 +395,7 @@ export class TasksService {
     workType: string | null;
     assignee: string;
     estimate: string | null;
+    comment: string | null;
     status: string;
     startDate: Date | null;
     endDate: Date | null;

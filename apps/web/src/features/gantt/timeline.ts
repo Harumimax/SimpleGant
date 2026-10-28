@@ -15,11 +15,21 @@ export const GANTT_DAY_WIDTH = 36;
 export const GANTT_HEADER_HEIGHT = 90;
 export const GANTT_ROW_HEIGHT = 44;
 
+export const GANTT_SCALE_DAY_WIDTH = {
+  days: GANTT_DAY_WIDTH,
+  weeks: 14,
+  months: 6,
+} as const;
+
+export type TimelineScale = keyof typeof GANTT_SCALE_DAY_WIDTH;
+
 export type TimelineDay = {
   date: string;
   dayNumber: string;
   weekday: string;
   isWeekend: boolean;
+  monthKey: string;
+  weekKey: string;
 };
 
 export type TimelineGroup = {
@@ -30,8 +40,11 @@ export type TimelineGroup = {
 
 export type TimelineModel = {
   days: TimelineDay[];
+  years: TimelineGroup[];
   months: TimelineGroup[];
   weeks: TimelineGroup[];
+  dayWidth: number;
+  scale: TimelineScale;
   width: number;
 };
 
@@ -72,7 +85,11 @@ function groupConsecutive<T>(
   }, []);
 }
 
-export function buildTimeline(startDate: string, endDate: string): TimelineModel {
+export function buildTimeline(
+  startDate: string,
+  endDate: string,
+  scale: TimelineScale = 'days',
+): TimelineModel {
   const dates = eachDayOfInterval({
     start: parseISO(startDate),
     end: parseISO(endDate),
@@ -82,7 +99,14 @@ export function buildTimeline(startDate: string, endDate: string): TimelineModel
     dayNumber: format(date, 'd'),
     weekday: format(date, 'EEEEEE', { locale: ru }),
     isWeekend: isWeekend(date),
+    monthKey: format(date, 'yyyy-MM'),
+    weekKey: `${format(date, 'RRRR')}-${getISOWeek(date)}`,
   }));
+  const years = groupConsecutive(
+    dates,
+    (date) => format(date, 'yyyy'),
+    (date) => format(date, 'yyyy'),
+  );
   const months = groupConsecutive(
     dates,
     (date) => format(date, 'yyyy-MM'),
@@ -93,12 +117,16 @@ export function buildTimeline(startDate: string, endDate: string): TimelineModel
     (date) => `${format(date, 'RRRR')}-${getISOWeek(date)}`,
     (date) => `Неделя ${getISOWeek(date)}`,
   );
+  const dayWidth = GANTT_SCALE_DAY_WIDTH[scale];
 
   return {
     days,
+    years,
     months,
     weeks,
-    width: days.length * GANTT_DAY_WIDTH,
+    dayWidth,
+    scale,
+    width: days.length * dayWidth,
   };
 }
 
@@ -107,6 +135,7 @@ export function calculateTaskBarGeometry(
   taskEndDate: string | null,
   timelineStartDate: string,
   timelineEndDate: string,
+  dayWidth = GANTT_DAY_WIDTH,
 ): TaskBarGeometry | null {
   if (!taskStartDate || !taskEndDate) return null;
 
@@ -129,10 +158,10 @@ export function calculateTaskBarGeometry(
   const visibleEnd = isClippedEnd ? timelineEnd : taskEnd;
 
   return {
-    left: differenceInCalendarDays(visibleStart, timelineStart) * GANTT_DAY_WIDTH,
+    left: differenceInCalendarDays(visibleStart, timelineStart) * dayWidth,
     width:
       (differenceInCalendarDays(visibleEnd, visibleStart) + 1) *
-      GANTT_DAY_WIDTH,
+      dayWidth,
     isClippedStart,
     isClippedEnd,
   };
@@ -153,6 +182,7 @@ export function calculateMilestoneLeft(
   milestoneDate: string,
   timelineStartDate: string,
   timelineEndDate: string,
+  dayWidth = GANTT_DAY_WIDTH,
 ) {
   const milestone = parseISO(milestoneDate);
   const timelineStart = parseISO(timelineStartDate);
@@ -160,8 +190,8 @@ export function calculateMilestoneLeft(
   if (isBefore(milestone, timelineStart) || isAfter(milestone, timelineEnd)) {
     return null;
   }
-  return differenceInCalendarDays(milestone, timelineStart) * GANTT_DAY_WIDTH
-    + GANTT_DAY_WIDTH / 2;
+  return differenceInCalendarDays(milestone, timelineStart) * dayWidth
+    + dayWidth / 2;
 }
 
 export function calculateTaskDateChange(

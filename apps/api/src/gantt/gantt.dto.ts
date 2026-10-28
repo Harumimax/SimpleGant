@@ -79,6 +79,12 @@ export class GanttTaskDto {
   @MaxLength(100)
   estimate!: string | null;
 
+  @ValidateIf((_object, value) => value !== null)
+  @Transform(nullableTrim)
+  @IsString()
+  @MaxLength(1000)
+  comment!: string | null;
+
   @IsIn(TASK_STATUSES)
   status!: string;
 

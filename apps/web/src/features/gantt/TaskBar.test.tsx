@@ -14,6 +14,7 @@ const task: Task = {
   workType: 'Дизайн',
   assignee: 'Анна',
   estimate: '3 дня',
+  comment: null,
   duration: 3,
   status: 'В работе',
   startDate: '2026-11-03',
@@ -108,6 +109,34 @@ describe('TaskBar', () => {
       });
     });
     expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('uses the active scale width for geometry and horizontal dragging', async () => {
+    const onDateChange = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TaskBar
+        dayWidth={14}
+        onDateChange={onDateChange}
+        onOpen={vi.fn()}
+        task={task}
+        timelineEndDate="2026-11-30"
+        timelineStartDate="2026-11-01"
+      />,
+    );
+
+    const bar = screen.getByRole('button');
+    expect(bar).toHaveStyle({ left: '32px', width: '34px' });
+
+    fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 });
+    fireEvent.pointerMove(bar, { clientX: 114, pointerId: 1 });
+    fireEvent.pointerUp(bar, { clientX: 114, pointerId: 1 });
+
+    await waitFor(() => {
+      expect(onDateChange).toHaveBeenCalledWith(task, {
+        startDate: '2026-11-04',
+        endDate: '2026-11-06',
+      });
+    });
   });
 
   it('moves a task vertically without changing its dates or opening details', async () => {

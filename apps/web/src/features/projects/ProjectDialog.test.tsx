@@ -14,6 +14,8 @@ describe('ProjectDialog', () => {
       />,
     );
 
+    expect(screen.getByLabelText('Название')).toHaveFocus();
+
     fireEvent.change(screen.getByLabelText('Название'), {
       target: { value: 'План запуска' },
     });

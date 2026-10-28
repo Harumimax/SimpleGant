@@ -85,6 +85,11 @@ export class GanttService {
       if (!isTaskColor(task.color)) {
         throw new BadRequestException('Выберите допустимый цвет задачи');
       }
+      if (task.comment && task.comment.trim().length > 1000) {
+        throw new BadRequestException(
+          'Комментарий должен быть не длиннее 1000 символов',
+        );
+      }
       for (const [key, value] of Object.entries(task.customFields)) {
         if (!customColumnKeys.has(key)) {
           throw new BadRequestException('Поле задачи не принадлежит проекту');
@@ -106,6 +111,7 @@ export class GanttService {
         level: levels.get(task.id) ?? 0,
         startDate,
         endDate,
+        comment: task.comment?.trim() || null,
         customFields: Object.fromEntries(
           Object.entries(task.customFields)
             .map(([key, value]) => [key, String(value).trim()])

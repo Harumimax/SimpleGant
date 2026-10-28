@@ -59,7 +59,10 @@ export function PublicGanttViewer({
 
   return (
     <>
-      <section className="hidden min-h-0 flex-1 md:block">
+      <section
+        aria-label="Публичная диаграмма Ганта"
+        className="hidden min-h-0 flex-1 lg:block"
+      >
         <div className="gantt-shell h-full min-h-0">
           <section
             aria-label="Таблица задач"
@@ -159,11 +162,11 @@ export function PublicGanttViewer({
         </div>
       </section>
 
-      <section className="grid flex-1 place-items-center px-6 py-12 md:hidden">
+      <section className="grid flex-1 place-items-center px-6 py-12 lg:hidden">
         <div className="max-w-sm text-center">
           <div className="mx-auto grid size-12 place-items-center rounded-full border border-[var(--color-border-strong)] bg-white text-[var(--color-accent)]"><Monitor aria-hidden className="size-5" /></div>
-          <h2 className="mt-4 text-lg font-semibold">Откройте проект на компьютере</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">Публичная диаграмма рассчитана на широкий экран с таблицей и временной шкалой.</p>
+          <h2 className="mt-4 text-lg font-semibold">Увеличьте ширину окна</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">Для просмотра таблицы и временной шкалы требуется окно шириной не менее 1024 пикселей.</p>
           <div className="mt-5 flex items-center justify-center gap-2 text-sm text-[var(--color-text-muted)]"><CalendarDays aria-hidden className="size-4" />{project.startDate} — {project.endDate}</div>
         </div>
       </section>

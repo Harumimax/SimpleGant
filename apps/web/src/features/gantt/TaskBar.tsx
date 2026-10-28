@@ -27,6 +27,7 @@ type TaskBarProps = {
   task: Task;
   timelineStartDate: string;
   timelineEndDate: string;
+  dayWidth?: number;
   onOpen: (task: Task) => void;
   onDateChange: (
     task: Task,
@@ -51,6 +52,7 @@ export function TaskBar({
   task,
   timelineStartDate,
   timelineEndDate,
+  dayWidth = GANTT_DAY_WIDTH,
   onOpen,
   onDateChange,
   onVerticalMove,
@@ -72,6 +74,7 @@ export function TaskBar({
     visibleEndDate,
     timelineStartDate,
     timelineEndDate,
+    dayWidth,
   );
 
   if (!geometry || !taskStartDate || !taskEndDate) return null;
@@ -136,7 +139,7 @@ export function TaskBar({
     }
     if (isDateLocked) return;
 
-    const dayDelta = Math.round(deltaX / GANTT_DAY_WIDTH);
+    const dayDelta = Math.round(deltaX / dayWidth);
     const dates = calculateTaskDateChange(
       originalStartDate,
       originalEndDate,

@@ -21,6 +21,7 @@ export function TaskDetailsDialog({ task, onClose, onEdit, onDelete }: Props) {
     ['Статус', task.status],
     ['Начало', task.startDate || 'Не указано'],
     ['Окончание', task.endDate || 'Не указано'],
+    ['Комментарий', task.comment || '—'],
   ];
   return (
     <Modal labelledBy={titleId} onClose={onClose} tone="compact">
@@ -30,7 +31,7 @@ export function TaskDetailsDialog({ task, onClose, onEdit, onDelete }: Props) {
           <Button aria-label="Закрыть" onClick={onClose} size="icon" variant="ghost"><X aria-hidden className="size-5" /></Button>
         </div>
         <dl className="divide-y divide-[var(--color-border)] px-5 py-2">
-          {rows.map(([label, value]) => <div className="grid grid-cols-[120px_1fr] gap-4 py-3 text-sm" key={label}><dt className="text-[var(--color-text-muted)]">{label}</dt><dd className="min-w-0 break-words font-medium">{value}</dd></div>)}
+          {rows.map(([label, value]) => <div className="grid grid-cols-[120px_1fr] gap-4 py-3 text-sm" key={label}><dt className="text-[var(--color-text-muted)]">{label}</dt><dd className={`min-w-0 break-words font-medium ${label === 'Комментарий' ? 'whitespace-pre-wrap' : ''}`}>{value}</dd></div>)}
         </dl>
         <div className="flex flex-wrap justify-between gap-3 border-t border-[var(--color-border)] px-5 py-4">
           <Button onClick={onDelete} variant="danger"><Trash2 aria-hidden className="size-4" />Удалить</Button>

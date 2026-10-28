@@ -16,6 +16,7 @@ const task = {
   workType: 'Дизайн',
   assignee: 'Анна',
   estimate: '5 дней',
+  comment: null,
   status: 'Ожидает',
   startDate: new Date('2026-11-02T00:00:00.000Z'),
   endDate: new Date('2026-11-13T00:00:00.000Z'),
@@ -83,6 +84,29 @@ describe('TasksService', () => {
     expect(repository.create).toHaveBeenCalledWith(
       expect.objectContaining({ assignee: '' }),
     );
+  });
+
+  it('normalizes a task comment and rejects values over 1000 characters', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.nextOrderIndex.mockResolvedValue(0);
+    repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    const result = await service.create(projectId, ownerId, {
+      title: task.title,
+      comment: '  Первая строка\nВторая строка  ',
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ comment: 'Первая строка\nВторая строка' }),
+    );
+    expect(result.comment).toBe('Первая строка\nВторая строка');
+
+    await expect(service.create(projectId, ownerId, {
+      title: task.title,
+      comment: 'а'.repeat(1001),
+    })).rejects.toThrow('Комментарий должен быть не длиннее 1000 символов');
   });
 
   it('does not list tasks when the project is not owned by the user', async () => {

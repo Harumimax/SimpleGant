@@ -15,6 +15,7 @@ const parentTask: Task = {
   workType: null,
   assignee: 'Ирина',
   estimate: null,
+  comment: null,
   duration: 10,
   status: 'Ожидает',
   startDate: '2026-11-01',
@@ -67,6 +68,43 @@ describe('TaskDialog', () => {
       title: 'Задача без исполнителя',
       assignee: '',
     }));
+  });
+
+  it('creates and edits a task comment limited to 1000 characters', () => {
+    const onCreate = vi.fn();
+    const { unmount } = render(
+      <TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onCreate} />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Название'), {
+      target: { value: 'Задача с комментарием' },
+    });
+    const createComment = screen.getByLabelText('Комментарий');
+    expect(createComment).toHaveAttribute('maxlength', '1000');
+    fireEvent.change(createComment, {
+      target: { value: '  Важная деталь\nВторая строка  ' },
+    });
+    expect(screen.getByText('31/1000')).toBeInTheDocument();
+    fireEvent.submit(
+      screen.getByRole('button', { name: 'Создать задачу' }).closest('form')!,
+    );
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ comment: 'Важная деталь\nВторая строка' }),
+    );
+
+    unmount();
+    const onEdit = vi.fn();
+    render(
+      <TaskDialog
+        isPending={false}
+        onClose={vi.fn()}
+        onSubmit={onEdit}
+        task={{ ...parentTask, comment: 'Существующий комментарий' }}
+      />,
+    );
+    expect(screen.getByLabelText('Комментарий')).toHaveValue(
+      'Существующий комментарий',
+    );
   });
 
   it('rejects an end date earlier than the start date', () => {

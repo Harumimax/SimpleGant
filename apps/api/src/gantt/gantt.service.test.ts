@@ -84,7 +84,7 @@ describe('GanttService', () => {
         id: 'af9d8fc7-a484-49ea-838b-808640483a38',
         parentId: 'e46ef151-595a-4ab9-89c2-3c75a65fed15',
         orderIndex: 0,
-        title: 'A', workType: null, assignee: '', estimate: null,
+        title: 'A', workType: null, assignee: '', estimate: null, comment: null,
         status: 'Ожидает', startDate: null, endDate: null,
         color: 'sage', isCollapsed: false, customFields: {},
       },
@@ -92,7 +92,7 @@ describe('GanttService', () => {
         id: 'e46ef151-595a-4ab9-89c2-3c75a65fed15',
         parentId: 'af9d8fc7-a484-49ea-838b-808640483a38',
         orderIndex: 0,
-        title: 'B', workType: null, assignee: '', estimate: null,
+        title: 'B', workType: null, assignee: '', estimate: null, comment: null,
         status: 'Ожидает', startDate: null, endDate: null,
         color: 'sage', isCollapsed: false, customFields: {},
       },
@@ -108,6 +108,32 @@ describe('GanttService', () => {
 
     await expect(service.update(projectId, ownerId, validInput())).rejects.toThrow(
       'Один из объектов принадлежит другому проекту',
+    );
+    expect(repository.replace).not.toHaveBeenCalled();
+  });
+
+  it('rejects a task comment longer than 1000 characters', async () => {
+    repository.findOwned.mockResolvedValue(aggregate);
+    const input = validInput();
+    input.tasks = [{
+      id: 'af9d8fc7-a484-49ea-838b-808640483a38',
+      parentId: null,
+      orderIndex: 0,
+      title: 'Задача',
+      workType: null,
+      assignee: '',
+      estimate: null,
+      comment: 'а'.repeat(1001),
+      status: 'Ожидает',
+      startDate: null,
+      endDate: null,
+      color: 'sage',
+      isCollapsed: false,
+      customFields: {},
+    }];
+
+    await expect(service.update(projectId, ownerId, input)).rejects.toThrow(
+      'Комментарий должен быть не длиннее 1000 символов',
     );
     expect(repository.replace).not.toHaveBeenCalled();
   });

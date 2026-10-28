@@ -30,6 +30,7 @@ describe('PublicShareService', () => {
       tasks: [{
         id: 'task-id', projectId: 'project-id', parentId: null, orderIndex: 0,
         level: 0, title: 'Задача', workType: null, assignee: '', estimate: null,
+        comment: 'Важный комментарий',
         status: 'Ожидает', startDate: null, endDate: null, color: 'sage',
         isCollapsed: false, customFields: {}, createdAt: now, updatedAt: now,
       }],
@@ -45,6 +46,7 @@ describe('PublicShareService', () => {
 
     expect(result.project.name).toBe('Публичный проект');
     expect(result.tasks[0]?.title).toBe('Задача');
+    expect(result.tasks[0]?.comment).toBe('Важный комментарий');
     expect(serialized).not.toContain('private-owner-id');
     expect(serialized).not.toContain(token);
     expect(serialized).not.toContain('projectId');

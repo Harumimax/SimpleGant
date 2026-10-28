@@ -31,4 +31,17 @@ describe('MilestoneLayer', () => {
     });
     expect(label.parentElement).toHaveAttribute('data-color', 'coral');
   });
+
+  it('positions the marker with the selected scale width', () => {
+    render(
+      <MilestoneLayer
+        dayWidth={6}
+        milestones={[milestone]}
+        timelineEndDate="2026-11-30"
+        timelineStartDate="2026-11-01"
+      />,
+    );
+
+    expect(screen.getByText('Релиз').parentElement).toHaveStyle({ left: '15px' });
+  });
 });

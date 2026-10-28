@@ -22,6 +22,7 @@ export type GanttPersistenceInput = {
     workType: string | null;
     assignee: string;
     estimate: string | null;
+    comment: string | null;
     status: string;
     startDate: Date | null;
     endDate: Date | null;
@@ -111,6 +112,7 @@ export class GanttRepository {
           workType: task.workType,
           assignee: task.assignee,
           estimate: task.estimate,
+          comment: task.comment,
           status: task.status,
           startDate: task.startDate,
           endDate: task.endDate,

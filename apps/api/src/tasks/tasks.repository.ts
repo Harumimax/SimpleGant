@@ -57,6 +57,7 @@ export class TasksRepository {
     workType?: string;
     assignee: string;
     estimate?: string;
+    comment: string | null;
     status: TaskStatus;
     startDate: Date | null;
     endDate: Date | null;
@@ -74,6 +75,7 @@ export class TasksRepository {
       workType: string | null;
       assignee: string;
       estimate: string | null;
+      comment: string | null;
       status: TaskStatus;
       color: string;
       startDate: Date | null;

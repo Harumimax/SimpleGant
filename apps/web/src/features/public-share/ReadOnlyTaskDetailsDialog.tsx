@@ -46,6 +46,12 @@ export function ReadOnlyTaskDetailsDialog({ task, columns, onClose }: Props) {
             <dt className="text-[var(--color-text-muted)]">Окончание</dt>
             <dd className="font-medium">{task.endDate || 'Не указано'}</dd>
           </div>
+          <div className="grid grid-cols-[140px_1fr] gap-4 py-3 text-sm">
+            <dt className="text-[var(--color-text-muted)]">Комментарий</dt>
+            <dd className="min-w-0 whitespace-pre-wrap break-words font-medium">
+              {task.comment || '—'}
+            </dd>
+          </div>
         </dl>
         <div className="flex justify-end border-t border-[var(--color-border)] px-5 py-4">
           <Button onClick={onClose} variant="secondary">Закрыть</Button>

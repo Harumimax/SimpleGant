@@ -65,6 +65,12 @@ export class CreateTaskDto {
   estimate?: string;
 
   @IsOptional()
+  @Transform(optionalTrim)
+  @IsString()
+  @MaxLength(1000, { message: 'Комментарий должен быть не длиннее 1000 символов' })
+  comment?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'Длительность должна быть целым числом дней' })
   @Min(1, { message: 'Длительность должна быть не меньше одного дня' })
@@ -120,6 +126,12 @@ export class UpdateTaskDto {
   @IsString()
   @MaxLength(100)
   estimate?: string | null;
+
+  @IsOptional()
+  @Transform(nullableTrim)
+  @IsString()
+  @MaxLength(1000, { message: 'Комментарий должен быть не длиннее 1000 символов' })
+  comment?: string | null;
 
   @IsOptional()
   @Type(() => Number)

@@ -48,6 +48,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
             aria-describedby={hint || error ? helpId : undefined}
             aria-invalid={Boolean(error)}
             className={`h-12 w-full rounded-[var(--radius-control)] border bg-[var(--color-surface)] px-3 text-base text-[var(--color-text)] shadow-[var(--shadow-input)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-[var(--color-text-faint)] hover:border-[var(--color-border-hover)] focus:border-[var(--color-primary)] focus:ring-3 focus:ring-[var(--color-primary-ring)] disabled:cursor-not-allowed disabled:bg-[var(--color-surface-disabled)] disabled:text-[var(--color-text-faint)] ${icon ? 'pl-11' : ''} ${error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border-strong)]'} ${className}`}
+            data-modal-autofocus={props.autoFocus || undefined}
             id={inputId}
             ref={ref}
             type={type}

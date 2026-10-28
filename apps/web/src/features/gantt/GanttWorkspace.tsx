@@ -41,10 +41,10 @@ import {
 import { TaskTableRow } from './TaskTableRow';
 import {
   buildTimeline,
-  GANTT_DAY_WIDTH,
   GANTT_HEADER_HEIGHT,
   GANTT_ROW_HEIGHT,
   type TaskDateRange,
+  type TimelineScale,
 } from './timeline';
 import { TaskBar } from './TaskBar';
 import { MilestoneLayer } from './MilestoneLayer';
@@ -108,7 +108,12 @@ export function GanttWorkspace({
   const taskPaneRef = useRef<HTMLElement>(null);
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
-  const timeline = buildTimeline(project.startDate, project.endDate);
+  const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
+  const timeline = buildTimeline(
+    project.startDate,
+    project.endDate,
+    timelineScale,
+  );
   const nonWorkingDaysByDate = new Map(
     nonWorkingDays.map((day) => [day.date, day]),
   );
@@ -167,33 +172,60 @@ export function GanttWorkspace({
     }
   }
 
+  function changeTimelineScale(nextScale: TimelineScale) {
+    if (nextScale === timelineScale) return;
+    const scrollElement = timelinePaneRef.current;
+    const visibleDayOffset = scrollElement
+      ? scrollElement.scrollLeft / timeline.dayWidth
+      : 0;
+
+    setTimelineScale(nextScale);
+    requestAnimationFrame(() => {
+      if (scrollElement) {
+        scrollElement.scrollLeft = visibleDayOffset * buildTimeline(
+          project.startDate,
+          project.endDate,
+          nextScale,
+        ).dayWidth;
+      }
+    });
+  }
+
   return (
     <>
-      <section className="relative hidden min-h-0 flex-1 flex-col md:flex">
+      <section
+        aria-label="Редактор диаграммы Ганта"
+        className="relative hidden min-h-0 flex-1 flex-col lg:flex"
+      >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-white px-5">
-          <div className="flex items-center gap-2" aria-label="Масштаб временной шкалы">
+          <div
+            aria-label="Масштаб временной шкалы"
+            className="flex items-center gap-2"
+            role="group"
+          >
             <span className="mr-1 text-sm text-[var(--color-text-muted)]">
               Масштаб
             </span>
             <button
-              aria-pressed="true"
-              className="h-8 rounded-md bg-[var(--color-accent-soft)] px-3 text-xs font-semibold text-[var(--color-accent)]"
+              aria-pressed={timelineScale === 'days'}
+              className={`h-8 rounded-md px-3 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] ${timelineScale === 'days' ? 'bg-[var(--color-accent-soft)] font-semibold text-[var(--color-accent)]' : 'font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)]'}`}
+              onClick={() => changeTimelineScale('days')}
               type="button"
             >
               Дни
             </button>
             <button
-              className="h-8 rounded-md px-3 text-xs font-medium text-[var(--color-text-muted)] opacity-50"
-              disabled
-              title="Появится в следующих шагах"
+              aria-pressed={timelineScale === 'weeks'}
+              className={`h-8 rounded-md px-3 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] ${timelineScale === 'weeks' ? 'bg-[var(--color-accent-soft)] font-semibold text-[var(--color-accent)]' : 'font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)]'}`}
+              onClick={() => changeTimelineScale('weeks')}
               type="button"
             >
               Недели
             </button>
             <button
-              className="h-8 rounded-md px-3 text-xs font-medium text-[var(--color-text-muted)] opacity-50"
-              disabled
-              title="Появится в следующих шагах"
+              aria-pressed={timelineScale === 'months'}
+              className={`h-8 rounded-md px-3 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] ${timelineScale === 'months' ? 'bg-[var(--color-accent-soft)] font-semibold text-[var(--color-accent)]' : 'font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)]'}`}
+              onClick={() => changeTimelineScale('months')}
               type="button"
             >
               Месяцы
@@ -380,49 +412,86 @@ export function GanttWorkspace({
               role="region"
               tabIndex={0}
             >
-              <div className="relative" style={{ minWidth: timeline.width, width: timeline.width }}>
+              <div
+                className="relative"
+                data-timeline-scale={timelineScale}
+                style={{ minWidth: timeline.width, width: timeline.width }}
+              >
                 <div
                   className="sticky top-0 z-10 border-b border-[var(--color-border-strong)] bg-[var(--color-surface-subtle)]"
                   style={{ height: GANTT_HEADER_HEIGHT }}
                 >
-                  <div className="flex h-[30px] border-b border-[var(--color-border)]">
-                    {timeline.months.map((month) => (
-                      <div
-                        className="flex items-center justify-center border-r border-[var(--color-border-strong)] px-2 text-xs font-semibold text-[var(--color-text)]"
-                        key={month.key}
-                        style={{ width: month.dayCount * GANTT_DAY_WIDTH }}
-                      >
-                        <span className="truncate">{month.label}</span>
+                  {timelineScale === 'months' ? (
+                    <>
+                      <div className="flex h-[34px] border-b border-[var(--color-border)]">
+                        {timeline.years.map((year) => (
+                          <div
+                            className="flex shrink-0 items-center border-r border-[var(--color-border-strong)] px-2 text-xs font-semibold text-[var(--color-text)]"
+                            key={year.key}
+                            style={{ width: year.dayCount * timeline.dayWidth }}
+                          >
+                            <span className="sticky left-2">{year.label}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <div className="flex h-[26px] border-b border-[var(--color-border)]">
-                    {timeline.weeks.map((week) => (
-                      <div
-                        className="flex items-center justify-center border-r border-[var(--color-border)] text-[10px] font-medium text-[var(--color-text-muted)]"
-                        key={week.key}
-                        style={{ width: week.dayCount * GANTT_DAY_WIDTH }}
-                      >
-                        {week.label}
+                      <div className="flex h-[56px]">
+                        {timeline.months.map((month) => (
+                          <div
+                            className="flex shrink-0 items-center justify-center border-r border-[var(--color-border-strong)] px-2 text-[11px] font-medium text-[var(--color-text-muted)]"
+                            key={month.key}
+                            style={{ width: month.dayCount * timeline.dayWidth }}
+                            title={month.label}
+                          >
+                            <span className="truncate">{month.label}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <div className="flex h-[34px]">
-                    {timeline.days.map((day) => {
-                      const nonWorkingDay = nonWorkingDaysByDate.get(day.date);
-                      return (
-                        <div
-                          className={`flex shrink-0 flex-col items-center justify-center border-r border-[var(--color-border)] text-[10px] ${nonWorkingDay ? 'bg-[var(--color-non-working)] text-[var(--color-warning)]' : day.isWeekend ? 'bg-[var(--color-weekend)] text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'}`}
-                          key={day.date}
-                          style={{ width: GANTT_DAY_WIDTH }}
-                          title={nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : day.date}
-                        >
-                          <span className="font-semibold leading-none">{day.dayNumber}</span>
-                          <span className="mt-0.5 text-[9px] leading-none">{day.weekday}</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className={`flex border-b border-[var(--color-border)] ${timelineScale === 'days' ? 'h-[30px]' : 'h-10'}`}>
+                        {timeline.months.map((month) => (
+                          <div
+                            className="flex shrink-0 items-center justify-center border-r border-[var(--color-border-strong)] px-2 text-xs font-semibold text-[var(--color-text)]"
+                            key={month.key}
+                            style={{ width: month.dayCount * timeline.dayWidth }}
+                            title={month.label}
+                          >
+                            <span className="truncate">{month.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className={`flex ${timelineScale === 'days' ? 'h-[26px] border-b border-[var(--color-border)]' : 'h-[50px]'}`}>
+                        {timeline.weeks.map((week) => (
+                          <div
+                            className="flex shrink-0 items-center justify-center border-r border-[var(--color-border)] px-1 text-[10px] font-medium text-[var(--color-text-muted)]"
+                            key={week.key}
+                            style={{ width: week.dayCount * timeline.dayWidth }}
+                          >
+                            <span className="truncate">{week.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {timelineScale === 'days' ? (
+                        <div className="flex h-[34px]">
+                          {timeline.days.map((day) => {
+                            const nonWorkingDay = nonWorkingDaysByDate.get(day.date);
+                            return (
+                              <div
+                                className={`flex shrink-0 flex-col items-center justify-center border-r border-[var(--color-border)] text-[10px] ${nonWorkingDay ? 'bg-[var(--color-non-working)] text-[var(--color-warning)]' : day.isWeekend ? 'bg-[var(--color-weekend)] text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'}`}
+                                key={day.date}
+                                style={{ width: timeline.dayWidth }}
+                                title={nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : day.date}
+                              >
+                                <span className="font-semibold leading-none">{day.dayNumber}</span>
+                                <span className="mt-0.5 text-[9px] leading-none">{day.weekday}</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
+                      ) : null}
+                    </>
+                  )}
                 </div>
 
                 <div className="relative">
@@ -433,19 +502,25 @@ export function GanttWorkspace({
                       key={task?.id ?? `empty-${rowIndex}`}
                       style={{ height: GANTT_ROW_HEIGHT }}
                     >
-                      {timeline.days.map((day) => {
+                      {timeline.days.map((day, dayIndex) => {
                         const nonWorkingDay = nonWorkingDaysByDate.get(day.date);
+                        const nextDay = timeline.days[dayIndex + 1];
+                        const isGridBoundary = timelineScale === 'days'
+                          || (timelineScale === 'weeks'
+                            ? day.weekKey !== nextDay?.weekKey
+                            : day.monthKey !== nextDay?.monthKey);
                         return (
                           <div
-                            className={`shrink-0 border-r border-[var(--color-border)] ${nonWorkingDay ? 'bg-[var(--color-non-working)]' : day.isWeekend ? 'bg-[var(--color-weekend)]' : 'bg-white'}`}
+                            className={`shrink-0 ${isGridBoundary ? 'border-r border-[var(--color-border)]' : ''} ${nonWorkingDay ? 'bg-[var(--color-non-working)]' : day.isWeekend ? 'bg-[var(--color-weekend)]' : 'bg-white'}`}
                             key={day.date}
-                            style={{ width: GANTT_DAY_WIDTH }}
+                            style={{ width: timeline.dayWidth }}
                             title={nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : undefined}
                           />
                         );
                       })}
                       {task ? (
                         <TaskBar
+                          dayWidth={timeline.dayWidth}
                           isDateLocked={taskHasChildren(tasks, task.id)}
                           isSaving={updatingTaskId === task.id}
                           onDateChange={onTaskDatesChange}
@@ -460,6 +535,7 @@ export function GanttWorkspace({
                   ))}
                 </div>
                 <MilestoneLayer
+                  dayWidth={timeline.dayWidth}
                   milestones={milestones}
                   timelineEndDate={project.endDate}
                   timelineStartDate={project.startDate}
@@ -477,7 +553,7 @@ export function GanttWorkspace({
                 : 'border-[var(--color-border-strong)]'
             }`}
           >
-            <div className="hidden text-right lg:block">
+            <div className="hidden text-right xl:block">
               <p className="text-xs font-semibold text-[var(--color-text)]">
                 {isDirty ? 'Есть несохранённые изменения' : 'Все изменения сохранены'}
               </p>
@@ -508,14 +584,14 @@ export function GanttWorkspace({
         ) : null}
       </section>
 
-      <section className="grid flex-1 place-items-center px-5 py-12 md:hidden">
+      <section className="grid flex-1 place-items-center px-5 py-12 lg:hidden">
         <div className="max-w-sm text-center">
           <div className="mx-auto grid size-12 place-items-center rounded-full border border-[var(--color-border-strong)] bg-white text-[var(--color-accent)]">
             <Monitor aria-hidden className="size-5" />
           </div>
-          <h2 className="mt-4 text-lg font-semibold">Откройте редактор на компьютере</h2>
+          <h2 className="mt-4 text-lg font-semibold">Увеличьте ширину окна</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-            Рабочая таблица и временная шкала требуют больше места. Мобильный просмотр появится в отдельном режиме.
+            Для работы с таблицей и временной шкалой требуется окно шириной не менее 1024 пикселей.
           </p>
           <div className="mt-5 flex items-center justify-center gap-2 text-sm text-[var(--color-text-muted)]">
             <CalendarDays aria-hidden className="size-4" />

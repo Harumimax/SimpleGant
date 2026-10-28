@@ -48,6 +48,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
   const [title, setTitle] = useState(task?.title ?? '');
   const [workType, setWorkType] = useState(task?.workType ?? '');
   const [assignee, setAssignee] = useState(task?.assignee ?? '');
+  const [comment, setComment] = useState(task?.comment ?? '');
   const [duration, setDuration] = useState(
     task?.duration === null || task?.duration === undefined
       ? ''
@@ -135,6 +136,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
       title: title.trim(),
       workType: optionalValue(workType),
       assignee: assignee.trim(),
+      comment: optionalValue(comment),
       status,
       color,
       ...(!datesReadOnly ? {
@@ -175,6 +177,23 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
               {TASK_WORK_TYPES.map((item) => <option key={item} value={item}>{item}</option>)}
             </SelectField>
             <TextField disabled={isPending} label="Ответственный" maxLength={200} onChange={(event) => setAssignee(event.target.value)} value={assignee} />
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-text)]" htmlFor="task-comment">
+                Комментарий
+              </label>
+              <textarea
+                className="min-h-28 w-full resize-y rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-3 text-base leading-6 text-[var(--color-text)] shadow-[var(--shadow-input)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-[var(--color-text-faint)] hover:border-[var(--color-border-hover)] focus:border-[var(--color-primary)] focus:ring-3 focus:ring-[var(--color-primary-ring)] disabled:cursor-not-allowed disabled:bg-[var(--color-surface-disabled)] disabled:text-[var(--color-text-faint)]"
+                disabled={isPending}
+                id="task-comment"
+                maxLength={1000}
+                onChange={(event) => setComment(event.target.value)}
+                placeholder="Дополнительная информация по задаче"
+                value={comment}
+              />
+              <p className="mt-1.5 text-right text-xs tabular-nums text-[var(--color-text-muted)]">
+                {comment.length}/1000
+              </p>
+            </div>
             <TextField disabled={isPending || datesReadOnly} label="Длительность, дней" min="1" onChange={(event) => setDuration(event.target.value)} placeholder="Например, 7" step="1" type="number" value={duration} />
             <SelectField disabled={isPending} label="Статус" onChange={(event) => setStatus(event.target.value as TaskStatus)} value={status}>
               {TASK_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}

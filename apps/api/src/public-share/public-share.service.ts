@@ -41,6 +41,7 @@ export class PublicShareService {
         workType: task.workType,
         assignee: task.assignee,
         estimate: task.estimate,
+        comment: task.comment,
         duration: calculateDuration(task.startDate, task.endDate),
         status: task.status,
         startDate: dateOnly(task.startDate),

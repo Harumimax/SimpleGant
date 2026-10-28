@@ -52,6 +52,7 @@ export type Task = {
   workType: string | null;
   assignee: string;
   estimate: string | null;
+  comment: string | null;
   duration: number | null;
   status: TaskStatus;
   startDate: string | null;
@@ -68,6 +69,7 @@ export type TaskInput = {
   workType?: string | null;
   assignee?: string;
   estimate?: string | null;
+  comment?: string | null;
   duration?: number;
   status: TaskStatus;
   color?: TaskColor;

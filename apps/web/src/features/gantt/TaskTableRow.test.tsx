@@ -40,6 +40,7 @@ const task: Task = {
   workType: '',
   assignee: 'Максим',
   estimate: '',
+  comment: null,
   duration: 12,
   status: 'Ожидает',
   startDate: '2026-10-19',

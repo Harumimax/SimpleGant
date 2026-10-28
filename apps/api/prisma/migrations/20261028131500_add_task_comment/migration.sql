@@ -1,0 +1,2 @@
+ALTER TABLE "tasks"
+ADD COLUMN "comment" VARCHAR(1000);

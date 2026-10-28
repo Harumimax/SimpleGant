@@ -74,6 +74,7 @@ export function ProjectDialog({
         <form className="px-5 py-6 sm:px-7" onSubmit={handleSubmit}>
           <TextField
             autoComplete="off"
+            autoFocus
             disabled={isPending}
             id="project-name"
             label="Название"

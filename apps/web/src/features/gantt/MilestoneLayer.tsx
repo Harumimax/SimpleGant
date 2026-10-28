@@ -1,16 +1,18 @@
 import type { Milestone } from '../milestones/milestones.api';
-import { calculateMilestoneLeft } from './timeline';
+import { calculateMilestoneLeft, GANTT_DAY_WIDTH } from './timeline';
 
 type Props = {
   milestones: Milestone[];
   timelineStartDate: string;
   timelineEndDate: string;
+  dayWidth?: number;
 };
 
 export function MilestoneLayer({
   milestones,
   timelineStartDate,
   timelineEndDate,
+  dayWidth = GANTT_DAY_WIDTH,
 }: Props) {
   return (
     <div aria-label="Вехи проекта" className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
@@ -19,6 +21,7 @@ export function MilestoneLayer({
           milestone.date,
           timelineStartDate,
           timelineEndDate,
+          dayWidth,
         );
         if (left === null) return null;
         return (

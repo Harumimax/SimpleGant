@@ -27,6 +27,7 @@ function task(
     workType: null,
     assignee: 'Анна',
     estimate: null,
+    comment: null,
     duration: null,
     status: 'Ожидает',
     startDate: null,

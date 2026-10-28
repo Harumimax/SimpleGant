@@ -7,6 +7,7 @@ import {
   calculateTaskDuration,
   calculateMilestoneLeft,
   GANTT_DAY_WIDTH,
+  GANTT_SCALE_DAY_WIDTH,
 } from './timeline';
 
 describe('calculateTaskDuration', () => {
@@ -44,6 +45,22 @@ describe('buildTimeline', () => {
     ]);
     expect(timeline.weeks.map(({ dayCount }) => dayCount)).toEqual([3, 2]);
   });
+
+  it('builds compact week and month scales from the same daily date model', () => {
+    const weeks = buildTimeline('2026-12-28', '2027-01-10', 'weeks');
+    const months = buildTimeline('2026-12-28', '2027-01-10', 'months');
+
+    expect(weeks.scale).toBe('weeks');
+    expect(weeks.dayWidth).toBe(GANTT_SCALE_DAY_WIDTH.weeks);
+    expect(weeks.width).toBe(14 * GANTT_SCALE_DAY_WIDTH.weeks);
+    expect(months.scale).toBe('months');
+    expect(months.dayWidth).toBe(GANTT_SCALE_DAY_WIDTH.months);
+    expect(months.width).toBe(14 * GANTT_SCALE_DAY_WIDTH.months);
+    expect(months.years.map(({ key, dayCount }) => ({ key, dayCount }))).toEqual([
+      { key: '2026', dayCount: 4 },
+      { key: '2027', dayCount: 10 },
+    ]);
+  });
 });
 
 describe('calculateMilestoneLeft', () => {
@@ -51,6 +68,17 @@ describe('calculateMilestoneLeft', () => {
     expect(
       calculateMilestoneLeft('2026-11-03', '2026-11-01', '2026-11-30'),
     ).toBe(2 * GANTT_DAY_WIDTH + GANTT_DAY_WIDTH / 2);
+  });
+
+  it('centers a milestone using the selected scale width', () => {
+    expect(
+      calculateMilestoneLeft(
+        '2026-11-03',
+        '2026-11-01',
+        '2026-11-30',
+        GANTT_SCALE_DAY_WIDTH.months,
+      ),
+    ).toBe(2 * GANTT_SCALE_DAY_WIDTH.months + GANTT_SCALE_DAY_WIDTH.months / 2);
   });
 
   it('does not render a milestone outside the project period', () => {
@@ -152,6 +180,21 @@ describe('calculateTaskBarGeometry', () => {
     ).toEqual(expect.objectContaining({
       left: GANTT_DAY_WIDTH,
       width: 3 * GANTT_DAY_WIDTH,
+    }));
+  });
+
+  it('uses the selected scale width for task geometry', () => {
+    expect(
+      calculateTaskBarGeometry(
+        '2026-11-03',
+        '2026-11-05',
+        '2026-11-01',
+        '2026-11-30',
+        GANTT_SCALE_DAY_WIDTH.weeks,
+      ),
+    ).toEqual(expect.objectContaining({
+      left: 2 * GANTT_SCALE_DAY_WIDTH.weeks,
+      width: 3 * GANTT_SCALE_DAY_WIDTH.weeks,
     }));
   });
 

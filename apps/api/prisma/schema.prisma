@@ -48,6 +48,7 @@ model Task {
   workType     String?   @map("work_type") @db.VarChar(200)
   assignee     String    @db.VarChar(200)
   estimate     String?   @db.VarChar(100)
+  comment      String?   @db.VarChar(1000)
   status       String    @default("Ожидает") @db.VarChar(30)
   startDate    DateTime? @map("start_date") @db.Date
   endDate      DateTime? @map("end_date") @db.Date

@@ -42,6 +42,7 @@ const aggregate: GanttAggregate = {
       workType: 'Разработка',
       assignee: 'Максим',
       estimate: null,
+      comment: 'Проверить публичное описание',
       duration: 5,
       status: 'В работе',
       startDate: '2026-11-02',
@@ -65,6 +66,8 @@ describe('PublicGanttViewer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Подготовить релиз' }));
 
     expect(onTaskDetails).toHaveBeenCalledWith(aggregate.tasks[0]);
+    expect(screen.getByRole('region', { name: 'Публичная диаграмма Ганта' })).toHaveClass('lg:block');
+    expect(screen.getByText(/требуется окно шириной не менее 1024 пикселей/i)).toBeInTheDocument();
     expect(screen.getByText('В работе')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Добавить задачу' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Сохранить изменения' })).not.toBeInTheDocument();

@@ -34,6 +34,7 @@ function task(id: string, orderIndex: number): Task {
     workType: 'Разработка',
     assignee: '',
     estimate: null,
+    comment: null,
     duration: 3,
     status: 'Ожидает',
     startDate: '2026-11-03',
@@ -54,6 +55,54 @@ beforeAll(() => {
 });
 
 describe('GanttWorkspace', () => {
+  it('switches between day, week and month timeline scales', () => {
+    render(
+      <GanttWorkspace
+        milestones={[]}
+        nonWorkingDays={[]}
+        onAddTask={vi.fn()}
+        onConfigureColumns={vi.fn()}
+        onConfigureMilestones={vi.fn()}
+        onConfigureNonWorkingDays={vi.fn()}
+        onTaskDatesChange={vi.fn()}
+        onTaskDetails={vi.fn()}
+        onTaskOrderChange={vi.fn()}
+        onToggleTaskCollapsed={vi.fn()}
+        project={project}
+        tasks={[]}
+      />,
+    );
+
+    const daysButton = screen.getByRole('button', { name: 'Дни' });
+    const weeksButton = screen.getByRole('button', { name: 'Недели' });
+    const monthsButton = screen.getByRole('button', { name: 'Месяцы' });
+    const timelineScroll = screen.getByRole('region', {
+      name: 'Горизонтальная прокрутка временной шкалы',
+    });
+    const editor = screen.getByRole('region', {
+      name: 'Редактор диаграммы Ганта',
+    });
+
+    expect(editor).toHaveClass('lg:flex');
+    expect(editor).not.toHaveClass('md:flex');
+    expect(screen.getByText(/требуется окно шириной не менее 1024 пикселей/i)).toBeInTheDocument();
+    expect(daysButton).toHaveAttribute('aria-pressed', 'true');
+    expect(timelineScroll.firstElementChild).toHaveAttribute('data-timeline-scale', 'days');
+    expect(timelineScroll.firstElementChild).toHaveStyle({ width: '1080px' });
+
+    fireEvent.click(weeksButton);
+    expect(weeksButton).toHaveAttribute('aria-pressed', 'true');
+    expect(daysButton).toHaveAttribute('aria-pressed', 'false');
+    expect(timelineScroll.firstElementChild).toHaveAttribute('data-timeline-scale', 'weeks');
+    expect(timelineScroll.firstElementChild).toHaveStyle({ width: '420px' });
+
+    fireEvent.click(monthsButton);
+    expect(monthsButton).toHaveAttribute('aria-pressed', 'true');
+    expect(weeksButton).toHaveAttribute('aria-pressed', 'false');
+    expect(timelineScroll.firstElementChild).toHaveAttribute('data-timeline-scale', 'months');
+    expect(timelineScroll.firstElementChild).toHaveStyle({ width: '180px' });
+  });
+
   it('shows and triggers explicit saving for a dirty draft', () => {
     const onSave = vi.fn();
     render(
@@ -76,6 +125,8 @@ describe('GanttWorkspace', () => {
     );
 
     expect(screen.getByText('Есть несохранённые изменения')).toBeInTheDocument();
+    expect(screen.getByText('Есть несохранённые изменения').parentElement).toHaveClass('xl:block');
+    expect(screen.getByText('Есть несохранённые изменения').parentElement).not.toHaveClass('lg:block');
     fireEvent.click(screen.getByRole('button', { name: 'Сохранить изменения' }));
     expect(onSave).toHaveBeenCalledOnce();
   });

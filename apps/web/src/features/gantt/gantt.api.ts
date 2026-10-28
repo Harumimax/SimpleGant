@@ -22,6 +22,7 @@ export type GanttSaveInput = {
     | 'workType'
     | 'assignee'
     | 'estimate'
+    | 'comment'
     | 'status'
     | 'startDate'
     | 'endDate'
@@ -52,6 +53,7 @@ export function saveGantt(projectId: string, aggregate: GanttAggregate) {
       workType: task.workType,
       assignee: task.assignee,
       estimate: task.estimate,
+      comment: task.comment,
       status: task.status,
       startDate: task.startDate,
       endDate: task.endDate,

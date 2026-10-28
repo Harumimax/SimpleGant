@@ -27,6 +27,10 @@ export function Modal({
       dialog.setAttribute('open', '');
     }
 
+    dialog
+      .querySelector<HTMLElement>('[data-modal-autofocus="true"]')
+      ?.focus();
+
     return () => {
       if (typeof dialog.close === 'function' && dialog.open) dialog.close();
     };
