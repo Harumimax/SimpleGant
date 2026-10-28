@@ -55,6 +55,30 @@ beforeAll(() => {
 });
 
 describe('GanttWorkspace', () => {
+  it('does not show the save panel when the draft has no changes', () => {
+    render(
+      <GanttWorkspace
+        milestones={[]}
+        nonWorkingDays={[]}
+        onAddTask={vi.fn()}
+        onConfigureColumns={vi.fn()}
+        onConfigureMilestones={vi.fn()}
+        onConfigureNonWorkingDays={vi.fn()}
+        onSave={vi.fn()}
+        onTaskDatesChange={vi.fn()}
+        onTaskDetails={vi.fn()}
+        onTaskOrderChange={vi.fn()}
+        onToggleTaskCollapsed={vi.fn()}
+        project={project}
+        tasks={[]}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Сохранить изменения' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Все изменения сохранены')).not.toBeInTheDocument();
+    expect(screen.queryByText('Данные синхронизированы с сервером')).not.toBeInTheDocument();
+  });
+
   it('switches between day, week and month timeline scales', () => {
     render(
       <GanttWorkspace

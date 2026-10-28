@@ -545,17 +545,13 @@ export function GanttWorkspace({
           </section>
         </div>
 
-        {onSave ? (
+        {onSave && isDirty ? (
           <div
-            className={`absolute bottom-5 right-5 z-40 flex items-center gap-3 rounded-xl border bg-white px-3 py-2.5 shadow-lg ${
-              isDirty
-                ? 'border-[var(--color-warning)]'
-                : 'border-[var(--color-border-strong)]'
-            }`}
+            className="absolute bottom-5 right-5 z-40 flex items-center gap-3 rounded-xl border border-[var(--color-warning)] bg-white px-3 py-2.5 shadow-lg"
           >
             <div className="hidden text-right xl:block">
               <p className="text-xs font-semibold text-[var(--color-text)]">
-                {isDirty ? 'Есть несохранённые изменения' : 'Все изменения сохранены'}
+                Есть несохранённые изменения
               </p>
               {saveError ? (
                 <p className="mt-0.5 max-w-64 text-xs text-[var(--color-danger)]" role="alert">
@@ -563,13 +559,13 @@ export function GanttWorkspace({
                 </p>
               ) : (
                 <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
-                  {isDirty ? 'Изменения пока видны только вам' : 'Данные синхронизированы с сервером'}
+                  Изменения пока видны только вам
                 </p>
               )}
             </div>
             <button
               className="flex h-10 items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 text-sm font-semibold text-white shadow-[var(--shadow-button)] hover:bg-[var(--color-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-45"
-              disabled={!isDirty || isSaving}
+              disabled={isSaving}
               onClick={onSave}
               type="button"
             >
