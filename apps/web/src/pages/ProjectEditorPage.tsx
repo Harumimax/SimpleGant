@@ -23,7 +23,6 @@ import { ProjectColumnsDialog } from '../features/projects/ProjectColumnsDialog'
 import { ShareProjectDialog } from '../features/projects/ShareProjectDialog';
 import type { ProjectColumnConfigurationInput } from '../features/projects/projects.api';
 import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
-import { TaskDetailsDialog } from '../features/tasks/TaskDetailsDialog';
 import { TaskDialog } from '../features/tasks/TaskDialog';
 import type { Task, TaskInput } from '../features/tasks/tasks.api';
 
@@ -62,7 +61,6 @@ export function ProjectEditorPage() {
   const markSaved = useGanttDraftStore((state) => state.markSaved);
   const clearDraft = useGanttDraftStore((state) => state.clear);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [detailsTaskId, setDetailsTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
@@ -120,7 +118,6 @@ export function ProjectEditorPage() {
   }
 
   const { project, tasks, milestones, nonWorkingDays } = aggregate;
-  const detailsTask = tasks.find(({ id }) => id === detailsTaskId) ?? null;
   const editingTask = tasks.find(({ id }) => id === editingTaskId) ?? null;
   const deletingTask = tasks.find(({ id }) => id === deletingTaskId) ?? null;
 
@@ -345,7 +342,7 @@ export function ProjectEditorPage() {
               : item)),
           }));
         }}
-        onTaskDetails={(task) => setDetailsTaskId(task.id)}
+        onTaskDetails={(task) => setEditingTaskId(task.id)}
         onTaskOrderChange={async (nextTasks) => {
           updateDraft((current) => ({ ...current, tasks: nextTasks }));
         }}
@@ -363,8 +360,7 @@ export function ProjectEditorPage() {
       />
 
       {isCreateOpen ? <TaskDialog columns={project.columns} isPending={false} onClose={() => setIsCreateOpen(false)} onSubmit={createTask} /> : null}
-      {detailsTask ? <TaskDetailsDialog onClose={() => setDetailsTaskId(null)} onDelete={() => { setDetailsTaskId(null); setDeletingTaskId(detailsTask.id); }} onEdit={() => { setDetailsTaskId(null); setEditingTaskId(detailsTask.id); }} task={detailsTask} /> : null}
-      {editingTask ? <TaskDialog columns={project.columns} datesReadOnly={countTaskDescendants(tasks, editingTask.id) > 0} isPending={false} onClose={() => setEditingTaskId(null)} onSubmit={(input) => updateTask(editingTask.id, input)} task={editingTask} /> : null}
+      {editingTask ? <TaskDialog columns={project.columns} datesReadOnly={countTaskDescendants(tasks, editingTask.id) > 0} isPending={false} onClose={() => setEditingTaskId(null)} onDelete={() => { setEditingTaskId(null); setDeletingTaskId(editingTask.id); }} onSubmit={(input) => updateTask(editingTask.id, input)} task={editingTask} /> : null}
       {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks, deletingTask.id)} isPending={false} onClose={() => setDeletingTaskId(null)} onConfirm={() => deleteTask(deletingTask.id)} task={deletingTask} /> : null}
       {isColumnsOpen ? <ProjectColumnsDialog columns={project.columns} isPending={false} onClose={() => setIsColumnsOpen(false)} onSubmit={configureColumns} /> : null}
       {isMilestonesOpen ? <MilestonesDialog isPending={false} milestones={milestones} onClose={() => setIsMilestonesOpen(false)} onDelete={deleteMilestone} onSave={saveMilestone} projectEndDate={project.endDate} projectStartDate={project.startDate} /> : null}

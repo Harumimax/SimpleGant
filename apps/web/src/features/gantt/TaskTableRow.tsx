@@ -22,6 +22,8 @@ type Props = {
   canIndent: boolean;
   canOutdent: boolean;
   isDisabled?: boolean;
+  previewRowOffset?: number;
+  showActions?: boolean;
   onDetails: (task: Task) => void;
   onIndent: (task: Task) => void;
   onOutdent: (task: Task) => void;
@@ -37,6 +39,8 @@ export function TaskTableRow({
   canIndent,
   canOutdent,
   isDisabled = false,
+  previewRowOffset = 0,
+  showActions = true,
   onDetails,
   onIndent,
   onOutdent,
@@ -61,8 +65,11 @@ export function TaskTableRow({
         height: GANTT_ROW_HEIGHT,
         transform: transform
           ? `translate3d(${transform.x}px, ${transform.y}px, 0) scaleX(${transform.scaleX}) scaleY(${transform.scaleY})`
-          : undefined,
-        transition,
+          : previewRowOffset
+            ? `translate3d(0, ${previewRowOffset * GANTT_ROW_HEIGHT}px, 0)`
+            : undefined,
+        transition: transition ?? (previewRowOffset ? 'transform 160ms ease' : undefined),
+        zIndex: previewRowOffset ? 3 : undefined,
       }}
     >
       <div className="flex items-center border-r border-[var(--color-border)] text-xs tabular-nums text-[var(--color-text-faint)]">
@@ -117,7 +124,7 @@ export function TaskTableRow({
         </div>
       ))}
 
-      <div className="flex items-center justify-center gap-0.5">
+      {showActions ? <div className="flex items-center justify-center gap-0.5">
         <button
           aria-label={`Уменьшить вложенность: ${task.title}`}
           className="grid size-7 place-items-center rounded text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] disabled:opacity-25"
@@ -146,7 +153,7 @@ export function TaskTableRow({
         >
           <Ellipsis aria-hidden className="size-3.5" />
         </button>
-      </div>
+      </div> : null}
     </div>
   );
 }

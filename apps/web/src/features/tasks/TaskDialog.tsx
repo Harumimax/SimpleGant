@@ -1,4 +1,4 @@
-import { CalendarDays, X } from 'lucide-react';
+import { CalendarDays, Trash2, X } from 'lucide-react';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { useId, useRef, useState, type FormEvent } from 'react';
 
@@ -37,12 +37,13 @@ type TaskDialogProps = {
   isPending: boolean;
   serverError?: string;
   onClose: () => void;
+  onDelete?: () => void;
   onSubmit: (input: TaskInput) => void;
   datesReadOnly?: boolean;
   columns?: ProjectColumn[];
 };
 
-export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, datesReadOnly = false, columns = [] }: TaskDialogProps) {
+export function TaskDialog({ task, isPending, serverError, onClose, onDelete, onSubmit, datesReadOnly = false, columns = [] }: TaskDialogProps) {
   const titleId = useId();
   const endDateRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(task?.title ?? '');
@@ -244,9 +245,17 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
 
           {serverError ? <div className="mt-5"><Alert>{serverError}</Alert></div> : null}
 
-          <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button disabled={isPending} onClick={onClose} type="button" variant="secondary">Отмена</Button>
-            <Button isLoading={isPending} loadingLabel="Сохраняем…" type="submit">{task ? 'Сохранить задачу' : 'Создать задачу'}</Button>
+          <div className={`mt-7 flex flex-col-reverse gap-3 sm:flex-row ${task && onDelete ? 'sm:justify-between' : 'sm:justify-end'}`}>
+            {task && onDelete ? (
+              <Button disabled={isPending} onClick={onDelete} type="button" variant="danger">
+                <Trash2 aria-hidden className="size-4" />
+                Удалить задачу
+              </Button>
+            ) : null}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row">
+              <Button disabled={isPending} onClick={onClose} type="button" variant="secondary">Отмена</Button>
+              <Button isLoading={isPending} loadingLabel="Сохраняем…" type="submit">{task ? 'Сохранить задачу' : 'Создать задачу'}</Button>
+            </div>
           </div>
         </form>
       </div>

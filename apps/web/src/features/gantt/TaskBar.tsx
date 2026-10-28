@@ -4,6 +4,7 @@ import type { Task } from '../tasks/tasks.api';
 import {
   calculateTaskBarGeometry,
   calculateTaskDateChange,
+  calculateGanttRowDelta,
   GANTT_DAY_WIDTH,
   GANTT_ROW_HEIGHT,
   type TaskDateChangeMode,
@@ -141,7 +142,7 @@ export function TaskBar({
 
     if (interaction.axis === 'vertical' && interaction.mode === 'move') {
       didDragRef.current = true;
-      const rowDelta = Math.round(deltaY / GANTT_ROW_HEIGHT);
+      const rowDelta = calculateGanttRowDelta(deltaY);
       const visibleRowDelta = onVerticalMovePreview?.(task, rowDelta) ?? 0;
       setVerticalOffset(deltaY - visibleRowDelta * GANTT_ROW_HEIGHT);
       return;
@@ -170,8 +171,8 @@ export function TaskBar({
     setActiveMode(null);
     setVerticalOffset(0);
     if (interaction.axis === 'vertical') {
-      const rowDelta = Math.round(
-        (event.clientY - interaction.startY) / GANTT_ROW_HEIGHT,
+      const rowDelta = calculateGanttRowDelta(
+        event.clientY - interaction.startY,
       );
       if (rowDelta !== 0 && onVerticalMove) {
         try {

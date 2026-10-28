@@ -167,9 +167,13 @@ function placeTask(
   const nextLevel = parent ? parent.level + 1 : 0;
   if (nextLevel + subtreeDepth(tasks, taskId) > MAX_TASK_LEVEL) return null;
 
-  const next = tasks.map((task) =>
-    task.id === taskId ? { ...task, parentId } : task,
-  );
+  // Reordering is also used to build the live drag preview. Clone every task
+  // so assigning sibling indexes below never mutates the draft that acts as
+  // the stable base for subsequent pointer-move events.
+  const next = tasks.map((task) => ({
+    ...task,
+    parentId: task.id === taskId ? parentId : task.parentId,
+  }));
   const parentKeys = new Set<string | null>([active.parentId, parentId]);
 
   for (const key of parentKeys) {

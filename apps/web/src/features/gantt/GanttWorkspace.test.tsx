@@ -206,14 +206,16 @@ describe('GanttWorkspace', () => {
     expect(ganttShell).toHaveAttribute('data-columns-collapsed', 'true');
     expect(screen.getByText('Название')).toBeInTheDocument();
     expect(screen.queryByText('Колонка 2')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Действия')).not.toBeInTheDocument();
     expect(taskPane.querySelector('.gantt-task-table')).toHaveStyle({
-      minWidth: '328px',
+      minWidth: '232px',
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Показать дополнительные колонки' }));
 
     expect(ganttShell).toHaveAttribute('data-columns-collapsed', 'false');
     expect(screen.getByText('Колонка 2')).toBeInTheDocument();
+    expect(screen.getByLabelText('Действия')).toBeInTheDocument();
     expect(taskPane.querySelector('.gantt-task-table')).toHaveStyle({
       minWidth: '1264px',
     });
@@ -286,18 +288,18 @@ describe('GanttWorkspace', () => {
 
     const taskRows = screen.getByRole('region', { name: 'Таблица задач' })
       .querySelectorAll('[data-task-id]');
-    expect([...taskRows].map((row) => row.getAttribute('data-task-id'))).toEqual([
-      'second',
-      'first',
-    ]);
+    expect(taskRows[0]).toHaveStyle({
+      transform: 'translate3d(0, 44px, 0)',
+    });
+    expect(taskRows[1]).toHaveStyle({
+      transform: 'translate3d(0, -44px, 0)',
+    });
 
     const timelineRows = screen.getByRole('region', {
       name: 'Горизонтальная прокрутка временной шкалы',
     }).querySelectorAll('[data-task-id]');
-    expect([...timelineRows].map((row) => row.getAttribute('data-task-id'))).toEqual([
-      'second',
-      'first',
-    ]);
+    expect(timelineRows[0]).toHaveStyle({ transform: 'translateY(44px)' });
+    expect(timelineRows[1]).toHaveStyle({ transform: 'translateY(-44px)' });
 
     fireEvent.pointerUp(firstBar, {
       clientX: 101,

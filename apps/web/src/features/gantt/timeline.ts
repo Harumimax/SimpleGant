@@ -15,6 +15,11 @@ export const GANTT_DAY_WIDTH = 36;
 export const GANTT_HEADER_HEIGHT = 90;
 export const GANTT_ROW_HEIGHT = 44;
 
+export function calculateGanttRowDelta(deltaY: number) {
+  const direction = Math.sign(deltaY);
+  return direction * Math.round(Math.abs(deltaY) / GANTT_ROW_HEIGHT);
+}
+
 export const GANTT_SCALE_DAY_WIDTH = {
   days: GANTT_DAY_WIDTH,
   weeks: 14,
