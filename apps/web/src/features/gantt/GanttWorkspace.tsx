@@ -140,10 +140,6 @@ export function GanttWorkspace({
   const previewIndexes = new Map(
     previewVisibleTasks.map((task, index) => [task.id, index]),
   );
-  const rows: Array<Task | null> = [
-    ...visibleTasks,
-    ...Array.from({ length: Math.max(20 - visibleTasks.length, 0) }, () => null),
-  ];
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -451,27 +447,6 @@ export function GanttWorkspace({
                   </SortableContext>
                 </DndContext>
 
-                {rows.slice(visibleTasks.length).map((_, index) => (
-                  <div
-                    aria-hidden="true"
-                    className="grid border-b border-[var(--color-border)]"
-                    key={`empty-${index}`}
-                    style={{
-                      gridTemplateColumns: taskGridTemplate,
-                      height: GANTT_ROW_HEIGHT,
-                    }}
-                  >
-                    <div className="border-r border-[var(--color-border)]" />
-                    {columns.map((column) => (
-                      <div
-                        className="border-r border-[var(--color-border)]"
-                        key={column.id}
-                      />
-                    ))}
-                    {showTaskActions ? <div /> : null}
-                  </div>
-                ))}
-
                 {tasks.length === 0 ? <div className="pointer-events-none absolute inset-x-8 top-20 rounded-lg border border-dashed border-[var(--color-border-strong)] bg-white/95 px-5 py-6 text-center shadow-sm">
                   <p className="text-sm font-semibold text-[var(--color-text)]">
                     В проекте пока нет задач
@@ -576,18 +551,11 @@ export function GanttWorkspace({
                 </div>
 
                 <div className="relative">
-                  {[
-                    ...visibleTasks,
-                    ...Array.from(
-                      { length: Math.max(20 - visibleTasks.length, 0) },
-                      () => null,
-                    ),
-                  ].map((task, rowIndex) => (
+                  {visibleTasks.map((task, rowIndex) => (
                     <div
-                      aria-hidden={task ? undefined : true}
                       className="relative flex border-b border-[var(--color-border)]"
-                      data-task-id={task?.id}
-                      key={task?.id ?? `empty-${rowIndex}`}
+                      data-task-id={task.id}
+                      key={task.id}
                       style={{
                         height: GANTT_ROW_HEIGHT,
                         transform: task && dragPreviewTasks
@@ -615,22 +583,20 @@ export function GanttWorkspace({
                           />
                         );
                       })}
-                      {task ? (
-                        <TaskBar
-                          dayWidth={timeline.dayWidth}
-                          isDateLocked={taskHasChildren(tasks, task.id)}
-                          isSaving={updatingTaskId === task.id}
-                          onDateChange={onTaskDatesChange}
-                          onOpen={onTaskDetails}
-                          onVerticalMoveCancel={clearDragPreview}
-                          onVerticalMove={moveTimelineTask}
-                          onVerticalMovePreview={previewTimelineTaskMove}
-                          onVerticalMoveStart={startTimelineTaskMove}
-                          task={task}
-                          timelineEndDate={project.endDate}
-                          timelineStartDate={project.startDate}
-                        />
-                      ) : null}
+                      <TaskBar
+                        dayWidth={timeline.dayWidth}
+                        isDateLocked={taskHasChildren(tasks, task.id)}
+                        isSaving={updatingTaskId === task.id}
+                        onDateChange={onTaskDatesChange}
+                        onOpen={onTaskDetails}
+                        onVerticalMoveCancel={clearDragPreview}
+                        onVerticalMove={moveTimelineTask}
+                        onVerticalMovePreview={previewTimelineTaskMove}
+                        onVerticalMoveStart={startTimelineTaskMove}
+                        task={task}
+                        timelineEndDate={project.endDate}
+                        timelineStartDate={project.startDate}
+                      />
                     </div>
                   ))}
                 </div>

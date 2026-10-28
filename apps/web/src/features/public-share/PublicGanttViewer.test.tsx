@@ -66,11 +66,18 @@ describe('PublicGanttViewer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Подготовить релиз' }));
 
     expect(onTaskDetails).toHaveBeenCalledWith(aggregate.tasks[0]);
-    expect(screen.getByRole('region', { name: 'Публичная диаграмма Ганта' })).toHaveClass('lg:block');
+    expect(screen.getByRole('region', { name: 'Публичная диаграмма Ганта' })).toHaveClass('lg:flex');
     expect(screen.getByText(/требуется окно шириной не менее 1024 пикселей/i)).toBeInTheDocument();
     expect(screen.getByText('В работе')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Добавить задачу' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Сохранить изменения' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /удалить|редактировать/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Месяцы' }));
+    expect(screen.getByRole('region', { name: 'Горизонтальная прокрутка временной шкалы' }).firstElementChild).toHaveAttribute('data-timeline-scale', 'months');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Скрыть дополнительные колонки' }));
+    expect(screen.queryByText('Статус')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Таблица задач' }).parentElement).toHaveAttribute('data-columns-collapsed', 'true');
   });
 });

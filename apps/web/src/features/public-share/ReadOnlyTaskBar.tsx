@@ -1,5 +1,5 @@
 import type { Task } from '../tasks/tasks.api';
-import { calculateTaskBarGeometry } from '../gantt/timeline';
+import { calculateTaskBarGeometry, GANTT_DAY_WIDTH } from '../gantt/timeline';
 
 const TASK_BAR_COLORS = new Set([
   'sage', 'blue', 'sky', 'lavender', 'plum',
@@ -10,6 +10,7 @@ type Props = {
   task: Task;
   timelineStartDate: string;
   timelineEndDate: string;
+  dayWidth?: number;
   onOpen: (task: Task) => void;
 };
 
@@ -17,6 +18,7 @@ export function ReadOnlyTaskBar({
   task,
   timelineStartDate,
   timelineEndDate,
+  dayWidth = GANTT_DAY_WIDTH,
   onOpen,
 }: Props) {
   const geometry = calculateTaskBarGeometry(
@@ -24,6 +26,7 @@ export function ReadOnlyTaskBar({
     task.endDate,
     timelineStartDate,
     timelineEndDate,
+    dayWidth,
   );
   if (!geometry || !task.startDate || !task.endDate) return null;
   const color = TASK_BAR_COLORS.has(task.color) ? task.color : 'sage';
