@@ -8,7 +8,29 @@ import { Modal } from '../../components/ui/Modal';
 import { SelectField } from '../../components/ui/SelectField';
 import { TextField } from '../../components/ui/TextField';
 import type { ProjectColumn } from '../projects/projects.api';
-import { TASK_STATUSES, type Task, type TaskInput, type TaskStatus } from './tasks.api';
+import {
+  isTaskColor,
+  TASK_COLORS,
+  TASK_STATUSES,
+  TASK_WORK_TYPES,
+  type Task,
+  type TaskColor,
+  type TaskInput,
+  type TaskStatus,
+} from './tasks.api';
+
+const TASK_COLOR_NAMES: Record<TaskColor, string> = {
+  sage: 'Шалфейный',
+  blue: 'Синий',
+  sky: 'Небесный',
+  lavender: 'Лавандовый',
+  plum: 'Сливовый',
+  rose: 'Розовый',
+  coral: 'Коралловый',
+  sand: 'Песочный',
+  amber: 'Янтарный',
+  teal: 'Бирюзовый',
+};
 
 type TaskDialogProps = {
   task?: Task | null;
@@ -32,6 +54,9 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
       : String(task.duration),
   );
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? 'Ожидает');
+  const [color, setColor] = useState<TaskColor>(
+    task?.color && isTaskColor(task.color) ? task.color : 'sage',
+  );
   const [startDate, setStartDate] = useState(task?.startDate ?? '');
   const [endDate, setEndDate] = useState(task?.endDate ?? '');
   const [excludeWeekends, setExcludeWeekends] = useState(true);
@@ -39,6 +64,9 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
     task?.customFields ?? {},
   );
   const [formError, setFormError] = useState('');
+  const hasLegacyWorkType = Boolean(
+    task?.workType && !TASK_WORK_TYPES.some((item) => item === task.workType),
+  );
 
   function optionalValue(value: string) {
     const trimmed = value.trim();
@@ -104,6 +132,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
       workType: optionalValue(workType),
       assignee: assignee.trim(),
       status,
+      color,
       ...(!datesReadOnly ? {
         startDate: optionalDate(startDate),
         endDate: optionalDate(endDate),
@@ -136,12 +165,34 @@ export function TaskDialog({ task, isPending, serverError, onClose, onSubmit, da
             <div className="sm:col-span-2">
               <TextField autoFocus disabled={isPending} label="Название" maxLength={200} onChange={(event) => setTitle(event.target.value)} required value={title} />
             </div>
-            <TextField disabled={isPending} label="Тип работ" maxLength={200} onChange={(event) => setWorkType(event.target.value)} value={workType} />
+            <SelectField disabled={isPending} label="Тип работ" onChange={(event) => setWorkType(event.target.value)} value={workType}>
+              <option value="">Не выбран</option>
+              {hasLegacyWorkType ? <option value={task!.workType!}>{task!.workType} (ранее выбранное)</option> : null}
+              {TASK_WORK_TYPES.map((item) => <option key={item} value={item}>{item}</option>)}
+            </SelectField>
             <TextField disabled={isPending} label="Ответственный" maxLength={200} onChange={(event) => setAssignee(event.target.value)} required value={assignee} />
             <TextField disabled={isPending || datesReadOnly} label="Длительность, дней" min="1" onChange={(event) => setDuration(event.target.value)} placeholder="Например, 7" step="1" type="number" value={duration} />
             <SelectField disabled={isPending} label="Статус" onChange={(event) => setStatus(event.target.value as TaskStatus)} value={status}>
               {TASK_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
             </SelectField>
+            <fieldset className="sm:col-span-2" disabled={isPending}>
+              <legend className="mb-2 text-sm font-semibold text-[var(--color-text)]">Цвет полосы</legend>
+              <div className="flex flex-wrap gap-2">
+                {TASK_COLORS.map((item) => (
+                  <button
+                    aria-label={`Цвет: ${TASK_COLOR_NAMES[item]}`}
+                    aria-pressed={color === item}
+                    className="size-8 rounded-full border-2 border-white shadow-sm outline-none ring-offset-2 transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] data-[selected=true]:ring-2 data-[selected=true]:ring-[var(--color-accent)]"
+                    data-selected={color === item}
+                    key={item}
+                    onClick={() => setColor(item)}
+                    style={{ backgroundColor: `var(--color-task-${item})` }}
+                    title={TASK_COLOR_NAMES[item]}
+                    type="button"
+                  />
+                ))}
+              </div>
+            </fieldset>
             {columns.filter(({ isDefault }) => !isDefault).map((column) => (
               <TextField
                 disabled={isPending}

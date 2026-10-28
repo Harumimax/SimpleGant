@@ -10,6 +10,38 @@ export const TASK_STATUSES = [
 
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
+export const TASK_WORK_TYPES = [
+  'Бизнес-Анализ',
+  'Архитектура',
+  'Системный анализ',
+  'Разработка',
+  'Тестирование',
+  'Интеграционное тестирование',
+  'Приемка',
+  'Релиз',
+] as const;
+
+export type TaskWorkType = (typeof TASK_WORK_TYPES)[number];
+
+export const TASK_COLORS = [
+  'sage',
+  'blue',
+  'sky',
+  'lavender',
+  'plum',
+  'rose',
+  'coral',
+  'sand',
+  'amber',
+  'teal',
+] as const;
+
+export type TaskColor = (typeof TASK_COLORS)[number];
+
+export function isTaskColor(value: string): value is TaskColor {
+  return TASK_COLORS.some((color) => color === value);
+}
+
 export type Task = {
   id: string;
   projectId: string;
@@ -38,6 +70,7 @@ export type TaskInput = {
   estimate?: string | null;
   duration?: number;
   status: TaskStatus;
+  color?: TaskColor;
   startDate?: string | null;
   endDate?: string | null;
   excludeWeekends?: boolean;

@@ -12,6 +12,8 @@ import type {
 } from './tasks.dto.js';
 import {
   DEFAULT_TASK_COLOR,
+  isTaskColor,
+  isTaskWorkType,
   TASK_STATUSES,
   type TaskStatus,
 } from './task.constants.js';
@@ -51,6 +53,9 @@ export class TasksService {
     input: CreateTaskDto,
   ): Promise<TaskView> {
     await this.ensureOwnedProject(projectId, ownerId);
+    this.validateWorkType(input.workType);
+    const color = input.color ?? DEFAULT_TASK_COLOR;
+    this.validateTaskColor(color);
     const dates = normalizeCreationDates(
       input.startDate,
       input.endDate,
@@ -70,7 +75,7 @@ export class TasksService {
       estimate: input.estimate,
       status: input.status ?? TASK_STATUSES[0],
       ...dates,
-      color: DEFAULT_TASK_COLOR,
+      color,
       customFields,
     });
     return this.toView(task);
@@ -86,6 +91,16 @@ export class TasksService {
     const currentTasks = await this.repository.list(projectId);
     const current = currentTasks.find(({ id }) => id === taskId);
     if (!current) throw new NotFoundException('Задача не найдена');
+
+    if (input.color !== undefined) this.validateTaskColor(input.color);
+
+    if (
+      input.workType !== undefined &&
+      input.workType !== null &&
+      input.workType !== current.workType
+    ) {
+      this.validateWorkType(input.workType);
+    }
 
     const hasChildren = currentTasks.some(({ parentId }) => parentId === taskId);
     if (
@@ -125,6 +140,7 @@ export class TasksService {
       assignee: input.assignee ?? current.assignee,
       estimate: input.estimate === undefined ? current.estimate : input.estimate,
       status: input.status ?? (current.status as TaskStatus),
+      color: input.color ?? current.color,
       startDate,
       endDate,
       isCollapsed: input.isCollapsed ?? current.isCollapsed,
@@ -209,6 +225,18 @@ export class TasksService {
       })),
     );
     return tasks.map((task) => this.toView(task));
+  }
+
+  private validateWorkType(workType: string | null | undefined): void {
+    if (workType !== null && workType !== undefined && !isTaskWorkType(workType)) {
+      throw new BadRequestException('Выберите допустимый тип работ');
+    }
+  }
+
+  private validateTaskColor(color: string): void {
+    if (!isTaskColor(color)) {
+      throw new BadRequestException('Выберите допустимый цвет задачи');
+    }
   }
 
   async delete(projectId: string, taskId: string, ownerId: string) {

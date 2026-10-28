@@ -17,7 +17,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { TASK_STATUSES, type TaskStatus } from './task.constants.js';
+import {
+  TASK_COLORS,
+  TASK_STATUSES,
+  type TaskColor,
+  type TaskStatus,
+} from './task.constants.js';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -68,6 +73,10 @@ export class CreateTaskDto {
   @IsOptional()
   @IsIn(TASK_STATUSES, { message: 'Выберите допустимый статус задачи' })
   status?: TaskStatus;
+
+  @IsOptional()
+  @IsIn(TASK_COLORS, { message: 'Выберите допустимый цвет задачи' })
+  color?: TaskColor;
 
   @IsOptional()
   @IsDateString({ strict: true }, { message: 'Укажите корректную дату начала' })
@@ -122,6 +131,10 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsIn(TASK_STATUSES, { message: 'Выберите допустимый статус задачи' })
   status?: TaskStatus;
+
+  @IsOptional()
+  @IsIn(TASK_COLORS, { message: 'Выберите допустимый цвет задачи' })
+  color?: TaskColor;
 
   @IsOptional()
   @IsDateString({ strict: true }, { message: 'Укажите корректную дату начала' })

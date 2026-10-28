@@ -67,6 +67,20 @@ describe('TaskBar', () => {
     expect(screen.getByRole('button')).toHaveAttribute('data-color', 'sage');
   });
 
+  it('renders the color selected for the task', () => {
+    render(
+      <TaskBar
+        onDateChange={vi.fn().mockResolvedValue(undefined)}
+        onOpen={vi.fn()}
+        task={{ ...task, color: 'teal' }}
+        timelineEndDate="2026-11-30"
+        timelineStartDate="2026-11-01"
+      />,
+    );
+
+    expect(screen.getByRole('button')).toHaveAttribute('data-color', 'teal');
+  });
+
   it('moves a task by whole calendar days and does not open details', async () => {
     const onDateChange = vi.fn().mockResolvedValue(undefined);
     const onOpen = vi.fn();

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../database/prisma.service.js';
-import type { TaskStatus } from './task.constants.js';
+import type { TaskColor, TaskStatus } from './task.constants.js';
 
 @Injectable()
 export class TasksRepository {
@@ -52,7 +52,7 @@ export class TasksRepository {
     status: TaskStatus;
     startDate: Date | null;
     endDate: Date | null;
-    color: string;
+    color: TaskColor;
     customFields: Record<string, string>;
   }) {
     return this.prisma.task.create({ data: input });
@@ -67,6 +67,7 @@ export class TasksRepository {
       assignee: string;
       estimate: string | null;
       status: TaskStatus;
+      color: string;
       startDate: Date | null;
       endDate: Date | null;
       isCollapsed: boolean;

@@ -16,12 +16,14 @@ import {
   CalendarDays,
   CircleAlert,
   Columns3,
+  Eye,
+  EyeOff,
   Flag,
   LoaderCircle,
   Monitor,
   Plus,
 } from 'lucide-react';
-import { useRef, type UIEvent } from 'react';
+import { useRef, useState, type UIEvent } from 'react';
 
 import type { ProjectDetail } from '../projects/projects.api';
 import type { Milestone } from '../milestones/milestones.api';
@@ -67,6 +69,11 @@ function columnTemplate(columnCount: number) {
   return `42px minmax(190px, 2fr) repeat(${extraColumns}, minmax(104px, 1fr)) 96px`;
 }
 
+function taskTableMinWidth(columnCount: number) {
+  if (columnCount === 0) return 138;
+  return 42 + 190 + Math.max(columnCount - 1, 0) * 104 + 96;
+}
+
 export function GanttWorkspace({
   project,
   tasks,
@@ -85,11 +92,15 @@ export function GanttWorkspace({
 }: GanttWorkspaceProps) {
   const taskPaneRef = useRef<HTMLElement>(null);
   const timelinePaneRef = useRef<HTMLDivElement>(null);
+  const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
   const timeline = buildTimeline(project.startDate, project.endDate);
-  const columns = project.columns
-    .filter(({ isVisible }) => isVisible)
+  const configuredColumns = [...project.columns]
     .sort((left, right) => left.orderIndex - right.orderIndex);
+  const columns = configuredColumns.filter((column) =>
+    areAdditionalColumnsHidden ? column.key === 'title' : column.isVisible,
+  );
   const taskGridTemplate = columnTemplate(columns.length);
+  const taskTableWidth = taskTableMinWidth(columns.length);
   const visibleTasks = flattenVisibleTasks(tasks);
   const rows: Array<Task | null> = [
     ...visibleTasks,
@@ -202,103 +213,115 @@ export function GanttWorkspace({
             aria-label="Таблица задач"
             onScroll={(event) => syncVerticalScroll(event, timelinePaneRef.current)}
             ref={taskPaneRef}
+            tabIndex={0}
           >
-            <div
-              className="sticky top-0 z-20 border-b border-[var(--color-border-strong)] bg-[var(--color-surface-subtle)]"
-              style={{ height: GANTT_HEADER_HEIGHT }}
-            >
-              <div className="flex h-8 items-center border-b border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text-muted)]">
-                Структура проекта
-              </div>
+            <div className="gantt-task-table" style={{ minWidth: taskTableWidth }}>
               <div
-                className="grid h-[58px] items-stretch"
-                style={{ gridTemplateColumns: taskGridTemplate }}
+                className="sticky top-0 z-20 border-b border-[var(--color-border-strong)] bg-[var(--color-surface-subtle)]"
+                style={{ height: GANTT_HEADER_HEIGHT }}
               >
-                <div className="grid place-items-center border-r border-[var(--color-border)] text-xs text-[var(--color-text-faint)]">
-                  №
-                </div>
-                {columns.map((column) => (
-                  <div
-                    className="flex min-w-0 items-center border-r border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text)] last:border-r-0"
-                    key={column.id}
-                    title={column.name}
+                <div className="flex h-8 items-center border-b border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text-muted)]">
+                  <span>Структура проекта</span>
+                  <button
+                    aria-pressed={areAdditionalColumnsHidden}
+                    className="sticky right-2 ml-auto flex h-7 items-center gap-1.5 rounded-md bg-[var(--color-surface-subtle)] px-2 text-[11px] font-semibold text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-focus)]"
+                    onClick={() => setAreAdditionalColumnsHidden((current) => !current)}
+                    type="button"
                   >
-                    <span className="truncate">{column.name}</span>
-                  </div>
-                ))}
-                <div aria-label="Действия" className="border-l border-[var(--color-border)]" />
-              </div>
-            </div>
-
-            <div className="relative bg-white">
-              <DndContext
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-                sensors={sensors}
-              >
-                <SortableContext
-                  items={visibleTasks.map(({ id }) => id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {visibleTasks.map((task, index) => (
-                    <TaskTableRow
-                      canIndent={Boolean(indentTask(tasks, task.id))}
-                      canOutdent={Boolean(task.parentId)}
-                      columns={columns}
-                      gridTemplateColumns={taskGridTemplate}
-                      hasChildren={taskHasChildren(tasks, task.id)}
-                      isDisabled={isSavingStructure}
-                      key={task.id}
-                      onDetails={onTaskDetails}
-                      onIndent={(selectedTask) =>
-                        saveStructure(indentTask(tasks, selectedTask.id))
-                      }
-                      onOutdent={(selectedTask) =>
-                        saveStructure(outdentTask(tasks, selectedTask.id))
-                      }
-                      onToggleCollapsed={(selectedTask) => {
-                        if (!isSavingStructure) {
-                          void onToggleTaskCollapsed(selectedTask).catch(
-                            () => undefined,
-                          );
-                        }
-                      }}
-                      rowNumber={index + 1}
-                      task={task}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-
-              {rows.slice(visibleTasks.length).map((_, index) => (
+                    {areAdditionalColumnsHidden ? <Eye aria-hidden className="size-3.5" /> : <EyeOff aria-hidden className="size-3.5" />}
+                    {areAdditionalColumnsHidden ? 'Показать дополнительные колонки' : 'Скрыть дополнительные колонки'}
+                  </button>
+                </div>
                 <div
-                  aria-hidden="true"
-                  className="grid border-b border-[var(--color-border)]"
-                  key={`empty-${index}`}
-                  style={{
-                    gridTemplateColumns: taskGridTemplate,
-                    height: GANTT_ROW_HEIGHT,
-                  }}
+                  className="grid h-[58px] items-stretch"
+                  style={{ gridTemplateColumns: taskGridTemplate }}
                 >
-                  <div className="border-r border-[var(--color-border)]" />
+                  <div className="grid place-items-center border-r border-[var(--color-border)] text-xs text-[var(--color-text-faint)]">
+                    №
+                  </div>
                   {columns.map((column) => (
                     <div
-                      className="border-r border-[var(--color-border)]"
+                      className="flex min-w-0 items-center border-r border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text)] last:border-r-0"
                       key={column.id}
-                    />
+                      title={column.name}
+                    >
+                      <span className="truncate">{column.name}</span>
+                    </div>
                   ))}
-                  <div />
+                  <div aria-label="Действия" className="border-l border-[var(--color-border)]" />
                 </div>
-              ))}
+              </div>
 
-              {tasks.length === 0 ? <div className="pointer-events-none absolute inset-x-8 top-20 rounded-lg border border-dashed border-[var(--color-border-strong)] bg-white/95 px-5 py-6 text-center shadow-sm">
-                <p className="text-sm font-semibold text-[var(--color-text)]">
-                  В проекте пока нет задач
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
-                  Здесь появятся строки задач и их поля.
-                </p>
-              </div> : null}
+              <div className="relative bg-white">
+                <DndContext
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                  sensors={sensors}
+                >
+                  <SortableContext
+                    items={visibleTasks.map(({ id }) => id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {visibleTasks.map((task, index) => (
+                      <TaskTableRow
+                        canIndent={Boolean(indentTask(tasks, task.id))}
+                        canOutdent={Boolean(task.parentId)}
+                        columns={columns}
+                        gridTemplateColumns={taskGridTemplate}
+                        hasChildren={taskHasChildren(tasks, task.id)}
+                        isDisabled={isSavingStructure}
+                        key={task.id}
+                        onDetails={onTaskDetails}
+                        onIndent={(selectedTask) =>
+                          saveStructure(indentTask(tasks, selectedTask.id))
+                        }
+                        onOutdent={(selectedTask) =>
+                          saveStructure(outdentTask(tasks, selectedTask.id))
+                        }
+                        onToggleCollapsed={(selectedTask) => {
+                          if (!isSavingStructure) {
+                            void onToggleTaskCollapsed(selectedTask).catch(
+                              () => undefined,
+                            );
+                          }
+                        }}
+                        rowNumber={index + 1}
+                        task={task}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+
+                {rows.slice(visibleTasks.length).map((_, index) => (
+                  <div
+                    aria-hidden="true"
+                    className="grid border-b border-[var(--color-border)]"
+                    key={`empty-${index}`}
+                    style={{
+                      gridTemplateColumns: taskGridTemplate,
+                      height: GANTT_ROW_HEIGHT,
+                    }}
+                  >
+                    <div className="border-r border-[var(--color-border)]" />
+                    {columns.map((column) => (
+                      <div
+                        className="border-r border-[var(--color-border)]"
+                        key={column.id}
+                      />
+                    ))}
+                    <div />
+                  </div>
+                ))}
+
+                {tasks.length === 0 ? <div className="pointer-events-none absolute inset-x-8 top-20 rounded-lg border border-dashed border-[var(--color-border-strong)] bg-white/95 px-5 py-6 text-center shadow-sm">
+                  <p className="text-sm font-semibold text-[var(--color-text)]">
+                    В проекте пока нет задач
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
+                    Здесь появятся строки задач и их поля.
+                  </p>
+                </div> : null}
+              </div>
             </div>
           </section>
 

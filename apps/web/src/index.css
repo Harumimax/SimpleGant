@@ -209,10 +209,30 @@ a[href] {
 .gantt-task-pane {
   z-index: 20;
   min-width: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: auto;
   border-right: 1px solid var(--color-border-strong);
   box-shadow: 5px 0 14px rgb(24 35 31 / 5%);
+  scrollbar-color: #aebbb5 #eef1ef;
+  scrollbar-width: thin;
+}
+
+.gantt-task-table {
+  width: 100%;
+}
+
+.gantt-task-pane::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.gantt-task-pane::-webkit-scrollbar-track {
+  background: #eef1ef;
+}
+
+.gantt-task-pane::-webkit-scrollbar-thumb {
+  border: 2px solid #eef1ef;
+  border-radius: 999px;
+  background: #aebbb5;
 }
 
 .gantt-timeline-pane,

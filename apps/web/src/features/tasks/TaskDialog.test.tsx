@@ -85,6 +85,65 @@ describe('TaskDialog', () => {
     }));
   });
 
+  it('submits a work type selected from the fixed list', () => {
+    const onSubmit = vi.fn();
+    render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Спроектировать API' } });
+    fireEvent.change(screen.getByLabelText('Тип работ'), { target: { value: 'Архитектура' } });
+    fireEvent.change(screen.getByLabelText('Ответственный'), { target: { value: 'Ирина' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Создать задачу' }).closest('form')!);
+
+    expect(screen.getByLabelText('Тип работ')).toHaveValue('Архитектура');
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      workType: 'Архитектура',
+    }));
+  });
+
+  it('creates a task with the selected bar color', () => {
+    const onSubmit = vi.fn();
+    render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Цветная задача' } });
+    fireEvent.change(screen.getByLabelText('Ответственный'), { target: { value: 'Ирина' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Цвет: Бирюзовый' }));
+    fireEvent.submit(screen.getByRole('button', { name: 'Создать задачу' }).closest('form')!);
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ color: 'teal' }));
+  });
+
+  it('selects the stored color and submits a new one while editing', () => {
+    const onSubmit = vi.fn();
+    render(
+      <TaskDialog
+        isPending={false}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        task={{ ...parentTask, color: 'coral' }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Цвет: Коралловый' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Цвет: Синий' }));
+    fireEvent.submit(screen.getByRole('button', { name: 'Сохранить задачу' }).closest('form')!);
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ color: 'blue' }));
+  });
+
+  it('preserves a legacy work type while editing an existing task', () => {
+    render(
+      <TaskDialog
+        isPending={false}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+        task={{ ...parentTask, workType: 'Дизайн' }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Тип работ')).toHaveValue('Дизайн');
+    expect(screen.getByRole('option', { name: 'Дизайн (ранее выбранное)' })).toBeInTheDocument();
+  });
+
   it('disables and omits dates when editing a parent task', () => {
     const onSubmit = vi.fn();
     render(

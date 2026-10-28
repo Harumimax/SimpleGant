@@ -113,6 +113,81 @@ describe('TasksService', () => {
     expect(result.duration).toBe(7);
   });
 
+  it('creates and updates a task with a color from the fixed palette', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.nextOrderIndex.mockResolvedValue(0);
+    repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
+    repository.list.mockResolvedValue([task]);
+    repository.updateWithParentDates.mockResolvedValue([{ ...task, color: 'blue' }]);
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await service.create(projectId, ownerId, {
+      title: task.title,
+      assignee: task.assignee,
+      color: 'teal',
+    });
+    await service.update(projectId, task.id, ownerId, { color: 'blue' });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ color: 'teal' }),
+    );
+    expect(repository.updateWithParentDates).toHaveBeenCalledWith(
+      projectId,
+      task.id,
+      expect.objectContaining({ color: 'blue' }),
+      [],
+    );
+  });
+
+  it('rejects a task color outside the fixed palette', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await expect(service.create(projectId, ownerId, {
+      title: task.title,
+      assignee: task.assignee,
+      color: 'neon' as never,
+    })).rejects.toThrow('Выберите допустимый цвет задачи');
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts only work types from the fixed list for new values', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.nextOrderIndex.mockResolvedValue(0);
+    repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await service.create(projectId, ownerId, {
+      title: task.title,
+      assignee: task.assignee,
+      workType: 'Разработка',
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ workType: 'Разработка' }),
+    );
+    await expect(service.create(projectId, ownerId, {
+      title: task.title,
+      assignee: task.assignee,
+      workType: 'Дизайн',
+    })).rejects.toThrow('Выберите допустимый тип работ');
+  });
+
+  it('preserves an unchanged legacy work type during editing', async () => {
+    const repository = repositoryMock();
+    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.list.mockResolvedValue([task]);
+    repository.updateWithParentDates.mockResolvedValue([task]);
+    const service = new TasksService(repository as unknown as TasksRepository);
+
+    await service.update(projectId, task.id, ownerId, { workType: 'Дизайн' });
+
+    expect(repository.updateWithParentDates).toHaveBeenCalled();
+  });
+
   it('clears optional fields while preserving server-owned task fields', async () => {
     const repository = repositoryMock();
     repository.findOwnedProject.mockResolvedValue({ id: projectId });
