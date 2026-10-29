@@ -29,6 +29,7 @@ type TaskBarProps = {
   timelineStartDate: string;
   timelineEndDate: string;
   dayWidth?: number;
+  rowHeight?: number;
   onOpen: (task: Task) => void;
   onDateChange: (
     task: Task,
@@ -57,6 +58,7 @@ export function TaskBar({
   timelineStartDate,
   timelineEndDate,
   dayWidth = GANTT_DAY_WIDTH,
+  rowHeight = GANTT_ROW_HEIGHT,
   onOpen,
   onDateChange,
   onVerticalMove,
@@ -93,6 +95,9 @@ export function TaskBar({
   const endInset = geometry.isClippedEnd ? 0 : 4;
   const color = TASK_BAR_COLORS.has(task.color) ? task.color : 'sage';
   const period = `${visibleStartDate} — ${visibleEndDate}`;
+  const barHeight = Math.max(8, Math.round(rowHeight * 0.64));
+  const barPadding = rowHeight <= 13 ? 2 : rowHeight < GANTT_ROW_HEIGHT ? 6 : 10;
+  const resizeHandleWidth = rowHeight <= 13 ? 5 : rowHeight < GANTT_ROW_HEIGHT ? 8 : 10;
 
   function startInteraction(
     event: PointerEvent<HTMLElement>,
@@ -142,9 +147,9 @@ export function TaskBar({
 
     if (interaction.axis === 'vertical' && interaction.mode === 'move') {
       didDragRef.current = true;
-      const rowDelta = calculateGanttRowDelta(deltaY);
+      const rowDelta = calculateGanttRowDelta(deltaY, rowHeight);
       const visibleRowDelta = onVerticalMovePreview?.(task, rowDelta) ?? 0;
-      setVerticalOffset(deltaY - visibleRowDelta * GANTT_ROW_HEIGHT);
+      setVerticalOffset(deltaY - visibleRowDelta * rowHeight);
       return;
     }
     if (isDateLocked) return;
@@ -173,6 +178,7 @@ export function TaskBar({
     if (interaction.axis === 'vertical') {
       const rowDelta = calculateGanttRowDelta(
         event.clientY - interaction.startY,
+        rowHeight,
       );
       if (rowDelta !== 0 && onVerticalMove) {
         try {
@@ -220,7 +226,7 @@ export function TaskBar({
     <button
       aria-label={`Подробно: ${task.title}, ${period}${isDateLocked ? ', даты рассчитываются автоматически' : ''}`}
       aria-busy={isSaving || undefined}
-      className={`gantt-task-bar group absolute top-2 flex h-7 items-center overflow-hidden px-2.5 text-left text-[11px] font-semibold shadow-sm outline-none transition-[filter,box-shadow,opacity] hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70 ${verticalOffset ? 'z-30 cursor-grabbing opacity-80 shadow-lg' : 'z-[2]'} ${isDateLocked && !onVerticalMove ? 'cursor-pointer' : 'cursor-grab'}`}
+      className={`gantt-task-bar group absolute flex items-center overflow-hidden text-left font-semibold shadow-sm outline-none transition-[filter,box-shadow,opacity] hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70 ${verticalOffset ? 'z-30 cursor-grabbing opacity-80 shadow-lg' : 'z-[2]'} ${isDateLocked && !onVerticalMove ? 'cursor-pointer' : 'cursor-grab'}`}
       data-clipped-end={geometry.isClippedEnd || undefined}
       data-clipped-start={geometry.isClippedStart || undefined}
       data-color={color}
@@ -239,7 +245,11 @@ export function TaskBar({
       onPointerMove={handlePointerMove}
       onPointerUp={finishInteraction}
       style={{
+        fontSize: rowHeight <= 13 ? 0 : rowHeight < GANTT_ROW_HEIGHT ? 9 : 11,
+        height: barHeight,
         left: geometry.left + startInset,
+        paddingInline: barPadding,
+        top: (rowHeight - barHeight) / 2,
         transform: verticalOffset ? `translateY(${verticalOffset}px)` : undefined,
         width: Math.max(geometry.width - startInset - endInset, 8),
       }}
@@ -248,16 +258,18 @@ export function TaskBar({
     >
       {!isDateLocked ? <span
         aria-hidden="true"
-        className="gantt-task-resize-handle -ml-2.5 cursor-ew-resize"
+        className="gantt-task-resize-handle cursor-ew-resize"
         onPointerDown={(event) => startInteraction(event, 'resize-start')}
+        style={{ flexBasis: resizeHandleWidth, marginLeft: -barPadding, width: resizeHandleWidth }}
       /> : null}
-      <span className="min-w-0 flex-1 truncate text-center">
-        {activeMode ? period : task.title}
-      </span>
+      {rowHeight > 13 ? <span className="min-w-0 flex-1 truncate text-center">
+          {activeMode ? period : task.title}
+        </span> : null}
       {!isDateLocked ? <span
         aria-hidden="true"
-        className="gantt-task-resize-handle -mr-2.5 cursor-ew-resize"
+        className="gantt-task-resize-handle cursor-ew-resize"
         onPointerDown={(event) => startInteraction(event, 'resize-end')}
+        style={{ flexBasis: resizeHandleWidth, marginRight: -barPadding, width: resizeHandleWidth }}
       /> : null}
     </button>
   );

@@ -15,9 +15,20 @@ export const GANTT_DAY_WIDTH = 36;
 export const GANTT_HEADER_HEIGHT = 90;
 export const GANTT_ROW_HEIGHT = 44;
 
-export function calculateGanttRowDelta(deltaY: number) {
+export const GANTT_ROW_HEIGHTS = {
+  normal: GANTT_ROW_HEIGHT,
+  compact: 26,
+  maximum: 13,
+} as const;
+
+export type GanttRowDensity = keyof typeof GANTT_ROW_HEIGHTS;
+
+export function calculateGanttRowDelta(
+  deltaY: number,
+  rowHeight = GANTT_ROW_HEIGHT,
+) {
   const direction = Math.sign(deltaY);
-  return direction * Math.round(Math.abs(deltaY) / GANTT_ROW_HEIGHT);
+  return direction * Math.round(Math.abs(deltaY) / rowHeight);
 }
 
 export const GANTT_SCALE_DAY_WIDTH = {

@@ -60,7 +60,7 @@ export function ShareProjectDialog({ publicUrl, onClose }: Props) {
             </Button>
           </div>
           <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">
-            Ссылка постоянная. Изменения станут видны по ней после нажатия «Сохранить изменения».
+            Ссылка постоянная. Изменения станут видны по ней после автоматического сохранения.
           </p>
           {copyError ? (
             <p className="mt-2 text-xs text-[var(--color-danger)]" role="alert">

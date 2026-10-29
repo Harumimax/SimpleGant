@@ -23,7 +23,6 @@ import {
   LoaderCircle,
   Monitor,
   Plus,
-  Save,
 } from 'lucide-react';
 import { useRef, useState, type UIEvent } from 'react';
 
@@ -32,6 +31,7 @@ import type { Milestone } from '../milestones/milestones.api';
 import type { NonWorkingDay } from '../calendar/non-working-days.api';
 import type { Task } from '../tasks/tasks.api';
 import {
+  buildTaskFamilyVisuals,
   flattenVisibleTasks,
   indentTask,
   moveTaskByVisibleOffset,
@@ -43,7 +43,8 @@ import {
   buildTimeline,
   calculateGanttRowDelta,
   GANTT_HEADER_HEIGHT,
-  GANTT_ROW_HEIGHT,
+  GANTT_ROW_HEIGHTS,
+  type GanttRowDensity,
   type TaskDateRange,
   type TimelineScale,
 } from './timeline';
@@ -70,7 +71,7 @@ type GanttWorkspaceProps = {
   isDirty?: boolean;
   isSaving?: boolean;
   saveError?: string;
-  onSave?: () => void;
+  onRetrySave?: () => void;
 };
 
 function columnTemplate(columnCount: number, showActions: boolean) {
@@ -106,12 +107,13 @@ export function GanttWorkspace({
   isDirty = false,
   isSaving = false,
   saveError,
-  onSave,
+  onRetrySave,
 }: GanttWorkspaceProps) {
   const taskPaneRef = useRef<HTMLElement>(null);
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
   const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
+  const [rowDensity, setRowDensity] = useState<GanttRowDensity>('normal');
   const [dragPreviewTasks, setDragPreviewTasks] = useState<Task[] | null>(null);
   const [dragSource, setDragSource] = useState<'table' | 'timeline' | null>(null);
   const dragBaseTasksRef = useRef<Task[]>(tasks);
@@ -122,6 +124,7 @@ export function GanttWorkspace({
     project.endDate,
     timelineScale,
   );
+  const rowHeight = GANTT_ROW_HEIGHTS[rowDensity];
   const nonWorkingDaysByDate = new Map(
     nonWorkingDays.map((day) => [day.date, day]),
   );
@@ -137,6 +140,7 @@ export function GanttWorkspace({
   const previewVisibleTasks = dragPreviewTasks
     ? flattenVisibleTasks(dragPreviewTasks)
     : visibleTasks;
+  const taskFamilyVisuals = buildTaskFamilyVisuals(dragPreviewTasks ?? tasks);
   const previewIndexes = new Map(
     previewVisibleTasks.map((task, index) => [task.id, index]),
   );
@@ -167,7 +171,7 @@ export function GanttWorkspace({
   }
 
   function handleTableDragMove(event: DragMoveEvent) {
-    const rowDelta = calculateGanttRowDelta(event.delta.y);
+    const rowDelta = calculateGanttRowDelta(event.delta.y, rowHeight);
     dragRowDeltaRef.current = rowDelta;
     if (rowDelta === 0) {
       dragPreviewTasksRef.current = null;
@@ -259,6 +263,19 @@ export function GanttWorkspace({
     });
   }
 
+  function changeRowDensity(nextDensity: GanttRowDensity) {
+    if (nextDensity === rowDensity) return;
+    const visibleRowOffset = (taskPaneRef.current?.scrollTop ?? 0) / rowHeight;
+    const nextRowHeight = GANTT_ROW_HEIGHTS[nextDensity];
+
+    setRowDensity(nextDensity);
+    requestAnimationFrame(() => {
+      const nextScrollTop = visibleRowOffset * nextRowHeight;
+      if (taskPaneRef.current) taskPaneRef.current.scrollTop = nextScrollTop;
+      if (timelinePaneRef.current) timelinePaneRef.current.scrollTop = nextScrollTop;
+    });
+  }
+
   return (
     <>
       <section
@@ -267,7 +284,7 @@ export function GanttWorkspace({
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-white px-5">
           <div
-            aria-label="Масштаб временной шкалы"
+            aria-label="Масштаб диаграммы"
             className="flex items-center gap-2"
             role="group"
           >
@@ -298,6 +315,25 @@ export function GanttWorkspace({
             >
               Месяцы
             </button>
+            <span className="ml-2 border-l border-[var(--color-border)] pl-3 text-sm text-[var(--color-text-muted)]">
+              Строки
+            </span>
+            {([
+              ['normal', 'Обычно'],
+              ['compact', 'Компактно'],
+              ['maximum', 'Максимум'],
+            ] as const).map(([density, label]) => (
+              <button
+                aria-pressed={rowDensity === density}
+                className={`h-8 rounded-md px-3 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] ${rowDensity === density ? 'bg-[var(--color-accent-soft)] font-semibold text-[var(--color-accent)]' : 'font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)]'}`}
+                key={density}
+                onClick={() => changeRowDensity(density)}
+                title={density === 'normal' ? 'Обычная высота строк' : density === 'compact' ? 'Строки ниже на 40%' : 'Строки ниже на 70%'}
+                type="button"
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           <div className="flex items-center gap-3">
@@ -420,6 +456,8 @@ export function GanttWorkspace({
                         columns={columns}
                         gridTemplateColumns={taskGridTemplate}
                         hasChildren={taskHasChildren(tasks, task.id)}
+                        familyColor={taskFamilyVisuals.get(task.id)?.color}
+                        isGrouped={taskFamilyVisuals.get(task.id)?.isGrouped}
                         isDisabled={isSavingStructure}
                         key={task.id}
                         onDetails={onTaskDetails}
@@ -437,6 +475,8 @@ export function GanttWorkspace({
                           }
                         }}
                         rowNumber={index + 1}
+                        rowDensity={rowDensity}
+                        rowHeight={rowHeight}
                         showActions={showTaskActions}
                         previewRowOffset={dragSource === 'timeline'
                           ? (previewIndexes.get(task.id) ?? index) - index
@@ -553,13 +593,14 @@ export function GanttWorkspace({
                 <div className="relative">
                   {visibleTasks.map((task, rowIndex) => (
                     <div
-                      className="relative flex border-b border-[var(--color-border)]"
+                      className={`relative flex border-b border-[var(--color-border)] ${taskFamilyVisuals.get(task.id)?.isGrouped ? 'gantt-family-row' : ''}`}
+                      data-family-color={taskFamilyVisuals.get(task.id)?.isGrouped ? taskFamilyVisuals.get(task.id)?.color : undefined}
                       data-task-id={task.id}
                       key={task.id}
                       style={{
-                        height: GANTT_ROW_HEIGHT,
+                        height: rowHeight,
                         transform: task && dragPreviewTasks
-                          ? `translateY(${((previewIndexes.get(task.id) ?? rowIndex) - rowIndex) * GANTT_ROW_HEIGHT}px)`
+                          ? `translateY(${((previewIndexes.get(task.id) ?? rowIndex) - rowIndex) * rowHeight}px)`
                           : undefined,
                         transition: dragPreviewTasks ? 'transform 160ms ease' : undefined,
                         zIndex: task && dragPreviewTasks && (previewIndexes.get(task.id) ?? rowIndex) !== rowIndex
@@ -576,7 +617,7 @@ export function GanttWorkspace({
                             : day.monthKey !== nextDay?.monthKey);
                         return (
                           <div
-                            className={`shrink-0 ${isGridBoundary ? 'border-r border-[var(--color-border)]' : ''} ${nonWorkingDay ? 'bg-[var(--color-non-working)]' : day.isWeekend ? 'bg-[var(--color-weekend)]' : 'bg-white'}`}
+                            className={`shrink-0 ${taskFamilyVisuals.get(task.id)?.isGrouped ? 'gantt-family-cell' : ''} ${isGridBoundary ? 'border-r border-[var(--color-border)]' : ''} ${nonWorkingDay ? 'is-non-working bg-[var(--color-non-working)]' : day.isWeekend ? 'is-weekend bg-[var(--color-weekend)]' : 'bg-white'}`}
                             key={day.date}
                             style={{ width: timeline.dayWidth }}
                             title={nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : undefined}
@@ -593,6 +634,7 @@ export function GanttWorkspace({
                         onVerticalMove={moveTimelineTask}
                         onVerticalMovePreview={previewTimelineTaskMove}
                         onVerticalMoveStart={startTimelineTaskMove}
+                        rowHeight={rowHeight}
                         task={task}
                         timelineEndDate={project.endDate}
                         timelineStartDate={project.startDate}
@@ -611,37 +653,28 @@ export function GanttWorkspace({
           </section>
         </div>
 
-        {onSave && isDirty ? (
+        {isDirty ? (
           <div
-            className="absolute bottom-5 right-5 z-40 flex items-center gap-3 rounded-xl border border-[var(--color-warning)] bg-white px-3 py-2.5 shadow-lg"
+            className={`absolute bottom-5 right-5 z-40 flex items-center gap-2 rounded-lg border bg-white px-3 py-2 shadow-lg ${saveError ? 'border-[var(--color-danger)]' : 'border-[var(--color-border-strong)]'}`}
+            role={saveError ? 'alert' : 'status'}
           >
-            <div className="hidden text-right xl:block">
-              <p className="text-xs font-semibold text-[var(--color-text)]">
-                Есть несохранённые изменения
-              </p>
-              {saveError ? (
-                <p className="mt-0.5 max-w-64 text-xs text-[var(--color-danger)]" role="alert">
-                  {saveError}
-                </p>
-              ) : (
-                <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
-                  Изменения пока видны только вам
-                </p>
-              )}
-            </div>
-            <button
-              className="flex h-10 items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 text-sm font-semibold text-white shadow-[var(--shadow-button)] hover:bg-[var(--color-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-45"
-              disabled={isSaving}
-              onClick={onSave}
-              type="button"
-            >
-              {isSaving ? (
-                <LoaderCircle aria-hidden className="size-4 animate-spin" />
-              ) : (
-                <Save aria-hidden className="size-4" />
-              )}
-              {isSaving ? 'Сохраняем…' : 'Сохранить изменения'}
-            </button>
+            {saveError ? (
+              <CircleAlert aria-hidden className="size-4 shrink-0 text-[var(--color-danger)]" />
+            ) : (
+              <LoaderCircle aria-hidden className={`size-4 shrink-0 text-[var(--color-accent)] ${isSaving ? 'animate-spin' : ''}`} />
+            )}
+            <p className={`max-w-72 text-xs ${saveError ? 'text-[var(--color-danger)]' : 'font-medium text-[var(--color-text-muted)]'}`}>
+              {saveError ?? 'Сохраняем изменения…'}
+            </p>
+            {saveError && onRetrySave ? (
+              <button
+                className="ml-1 h-7 rounded-md px-2 text-xs font-semibold text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                onClick={onRetrySave}
+                type="button"
+              >
+                Повторить
+              </button>
+            ) : null}
           </div>
         ) : null}
       </section>

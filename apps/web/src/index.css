@@ -197,7 +197,7 @@ a[href] {
 }
 
 .gantt-shell[data-columns-collapsed="true"] {
-  grid-template-columns: 244px minmax(0, 1fr);
+  grid-template-columns: 232px minmax(0, 1fr);
 }
 
 .task-title-button {
@@ -210,6 +210,51 @@ a[href] {
 
 .task-title-button:hover {
   color: var(--color-primary);
+}
+
+.task-title-button--dense {
+  text-decoration: none;
+}
+
+.task-family-row[data-family-color="sage"],
+.gantt-family-row[data-family-color="sage"] { --task-family-color: var(--color-task-sage); }
+.task-family-row[data-family-color="blue"],
+.gantt-family-row[data-family-color="blue"] { --task-family-color: var(--color-task-blue); }
+.task-family-row[data-family-color="sky"],
+.gantt-family-row[data-family-color="sky"] { --task-family-color: var(--color-task-sky); }
+.task-family-row[data-family-color="lavender"],
+.gantt-family-row[data-family-color="lavender"] { --task-family-color: var(--color-task-lavender); }
+.task-family-row[data-family-color="plum"],
+.gantt-family-row[data-family-color="plum"] { --task-family-color: var(--color-task-plum); }
+.task-family-row[data-family-color="rose"],
+.gantt-family-row[data-family-color="rose"] { --task-family-color: var(--color-task-rose); }
+.task-family-row[data-family-color="coral"],
+.gantt-family-row[data-family-color="coral"] { --task-family-color: var(--color-task-coral); }
+.task-family-row[data-family-color="sand"],
+.gantt-family-row[data-family-color="sand"] { --task-family-color: var(--color-task-sand); }
+.task-family-row[data-family-color="amber"],
+.gantt-family-row[data-family-color="amber"] { --task-family-color: var(--color-task-amber); }
+.task-family-row[data-family-color="teal"],
+.gantt-family-row[data-family-color="teal"] { --task-family-color: var(--color-task-teal); }
+
+.task-family-row {
+  background-color: color-mix(in srgb, var(--task-family-color) 11%, white);
+}
+
+.task-family-row:hover {
+  background-color: color-mix(in srgb, var(--task-family-color) 16%, white);
+}
+
+.gantt-family-cell {
+  background-color: color-mix(in srgb, var(--task-family-color) 9%, white) !important;
+}
+
+.gantt-family-cell.is-weekend {
+  background-color: color-mix(in srgb, var(--task-family-color) 7%, var(--color-weekend)) !important;
+}
+
+.gantt-family-cell.is-non-working {
+  background-color: color-mix(in srgb, var(--task-family-color) 6%, var(--color-non-working)) !important;
 }
 
 .gantt-task-pane {

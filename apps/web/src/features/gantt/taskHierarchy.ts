@@ -1,7 +1,49 @@
-import type { Task, TaskPositionInput } from '../tasks/tasks.api';
+import {
+  isTaskColor,
+  type Task,
+  type TaskColor,
+  type TaskPositionInput,
+} from '../tasks/tasks.api';
 import { calculateTaskDuration } from './timeline';
 
 export const MAX_TASK_LEVEL = 4;
+
+export type TaskFamilyVisual = {
+  color: TaskColor;
+  isGrouped: boolean;
+  rootId: string;
+};
+
+export function buildTaskFamilyVisuals(tasks: Task[]) {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const childCount = new Map<string, number>();
+  const result = new Map<string, TaskFamilyVisual>();
+
+  for (const task of tasks) {
+    if (task.parentId) {
+      childCount.set(task.parentId, (childCount.get(task.parentId) ?? 0) + 1);
+    }
+  }
+
+  for (const task of tasks) {
+    const visited = new Set<string>([task.id]);
+    let root = task;
+    while (root.parentId) {
+      const parent = byId.get(root.parentId);
+      if (!parent || visited.has(parent.id)) break;
+      visited.add(parent.id);
+      root = parent;
+    }
+
+    result.set(task.id, {
+      color: isTaskColor(root.color) ? root.color : 'sage',
+      isGrouped: root.id !== task.id || (childCount.get(root.id) ?? 0) > 0,
+      rootId: root.id,
+    });
+  }
+
+  return result;
+}
 
 function siblingTasks(tasks: Task[], parentId: string | null) {
   return tasks
@@ -173,6 +215,14 @@ function placeTask(
   const next = tasks.map((task) => ({
     ...task,
     parentId: task.id === taskId ? parentId : task.parentId,
+    color: task.id === taskId
+      && active.parentId === null
+      && parentId !== null
+      && task.color === 'sage'
+      && parent
+      && isTaskColor(parent.color)
+        ? parent.color
+        : task.color,
   }));
   const parentKeys = new Set<string | null>([active.parentId, parentId]);
 

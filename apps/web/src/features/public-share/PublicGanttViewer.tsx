@@ -3,12 +3,13 @@ import { useRef, useState, type UIEvent } from 'react';
 
 import type { GanttAggregate } from '../gantt/gantt.api';
 import { MilestoneLayer } from '../gantt/MilestoneLayer';
-import { flattenVisibleTasks } from '../gantt/taskHierarchy';
+import { buildTaskFamilyVisuals, flattenVisibleTasks } from '../gantt/taskHierarchy';
 import { taskValue } from '../gantt/taskValue';
 import {
   buildTimeline,
   GANTT_HEADER_HEIGHT,
-  GANTT_ROW_HEIGHT,
+  GANTT_ROW_HEIGHTS,
+  type GanttRowDensity,
   type TimelineScale,
 } from '../gantt/timeline';
 import type { Task } from '../tasks/tasks.api';
@@ -41,13 +42,23 @@ export function PublicGanttViewer({
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
   const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
+  const [rowDensity, setRowDensity] = useState<GanttRowDensity>('normal');
   const columns = [...project.columns]
     .sort((left, right) => left.orderIndex - right.orderIndex)
     .filter((column) => areAdditionalColumnsHidden
       ? column.key === 'title'
       : column.isVisible);
   const timeline = buildTimeline(project.startDate, project.endDate, timelineScale);
+  const rowHeight = GANTT_ROW_HEIGHTS[rowDensity];
+  const rowTextSize = rowDensity === 'maximum'
+    ? 'text-[9px] leading-none'
+    : rowDensity === 'compact' ? 'text-[10px]' : 'text-xs';
+  const rowCellPadding = rowDensity === 'maximum'
+    ? 'px-1'
+    : rowDensity === 'compact' ? 'px-2' : 'px-3';
+  const rowIndentation = rowDensity === 'maximum' ? 10 : rowDensity === 'compact' ? 14 : 18;
   const visibleTasks = flattenVisibleTasks(tasks);
+  const taskFamilyVisuals = buildTaskFamilyVisuals(tasks);
   const rows: Array<Task | null> = [...visibleTasks];
   const nonWorkingDaysByDate = new Map(
     nonWorkingDays.map((day) => [day.date, day]),
@@ -79,6 +90,19 @@ export function PublicGanttViewer({
     });
   }
 
+  function changeRowDensity(nextDensity: GanttRowDensity) {
+    if (nextDensity === rowDensity) return;
+    const visibleRowOffset = (taskPaneRef.current?.scrollTop ?? 0) / rowHeight;
+    const nextRowHeight = GANTT_ROW_HEIGHTS[nextDensity];
+
+    setRowDensity(nextDensity);
+    requestAnimationFrame(() => {
+      const nextScrollTop = visibleRowOffset * nextRowHeight;
+      if (taskPaneRef.current) taskPaneRef.current.scrollTop = nextScrollTop;
+      if (timelinePaneRef.current) timelinePaneRef.current.scrollTop = nextScrollTop;
+    });
+  }
+
   return (
     <>
       <section
@@ -86,7 +110,7 @@ export function PublicGanttViewer({
         className="hidden min-h-0 flex-1 flex-col lg:flex"
       >
         <div className="flex h-14 shrink-0 items-center border-b border-[var(--color-border)] bg-white px-5">
-          <div aria-label="Масштаб временной шкалы" className="flex items-center gap-2" role="group">
+          <div aria-label="Масштаб диаграммы" className="flex items-center gap-2" role="group">
             <span className="mr-1 text-sm text-[var(--color-text-muted)]">Масштаб</span>
             {([
               ['days', 'Дни'],
@@ -98,6 +122,25 @@ export function PublicGanttViewer({
                 className={`h-8 rounded-md px-3 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] ${timelineScale === scale ? 'bg-[var(--color-accent-soft)] font-semibold text-[var(--color-accent)]' : 'font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)]'}`}
                 key={scale}
                 onClick={() => changeTimelineScale(scale)}
+                type="button"
+              >
+                {label}
+              </button>
+            ))}
+            <span className="ml-2 border-l border-[var(--color-border)] pl-3 text-sm text-[var(--color-text-muted)]">
+              Строки
+            </span>
+            {([
+              ['normal', 'Обычно'],
+              ['compact', 'Компактно'],
+              ['maximum', 'Максимум'],
+            ] as const).map(([density, label]) => (
+              <button
+                aria-pressed={rowDensity === density}
+                className={`h-8 rounded-md px-3 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] ${rowDensity === density ? 'bg-[var(--color-accent-soft)] font-semibold text-[var(--color-accent)]' : 'font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)]'}`}
+                key={density}
+                onClick={() => changeRowDensity(density)}
+                title={density === 'normal' ? 'Обычная высота строк' : density === 'compact' ? 'Строки ниже на 40%' : 'Строки ниже на 70%'}
                 type="button"
               >
                 {label}
@@ -146,24 +189,26 @@ export function PublicGanttViewer({
                 {rows.map((task, rowIndex) => (
                   <div
                     aria-hidden={task ? undefined : true}
-                    className="grid border-b border-[var(--color-border)]"
+                    className={`grid overflow-hidden border-b border-[var(--color-border)] ${task && taskFamilyVisuals.get(task.id)?.isGrouped ? 'task-family-row' : ''}`}
+                    data-family-color={task && taskFamilyVisuals.get(task.id)?.isGrouped ? taskFamilyVisuals.get(task.id)?.color : undefined}
                     key={task?.id ?? `empty-${rowIndex}`}
-                    style={{ gridTemplateColumns: gridTemplate, height: GANTT_ROW_HEIGHT }}
+                    style={{ gridTemplateColumns: gridTemplate, height: rowHeight }}
                   >
-                    <div className="grid place-items-center border-r border-[var(--color-border)] text-xs tabular-nums text-[var(--color-text-faint)]">
+                    <div className={`grid place-items-center border-r border-[var(--color-border)] tabular-nums text-[var(--color-text-faint)] ${rowTextSize}`}>
                       {task ? rowIndex + 1 : null}
                     </div>
                     {columns.map((column) => (
-                      <div className="flex min-w-0 items-center border-r border-[var(--color-border)] px-3 text-xs" key={column.id}>
+                      <div className={`flex min-w-0 items-center border-r border-[var(--color-border)] ${rowCellPadding} ${rowTextSize}`} key={column.id}>
                         {task && column.key === 'title' ? (
-                          <button
-                            className="task-title-button min-w-0 truncate rounded-sm text-left focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                            onClick={() => onTaskDetails(task)}
-                            style={{ marginLeft: task.level * 18 }}
-                            type="button"
-                          >
-                            {task.title}
-                          </button>
+                          <div className="flex min-w-0 items-center" style={{ marginLeft: task.level * rowIndentation }}>
+                            <button
+                              className={`task-title-button min-w-0 truncate rounded-sm text-left focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${rowDensity !== 'normal' ? 'task-title-button--dense' : ''}`}
+                              onClick={() => onTaskDetails(task)}
+                              type="button"
+                            >
+                              {task.title}
+                            </button>
+                          </div>
                         ) : task ? (
                           <span className="truncate" title={String(taskValue(task, column.key))}>
                             {String(taskValue(task, column.key))}
@@ -216,7 +261,12 @@ export function PublicGanttViewer({
                 </div>
                 <div className="relative">
                   {rows.map((task, rowIndex) => (
-                    <div className="relative flex border-b border-[var(--color-border)]" key={task?.id ?? `empty-${rowIndex}`} style={{ height: GANTT_ROW_HEIGHT }}>
+                    <div
+                      className={`relative flex border-b border-[var(--color-border)] ${task && taskFamilyVisuals.get(task.id)?.isGrouped ? 'gantt-family-row' : ''}`}
+                      data-family-color={task && taskFamilyVisuals.get(task.id)?.isGrouped ? taskFamilyVisuals.get(task.id)?.color : undefined}
+                      key={task?.id ?? `empty-${rowIndex}`}
+                      style={{ height: rowHeight }}
+                    >
                       {timeline.days.map((day, dayIndex) => {
                         const nonWorkingDay = nonWorkingDaysByDate.get(day.date);
                         const nextDay = timeline.days[dayIndex + 1];
@@ -224,9 +274,9 @@ export function PublicGanttViewer({
                           || (timelineScale === 'weeks'
                             ? day.weekKey !== nextDay?.weekKey
                             : day.monthKey !== nextDay?.monthKey);
-                        return <div className={`shrink-0 ${isGridBoundary ? 'border-r border-[var(--color-border)]' : ''} ${nonWorkingDay ? 'bg-[var(--color-non-working)]' : day.isWeekend ? 'bg-[var(--color-weekend)]' : 'bg-white'}`} key={day.date} style={{ width: timeline.dayWidth }} />;
+                        return <div className={`shrink-0 ${task && taskFamilyVisuals.get(task.id)?.isGrouped ? 'gantt-family-cell' : ''} ${isGridBoundary ? 'border-r border-[var(--color-border)]' : ''} ${nonWorkingDay ? 'is-non-working bg-[var(--color-non-working)]' : day.isWeekend ? 'is-weekend bg-[var(--color-weekend)]' : 'bg-white'}`} key={day.date} style={{ width: timeline.dayWidth }} />;
                       })}
-                      {task ? <ReadOnlyTaskBar dayWidth={timeline.dayWidth} onOpen={onTaskDetails} task={task} timelineEndDate={project.endDate} timelineStartDate={project.startDate} /> : null}
+                      {task ? <ReadOnlyTaskBar dayWidth={timeline.dayWidth} onOpen={onTaskDetails} rowHeight={rowHeight} task={task} timelineEndDate={project.endDate} timelineStartDate={project.startDate} /> : null}
                     </div>
                   ))}
                 </div>

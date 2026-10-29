@@ -32,8 +32,27 @@ describe('useGanttDraftStore', () => {
     expect(useGanttDraftStore.getState().aggregate?.project.name).toBe('Черновик');
     expect(useGanttDraftStore.getState().isDirty).toBe(true);
 
-    useGanttDraftStore.getState().markSaved(aggregate);
+    const revision = useGanttDraftStore.getState().revision;
+    useGanttDraftStore.getState().markSaved(aggregate, revision);
     expect(useGanttDraftStore.getState().isDirty).toBe(false);
     expect(useGanttDraftStore.getState().aggregate?.project.name).toBe('Проект');
+  });
+
+  it('does not replace a newer draft with an older save response', () => {
+    useGanttDraftStore.getState().initialize(aggregate);
+    useGanttDraftStore.getState().update((current) => ({
+      ...current,
+      project: { ...current.project, name: 'Первая версия' },
+    }));
+    const savingRevision = useGanttDraftStore.getState().revision;
+
+    useGanttDraftStore.getState().update((current) => ({
+      ...current,
+      project: { ...current.project, name: 'Новая версия' },
+    }));
+    useGanttDraftStore.getState().markSaved(aggregate, savingRevision);
+
+    expect(useGanttDraftStore.getState().isDirty).toBe(true);
+    expect(useGanttDraftStore.getState().aggregate?.project.name).toBe('Новая версия');
   });
 });

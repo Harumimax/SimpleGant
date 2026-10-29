@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { ArrowLeft, CalendarRange, ChartNoAxesGantt, Share2 } from 'lucide-react';
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { NonWorkingDaysDialog } from '../features/calendar/NonWorkingDaysDialog';
@@ -56,6 +56,7 @@ export function ProjectEditorPage() {
   const draftProjectId = useGanttDraftStore((state) => state.projectId);
   const aggregate = useGanttDraftStore((state) => state.aggregate);
   const isDirty = useGanttDraftStore((state) => state.isDirty);
+  const revision = useGanttDraftStore((state) => state.revision);
   const initialize = useGanttDraftStore((state) => state.initialize);
   const updateDraft = useGanttDraftStore((state) => state.update);
   const markSaved = useGanttDraftStore((state) => state.markSaved);
@@ -67,32 +68,66 @@ export function ProjectEditorPage() {
   const [isMilestonesOpen, setIsMilestonesOpen] = useState(false);
   const [isNonWorkingDaysOpen, setIsNonWorkingDaysOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [failedSave, setFailedSave] = useState<{
+    projectId: string;
+    revision: number;
+  } | null>(null);
 
   useEffect(() => {
-    if (gantt.data && draftProjectId !== projectId) initialize(gantt.data);
+    if (gantt.data && draftProjectId !== projectId) {
+      initialize(gantt.data);
+    }
   }, [draftProjectId, gantt.data, initialize, projectId]);
 
-  useEffect(() => {
-    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!isDirty) return;
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', warnBeforeUnload);
-    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
-  }, [isDirty]);
-
-  const saveMutation = useMutation({
-    mutationFn: () => {
-      const current = useGanttDraftStore.getState().aggregate;
-      if (!current) throw new Error('Черновик проекта не загружен');
-      return saveGantt(projectId, current);
+  const {
+    error: saveMutationError,
+    isError: isSaveError,
+    isPending: isSaving,
+    mutate: saveDraft,
+  } = useMutation({
+    mutationFn: async (request: { aggregate: typeof aggregate; revision: number }) => {
+      if (!request.aggregate) throw new Error('Черновик проекта не загружен');
+      const saved = await saveGantt(projectId, request.aggregate);
+      return { saved, revision: request.revision };
     },
-    onSuccess: (saved) => {
+    onSuccess: ({ saved, revision: savedRevision }) => {
       queryClient.setQueryData(ganttQueryKey(projectId), saved);
-      markSaved(saved);
+      markSaved(saved, savedRevision);
+      setFailedSave(null);
     },
+    onError: (_error, request) => setFailedSave({
+      projectId,
+      revision: request.revision,
+    }),
   });
+
+  useEffect(() => {
+    if (
+      !aggregate
+      || !isDirty
+      || isSaving
+      || (failedSave?.projectId === projectId && failedSave.revision === revision)
+    ) return;
+
+    const timeoutId = window.setTimeout(() => {
+      saveDraft({ aggregate, revision });
+    }, 700);
+    return () => window.clearTimeout(timeoutId);
+  }, [aggregate, failedSave, isDirty, isSaving, projectId, revision, saveDraft]);
+
+  useEffect(() => {
+    const flushPendingSave = () => {
+      const current = useGanttDraftStore.getState();
+      if (current.projectId !== projectId || !current.aggregate || !current.isDirty) return;
+      void saveGantt(projectId, current.aggregate, { keepalive: true }).catch(() => undefined);
+    };
+
+    window.addEventListener('pagehide', flushPendingSave);
+    return () => {
+      window.removeEventListener('pagehide', flushPendingSave);
+      flushPendingSave();
+    };
+  }, [projectId]);
 
   const mutationMessage = (error: unknown) =>
     error instanceof Error ? error.message : 'Не удалось сохранить изменения';
@@ -121,14 +156,19 @@ export function ProjectEditorPage() {
   const editingTask = tasks.find(({ id }) => id === editingTaskId) ?? null;
   const deletingTask = tasks.find(({ id }) => id === deletingTaskId) ?? null;
 
-  function confirmNavigation(event: MouseEvent<HTMLAnchorElement>) {
-    if (isDirty) {
-      if (!window.confirm('Есть несохранённые изменения. Выйти без сохранения?')) {
-        event.preventDefault();
-        return;
-      }
-      clearDraft();
+  function leaveEditor() {
+    const current = useGanttDraftStore.getState();
+    if (current.aggregate && current.isDirty) {
+      void saveGantt(projectId, current.aggregate, { keepalive: true }).catch(() => undefined);
     }
+    clearDraft();
+  }
+
+  function retrySave() {
+    const current = useGanttDraftStore.getState();
+    if (!current.aggregate || !current.isDirty || isSaving) return;
+    setFailedSave(null);
+    saveDraft({ aggregate: current.aggregate, revision: current.revision });
   }
 
   function createTask(input: TaskInput) {
@@ -297,7 +337,7 @@ export function ProjectEditorPage() {
     <main className="flex h-screen min-h-[560px] flex-col overflow-hidden bg-[var(--color-canvas)] text-[var(--color-text)]" id="main-content">
       <header className="shrink-0 border-b border-[var(--color-border)] bg-white">
         <div className="flex min-h-16 items-center gap-3 px-4 sm:px-6">
-          <Link aria-label="Назад к проектам" className="grid size-11 shrink-0 place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]" onClick={confirmNavigation} to="/">
+          <Link aria-label="Назад к проектам" className="grid size-11 shrink-0 place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]" onClick={leaveEditor} to="/">
             <ArrowLeft aria-hidden className="size-5" />
           </Link>
           <div className="hidden items-center gap-2 border-r border-[var(--color-border)] pr-4 font-semibold sm:flex">
@@ -326,14 +366,14 @@ export function ProjectEditorPage() {
 
       <GanttWorkspace
         isDirty={isDirty}
-        isSaving={saveMutation.isPending}
+        isSaving={isSaving}
         milestones={milestones}
         nonWorkingDays={nonWorkingDays}
         onAddTask={() => setIsCreateOpen(true)}
         onConfigureColumns={() => setIsColumnsOpen(true)}
         onConfigureMilestones={() => setIsMilestonesOpen(true)}
         onConfigureNonWorkingDays={() => setIsNonWorkingDaysOpen(true)}
-        onSave={() => saveMutation.mutate()}
+        onRetrySave={retrySave}
         onTaskDatesChange={async (task, dates: TaskDateRange) => {
           updateDraft((current) => ({
             ...current,
@@ -355,7 +395,7 @@ export function ProjectEditorPage() {
           }));
         }}
         project={project}
-        saveError={saveMutation.isError ? mutationMessage(saveMutation.error) : undefined}
+        saveError={isSaveError ? mutationMessage(saveMutationError) : undefined}
         tasks={tasks}
       />
 

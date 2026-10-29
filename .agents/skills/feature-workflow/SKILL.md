@@ -48,7 +48,7 @@ If architecture, security assumptions, persisted entities, API contracts, or mod
 - Milestones belong to the project and render as named vertical lines across the timeline.
 - Non-working days are project-specific and selected one date at a time in the MVP.
 - Task colors come from the fixed soft palette; validate the palette value on the server rather than trusting arbitrary client input.
-- Editing uses local frontend draft state. Persist changes only after the explicit `Сохранить изменения` action.
+- Editing uses local frontend draft state and debounced sequential autosave. Never let an older save response overwrite a newer local revision.
 - Editing and public viewing are desktop-first; a mobile interface is outside the MVP.
 - Real-time collaboration, history, dependencies, export, undo/redo, editable status lists, OAuth, and password-protected public links are outside the MVP.
 

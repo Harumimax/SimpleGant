@@ -39,7 +39,11 @@ export function getGantt(projectId: string) {
   return apiRequest<GanttAggregate>(`/projects/${projectId}/gantt`);
 }
 
-export function saveGantt(projectId: string, aggregate: GanttAggregate) {
+export function saveGantt(
+  projectId: string,
+  aggregate: GanttAggregate,
+  options: Pick<RequestInit, 'keepalive'> = {},
+) {
   const tasks = normalizeTaskOrder(aggregate.tasks);
   const input: GanttSaveInput = {
     columns: aggregate.project.columns.map(({ id, name, isVisible }) => ({
@@ -78,5 +82,6 @@ export function saveGantt(projectId: string, aggregate: GanttAggregate) {
   return apiRequest<GanttAggregate>(`/projects/${projectId}/gantt`, {
     method: 'PUT',
     body: JSON.stringify(input),
+    ...options,
   });
 }

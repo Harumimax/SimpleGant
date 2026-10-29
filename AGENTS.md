@@ -25,7 +25,7 @@ Core MVP rules:
 - Automatic date calculation can skip weekends and project non-working days. Dragging or resizing a task bar sets dates directly without skipping them.
 - Milestones are named project-wide vertical timeline markers.
 - Task colors must come from a fixed soft palette.
-- Editing happens in local draft state and is persisted only by the explicit `Сохранить изменения` action.
+- Editing happens in local draft state and is persisted by debounced sequential autosave; stale responses must never overwrite a newer draft.
 - Editing and public viewing are desktop-first; a mobile interface is outside the MVP.
 
 Out of scope for the MVP: real-time collaboration, edit roles, history, dependencies, export, undo/redo, editable status lists, OAuth, password-protected public links, and comment stickers.
@@ -59,7 +59,7 @@ Inspect the actual project before assuming a dependency or convention already ex
 
 Frontend:
 
-- TanStack Query owns loading, caching, and mutation lifecycle for server data.
+- TanStack Query owns loading, caching, and autosave mutation lifecycle for server data.
 - Zustand owns unsaved editor state and coordinated table/timeline interactions.
 - The table and timeline must use one shared flattened visible-row model and stable row dimensions.
 - Calendar and coordinate calculations should be pure, testable functions.

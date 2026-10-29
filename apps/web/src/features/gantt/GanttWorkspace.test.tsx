@@ -64,7 +64,6 @@ describe('GanttWorkspace', () => {
         onConfigureColumns={vi.fn()}
         onConfigureMilestones={vi.fn()}
         onConfigureNonWorkingDays={vi.fn()}
-        onSave={vi.fn()}
         onTaskDatesChange={vi.fn()}
         onTaskDetails={vi.fn()}
         onTaskOrderChange={vi.fn()}
@@ -127,18 +126,17 @@ describe('GanttWorkspace', () => {
     expect(timelineScroll.firstElementChild).toHaveStyle({ width: '180px' });
   });
 
-  it('shows and triggers explicit saving for a dirty draft', () => {
-    const onSave = vi.fn();
+  it('shows automatic saving without an explicit save button', () => {
     render(
       <GanttWorkspace
         isDirty
+        isSaving
         milestones={[]}
         nonWorkingDays={[]}
         onAddTask={vi.fn()}
         onConfigureColumns={vi.fn()}
         onConfigureMilestones={vi.fn()}
         onConfigureNonWorkingDays={vi.fn()}
-        onSave={onSave}
         onTaskDatesChange={vi.fn()}
         onTaskDetails={vi.fn()}
         onTaskOrderChange={vi.fn()}
@@ -148,11 +146,34 @@ describe('GanttWorkspace', () => {
       />,
     );
 
-    expect(screen.getByText('Есть несохранённые изменения')).toBeInTheDocument();
-    expect(screen.getByText('Есть несохранённые изменения').parentElement).toHaveClass('xl:block');
-    expect(screen.getByText('Есть несохранённые изменения').parentElement).not.toHaveClass('lg:block');
-    fireEvent.click(screen.getByRole('button', { name: 'Сохранить изменения' }));
-    expect(onSave).toHaveBeenCalledOnce();
+    expect(screen.getByText('Сохраняем изменения…')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Сохранить изменения' })).not.toBeInTheDocument();
+  });
+
+  it('allows retrying a failed automatic save', () => {
+    const onRetrySave = vi.fn();
+    render(
+      <GanttWorkspace
+        isDirty
+        milestones={[]}
+        nonWorkingDays={[]}
+        onAddTask={vi.fn()}
+        onConfigureColumns={vi.fn()}
+        onConfigureMilestones={vi.fn()}
+        onConfigureNonWorkingDays={vi.fn()}
+        onRetrySave={onRetrySave}
+        onTaskDatesChange={vi.fn()}
+        onTaskDetails={vi.fn()}
+        onTaskOrderChange={vi.fn()}
+        onToggleTaskCollapsed={vi.fn()}
+        project={project}
+        saveError="Не удалось сохранить изменения"
+        tasks={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Повторить' }));
+    expect(onRetrySave).toHaveBeenCalledOnce();
   });
 
   it('makes a wide task table horizontally scrollable when many columns are visible', () => {
@@ -242,7 +263,7 @@ describe('GanttWorkspace', () => {
         onTaskOrderChange={vi.fn()}
         onToggleTaskCollapsed={vi.fn()}
         project={project}
-        tasks={[]}
+        tasks={[task('non-working-day-task', 0)]}
       />,
     );
 
