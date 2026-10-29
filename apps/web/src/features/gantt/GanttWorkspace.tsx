@@ -25,7 +25,7 @@ import {
   Plus,
   StickyNote,
 } from 'lucide-react';
-import { useRef, useState, type UIEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type UIEvent } from 'react';
 
 import type { ProjectDetail } from '../projects/projects.api';
 import type { Milestone } from '../milestones/milestones.api';
@@ -55,6 +55,7 @@ import { MilestoneLayer } from './MilestoneLayer';
 import {
   MAX_PROJECT_STICKERS,
   StickerLayer,
+  type StickerPlacement,
 } from './StickerLayer';
 import type { Sticker, StickerUpdate } from '../stickers/stickers.api';
 
@@ -80,7 +81,7 @@ type GanttWorkspaceProps = {
   isSaving?: boolean;
   saveError?: string;
   onRetrySave?: () => void;
-  onAddSticker?: (xDayOffset: number, yRowOffset: number) => void;
+  onAddSticker?: (placement: StickerPlacement) => void;
   onUpdateSticker?: (id: string, update: StickerUpdate) => void;
   onDeleteSticker?: (id: string) => void;
   onActivateSticker?: (id: string) => void;
@@ -88,6 +89,7 @@ type GanttWorkspaceProps = {
 
 function columnTemplate(columnCount: number, showActions: boolean) {
   if (columnCount === 0) return showActions ? '42px 96px' : '42px';
+  if (!showActions && columnCount === 1) return '42px minmax(0, 1fr)';
   const extraColumns = Math.max(columnCount - 1, 0);
   const actionsColumn = showActions ? ' 96px' : '';
   return `42px minmax(190px, 2fr) repeat(${extraColumns}, minmax(104px, 1fr))${actionsColumn}`;
@@ -96,6 +98,7 @@ function columnTemplate(columnCount: number, showActions: boolean) {
 function taskTableMinWidth(columnCount: number, showActions: boolean) {
   const actionsWidth = showActions ? 96 : 0;
   if (columnCount === 0) return 42 + actionsWidth;
+  if (!showActions && columnCount === 1) return 0;
   return 42 + 190 + Math.max(columnCount - 1, 0) * 104 + actionsWidth;
 }
 
@@ -128,10 +131,17 @@ export function GanttWorkspace({
 }: GanttWorkspaceProps) {
   const taskPaneRef = useRef<HTMLElement>(null);
   const timelinePaneRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
   const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
   const [rowDensity, setRowDensity] = useState<GanttRowDensity>('normal');
   const [isPlacingSticker, setIsPlacingSticker] = useState(false);
+  const [taskPaneWidth, setTaskPaneWidth] = useState(0);
+  const [boardBodyHeight, setBoardBodyHeight] = useState(0);
+  const [stickerScroll, setStickerScroll] = useState({
+    timelineLeft: 0,
+    verticalTop: 0,
+  });
   const [dragPreviewTasks, setDragPreviewTasks] = useState<Task[] | null>(null);
   const [dragSource, setDragSource] = useState<'table' | 'timeline' | null>(null);
   const dragBaseTasksRef = useRef<Task[]>(tasks);
@@ -162,7 +172,8 @@ export function GanttWorkspace({
   const previewIndexes = new Map(
     previewVisibleTasks.map((task, index) => [task.id, index]),
   );
-  const stickerContentHeight = Math.max(
+  const boardContentHeight = Math.max(
+    boardBodyHeight,
     visibleTasks.length * rowHeight,
     ...stickers.map((sticker) => sticker.yRowOffset * rowHeight + sticker.size),
     0,
@@ -171,6 +182,22 @@ export function GanttWorkspace({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  useLayoutEffect(() => {
+    const taskPane = taskPaneRef.current;
+    const board = boardRef.current;
+    if (!taskPane || !board) return;
+    const updateMeasurements = () => {
+      setTaskPaneWidth(taskPane.clientWidth);
+      setBoardBodyHeight(Math.max(0, taskPane.clientHeight - GANTT_HEADER_HEIGHT));
+    };
+    updateMeasurements();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateMeasurements);
+    observer.observe(taskPane);
+    observer.observe(board);
+    return () => observer.disconnect();
+  }, []);
 
   function saveStructure(nextTasks: Task[] | null) {
     if (!nextTasks || isSavingStructure) return;
@@ -265,6 +292,10 @@ export function GanttWorkspace({
     if (target && target.scrollTop !== event.currentTarget.scrollTop) {
       target.scrollTop = event.currentTarget.scrollTop;
     }
+    setStickerScroll({
+      timelineLeft: timelinePaneRef.current?.scrollLeft ?? 0,
+      verticalTop: event.currentTarget.scrollTop,
+    });
   }
 
   function changeTimelineScale(nextScale: TimelineScale) {
@@ -282,6 +313,10 @@ export function GanttWorkspace({
           project.endDate,
           nextScale,
         ).dayWidth;
+        setStickerScroll((current) => ({
+          ...current,
+          timelineLeft: scrollElement.scrollLeft,
+        }));
       }
     });
   }
@@ -296,6 +331,10 @@ export function GanttWorkspace({
       const nextScrollTop = visibleRowOffset * nextRowHeight;
       if (taskPaneRef.current) taskPaneRef.current.scrollTop = nextScrollTop;
       if (timelinePaneRef.current) timelinePaneRef.current.scrollTop = nextScrollTop;
+      setStickerScroll((current) => ({
+        ...current,
+        verticalTop: nextScrollTop,
+      }));
     });
   }
 
@@ -376,7 +415,7 @@ export function GanttWorkspace({
               className={`flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${isPlacingSticker ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]' : 'border-[var(--color-border-strong)] bg-white text-[var(--color-text)] hover:bg-[var(--color-surface-subtle)]'}`}
               disabled={stickers.length >= MAX_PROJECT_STICKERS}
               onClick={() => setIsPlacingSticker((current) => !current)}
-              title={stickers.length >= MAX_PROJECT_STICKERS ? 'Достигнут лимит: 50 стикеров' : isPlacingSticker ? 'Отменить добавление стикера' : 'Добавить стикер на временную сетку'}
+              title={stickers.length >= MAX_PROJECT_STICKERS ? 'Достигнут лимит: 50 стикеров' : isPlacingSticker ? 'Отменить добавление стикера' : 'Добавить стикер на доску'}
               type="button"
             >
               <StickyNote aria-hidden className="size-4" />
@@ -419,8 +458,9 @@ export function GanttWorkspace({
         </div>
 
         <div
-          className="gantt-shell min-h-0 flex-1"
+          className="gantt-shell relative min-h-0 flex-1"
           data-columns-collapsed={areAdditionalColumnsHidden}
+          ref={boardRef}
         >
           <section
             className="gantt-task-pane"
@@ -470,7 +510,10 @@ export function GanttWorkspace({
                 </div>
               </div>
 
-              <div className="relative bg-white">
+              <div
+                className="relative bg-white"
+                style={{ minHeight: boardContentHeight }}
+              >
                 <DndContext
                   collisionDetection={closestCenter}
                   onDragCancel={clearDragPreview}
@@ -626,7 +669,7 @@ export function GanttWorkspace({
 
                 <div
                   className="relative"
-                  style={{ minHeight: `max(calc(100dvh - 210px), ${stickerContentHeight}px)` }}
+                  style={{ minHeight: boardContentHeight }}
                 >
                   {visibleTasks.map((task, rowIndex) => (
                     <div
@@ -690,21 +733,6 @@ export function GanttWorkspace({
                       ))}
                     </div>
                   ))}
-                  <StickerLayer
-                    canvasHeight={stickerContentHeight}
-                    dayWidth={timeline.dayWidth}
-                    isPlacing={isPlacingSticker}
-                    onActivate={onActivateSticker}
-                    onDelete={onDeleteSticker}
-                    onPlace={(xDayOffset, yRowOffset) => {
-                      onAddSticker?.(xDayOffset, yRowOffset);
-                      setIsPlacingSticker(false);
-                    }}
-                    onUpdate={onUpdateSticker}
-                    rowHeight={rowHeight}
-                    stickers={stickers}
-                    timelineWidth={timeline.width}
-                  />
                 </div>
                 <MilestoneLayer
                   dayWidth={timeline.dayWidth}
@@ -715,6 +743,24 @@ export function GanttWorkspace({
               </div>
             </div>
           </section>
+          <StickerLayer
+            canvasHeight={boardContentHeight}
+            dayWidth={timeline.dayWidth}
+            isPlacing={isPlacingSticker}
+            onActivate={onActivateSticker}
+            onDelete={onDeleteSticker}
+            onPlace={(placement) => {
+              onAddSticker?.(placement);
+              setIsPlacingSticker(false);
+            }}
+            onUpdate={onUpdateSticker}
+            rowHeight={rowHeight}
+            stickers={stickers}
+            taskPaneWidth={taskPaneWidth}
+            timelineScrollLeft={stickerScroll.timelineLeft}
+            timelineWidth={timeline.width}
+            verticalScrollTop={stickerScroll.verticalTop}
+          />
         </div>
 
         {isDirty ? (

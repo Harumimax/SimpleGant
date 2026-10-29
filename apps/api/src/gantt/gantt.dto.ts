@@ -26,6 +26,7 @@ import {
   MAX_PROJECT_STICKERS,
   MAX_STICKER_SIZE,
   MIN_STICKER_SIZE,
+  STICKER_ANCHOR_AREAS,
   STICKER_COLORS,
 } from './sticker.constants.js';
 
@@ -190,9 +191,18 @@ export class GanttStickerDto {
   @IsIn(STICKER_COLORS)
   color!: string;
 
+  @IsIn(STICKER_ANCHOR_AREAS)
+  anchorArea!: string;
+
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0)
   xDayOffset!: number;
+
+  @ValidateIf((_object, value) => value !== null)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(10_000)
+  xTaskOffset!: number | null;
 
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0)

@@ -37,7 +37,7 @@ export type GanttSaveInput = {
   >>;
   milestones: Array<Pick<Milestone, 'id' | 'title' | 'date' | 'color'>>;
   nonWorkingDays: Array<Pick<NonWorkingDay, 'id' | 'date' | 'label'>>;
-  stickers: Array<Pick<Sticker, 'id' | 'text' | 'color' | 'xDayOffset' | 'yRowOffset' | 'size' | 'zIndex'>>;
+  stickers: Array<Pick<Sticker, 'id' | 'text' | 'color' | 'anchorArea' | 'xDayOffset' | 'xTaskOffset' | 'yRowOffset' | 'size' | 'zIndex'>>;
 };
 
 export function getGantt(projectId: string) {
@@ -89,11 +89,23 @@ export function saveGantt(
       id,
       text,
       color,
+      anchorArea,
       xDayOffset,
+      xTaskOffset,
       yRowOffset,
       size,
       zIndex,
-    }) => ({ id, text, color, xDayOffset, yRowOffset, size, zIndex })),
+    }) => ({
+      id,
+      text,
+      color,
+      anchorArea,
+      xDayOffset,
+      xTaskOffset,
+      yRowOffset,
+      size,
+      zIndex,
+    })),
   };
   return apiRequest<GanttAggregate>(`/projects/${projectId}/gantt`, {
     method: 'PUT',

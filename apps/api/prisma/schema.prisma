@@ -121,7 +121,9 @@ model Sticker {
   projectId  String   @map("project_id") @db.Uuid
   text       String   @db.VarChar(1000)
   color      String   @default("amber") @db.VarChar(20)
+  anchorArea String   @default("timeline") @map("anchor_area") @db.VarChar(20)
   xDayOffset Float    @map("x_day_offset")
+  xTaskOffset Float?  @map("x_task_offset")
   yRowOffset Float    @map("y_row_offset")
   size       Int      @default(160)
   zIndex     Int      @default(0) @map("z_index")

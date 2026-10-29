@@ -16,7 +16,7 @@ import {
 import { recalculateParentDates } from '../tasks/parent-task-dates.js';
 import type { UpdateGanttDto } from './gantt.dto.js';
 import { GanttRepository } from './gantt.repository.js';
-import { STICKER_COLORS } from './sticker.constants.js';
+import { STICKER_ANCHOR_AREAS, STICKER_COLORS } from './sticker.constants.js';
 
 @Injectable()
 export class GanttService {
@@ -181,8 +181,16 @@ export class GanttService {
       if (!STICKER_COLORS.includes(sticker.color as (typeof STICKER_COLORS)[number])) {
         throw new BadRequestException('Выберите допустимый цвет стикера');
       }
-      if (sticker.xDayOffset > projectDayCount) {
+      if (!STICKER_ANCHOR_AREAS.includes(
+        sticker.anchorArea as (typeof STICKER_ANCHOR_AREAS)[number],
+      )) {
+        throw new BadRequestException('Выберите допустимую область стикера');
+      }
+      if (sticker.anchorArea === 'timeline' && sticker.xDayOffset > projectDayCount) {
         throw new BadRequestException('Стикер должен находиться в периоде проекта');
+      }
+      if (sticker.anchorArea === 'tasks' && sticker.xTaskOffset === null) {
+        throw new BadRequestException('Укажите положение стикера в области задач');
       }
       return {
         ...sticker,

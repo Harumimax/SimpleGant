@@ -1,5 +1,5 @@
 import { CalendarDays, Eye, EyeOff, Monitor } from 'lucide-react';
-import { useRef, useState, type UIEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type UIEvent } from 'react';
 
 import type { GanttAggregate } from '../gantt/gantt.api';
 import { MilestoneLayer } from '../gantt/MilestoneLayer';
@@ -23,13 +23,13 @@ type Props = GanttAggregate & {
 
 function columnTemplate(columnCount: number, compact: boolean) {
   if (columnCount === 0) return '42px';
-  if (compact) return '42px minmax(190px, 1fr)';
+  if (compact) return '42px minmax(0, 1fr)';
   return `42px minmax(210px, 2fr) repeat(${Math.max(columnCount - 1, 0)}, minmax(110px, 1fr))`;
 }
 
 function taskTableMinWidth(columnCount: number, compact: boolean) {
   if (columnCount === 0) return 42;
-  if (compact) return 232;
+  if (compact) return 0;
   return 42 + 210 + Math.max(columnCount - 1, 0) * 110;
 }
 
@@ -43,9 +43,16 @@ export function PublicGanttViewer({
 }: Props) {
   const taskPaneRef = useRef<HTMLElement>(null);
   const timelinePaneRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
   const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
   const [rowDensity, setRowDensity] = useState<GanttRowDensity>('normal');
+  const [taskPaneWidth, setTaskPaneWidth] = useState(0);
+  const [boardBodyHeight, setBoardBodyHeight] = useState(0);
+  const [stickerScroll, setStickerScroll] = useState({
+    timelineLeft: 0,
+    verticalTop: 0,
+  });
   const columns = [...project.columns]
     .sort((left, right) => left.orderIndex - right.orderIndex)
     .filter((column) => areAdditionalColumnsHidden
@@ -67,16 +74,37 @@ export function PublicGanttViewer({
     nonWorkingDays.map((day) => [day.date, day]),
   );
   const gridTemplate = columnTemplate(columns.length, areAdditionalColumnsHidden);
-  const stickerContentHeight = Math.max(
+  const boardContentHeight = Math.max(
+    boardBodyHeight,
     rows.length * rowHeight,
     ...stickers.map((sticker) => sticker.yRowOffset * rowHeight + sticker.size),
     0,
   );
 
+  useLayoutEffect(() => {
+    const taskPane = taskPaneRef.current;
+    const board = boardRef.current;
+    if (!taskPane || !board) return;
+    const updateMeasurements = () => {
+      setTaskPaneWidth(taskPane.clientWidth);
+      setBoardBodyHeight(Math.max(0, taskPane.clientHeight - GANTT_HEADER_HEIGHT));
+    };
+    updateMeasurements();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateMeasurements);
+    observer.observe(taskPane);
+    observer.observe(board);
+    return () => observer.disconnect();
+  }, []);
+
   function syncVerticalScroll(event: UIEvent<HTMLElement>, target: HTMLElement | null) {
     if (target && target.scrollTop !== event.currentTarget.scrollTop) {
       target.scrollTop = event.currentTarget.scrollTop;
     }
+    setStickerScroll({
+      timelineLeft: timelinePaneRef.current?.scrollLeft ?? 0,
+      verticalTop: event.currentTarget.scrollTop,
+    });
   }
 
   function changeTimelineScale(nextScale: TimelineScale) {
@@ -94,6 +122,10 @@ export function PublicGanttViewer({
           project.endDate,
           nextScale,
         ).dayWidth;
+        setStickerScroll((current) => ({
+          ...current,
+          timelineLeft: scrollElement.scrollLeft,
+        }));
       }
     });
   }
@@ -108,6 +140,10 @@ export function PublicGanttViewer({
       const nextScrollTop = visibleRowOffset * nextRowHeight;
       if (taskPaneRef.current) taskPaneRef.current.scrollTop = nextScrollTop;
       if (timelinePaneRef.current) timelinePaneRef.current.scrollTop = nextScrollTop;
+      setStickerScroll((current) => ({
+        ...current,
+        verticalTop: nextScrollTop,
+      }));
     });
   }
 
@@ -158,8 +194,9 @@ export function PublicGanttViewer({
         </div>
 
         <div
-          className="gantt-shell min-h-0 flex-1"
+          className="gantt-shell relative min-h-0 flex-1"
           data-columns-collapsed={areAdditionalColumnsHidden}
+          ref={boardRef}
         >
           <section
             aria-label="Таблица задач"
@@ -193,7 +230,10 @@ export function PublicGanttViewer({
                   ))}
                 </div>
               </div>
-              <div className="relative bg-white">
+              <div
+                className="relative bg-white"
+                style={{ minHeight: boardContentHeight }}
+              >
                 {rows.map((task, rowIndex) => (
                   <div
                     aria-hidden={task ? undefined : true}
@@ -269,7 +309,7 @@ export function PublicGanttViewer({
                 </div>
                 <div
                   className="relative"
-                  style={{ minHeight: `max(calc(100dvh - 210px), ${stickerContentHeight}px)` }}
+                  style={{ minHeight: boardContentHeight }}
                 >
                   {rows.map((task, rowIndex) => (
                     <div
@@ -294,19 +334,22 @@ export function PublicGanttViewer({
                       )) : null}
                     </div>
                   ))}
-                  <StickerLayer
-                    canvasHeight={stickerContentHeight}
-                    dayWidth={timeline.dayWidth}
-                    readOnly
-                    rowHeight={rowHeight}
-                    stickers={stickers}
-                    timelineWidth={timeline.width}
-                  />
                 </div>
                 <MilestoneLayer dayWidth={timeline.dayWidth} milestones={milestones} timelineEndDate={project.endDate} timelineStartDate={project.startDate} />
               </div>
             </div>
           </section>
+          <StickerLayer
+            canvasHeight={boardContentHeight}
+            dayWidth={timeline.dayWidth}
+            readOnly
+            rowHeight={rowHeight}
+            stickers={stickers}
+            taskPaneWidth={taskPaneWidth}
+            timelineScrollLeft={stickerScroll.timelineLeft}
+            timelineWidth={timeline.width}
+            verticalScrollTop={stickerScroll.verticalTop}
+          />
         </div>
       </section>
 

@@ -12,6 +12,7 @@ import { saveGantt } from '../features/gantt/gantt.api';
 import { ganttQueryKey, useGantt } from '../features/gantt/gantt.queries';
 import { useGanttDraftStore } from '../features/gantt/gantt.store';
 import { GanttWorkspace } from '../features/gantt/GanttWorkspace';
+import type { StickerPlacement } from '../features/gantt/StickerLayer';
 import {
   countTaskDescendants,
   recalculateParentTaskDates,
@@ -362,7 +363,7 @@ export function ProjectEditorPage() {
     });
   }
 
-  function addSticker(xDayOffset: number, yRowOffset: number) {
+  function addSticker(placement: StickerPlacement) {
     const now = new Date().toISOString();
     updateDraft((current) => ({
       ...current,
@@ -371,8 +372,7 @@ export function ProjectEditorPage() {
         projectId,
         text: 'Новая заметка',
         color: 'amber',
-        xDayOffset,
-        yRowOffset,
+        ...placement,
         size: 160,
         zIndex: Math.max(0, ...current.stickers.map((sticker) => sticker.zIndex + 1)),
         createdAt: now,

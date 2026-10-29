@@ -4,6 +4,7 @@ import type { MilestoneColor } from '../milestones/milestones.api';
 import type { TaskStatus } from '../tasks/tasks.api';
 import type { TaskPeriod } from '../tasks/tasks.api';
 import type { StickerColor } from '../stickers/stickers.api';
+import type { StickerAnchorArea } from '../stickers/stickers.api';
 
 type PublicGanttResponse = {
   project: {
@@ -49,7 +50,9 @@ type PublicGanttResponse = {
     id: string;
     text: string;
     color: StickerColor;
+    anchorArea: StickerAnchorArea;
     xDayOffset: number;
+    xTaskOffset: number | null;
     yRowOffset: number;
     size: number;
     zIndex: number;

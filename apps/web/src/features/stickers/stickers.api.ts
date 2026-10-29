@@ -8,13 +8,16 @@ export const STICKER_COLORS = [
 ] as const;
 
 export type StickerColor = (typeof STICKER_COLORS)[number];
+export type StickerAnchorArea = 'timeline' | 'tasks';
 
 export type Sticker = {
   id: string;
   projectId: string;
   text: string;
   color: StickerColor;
+  anchorArea: StickerAnchorArea;
   xDayOffset: number;
+  xTaskOffset: number | null;
   yRowOffset: number;
   size: number;
   zIndex: number;
@@ -24,5 +27,12 @@ export type Sticker = {
 
 export type StickerUpdate = Partial<Pick<
   Sticker,
-  'text' | 'color' | 'xDayOffset' | 'yRowOffset' | 'size' | 'zIndex'
+  | 'text'
+  | 'color'
+  | 'anchorArea'
+  | 'xDayOffset'
+  | 'xTaskOffset'
+  | 'yRowOffset'
+  | 'size'
+  | 'zIndex'
 >>;

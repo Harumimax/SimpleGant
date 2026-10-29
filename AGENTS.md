@@ -26,7 +26,7 @@ Core MVP rules:
 - A task has one primary period and up to four additional periods in the same row. Period names are required, ranges cannot overlap or cross, and total duration sums only included periods.
 - When the project calendar policy is enabled, derived task duration excludes weekends and project non-working days, including for explicit ranges and after drag/resize. Dragging or resizing still sets dates directly without shifting the chosen range. A range containing no working days has duration zero.
 - Milestones are named project-wide vertical timeline markers.
-- A project can have up to 50 free-standing stickers over the timeline. Stickers are not task-linked, are visible in public read-only mode, and keep a date-relative horizontal position across zoom levels.
+- A project can have up to 50 free-standing stickers over the complete Gantt board. Stickers can move between the task table and timeline, are not task-linked, are visible in public read-only mode, and keep a date-relative horizontal position when anchored to the timeline.
 - Task colors must come from a fixed soft palette.
 - Editing happens in local draft state and is persisted by debounced sequential autosave; stale responses must never overwrite a newer draft.
 - Editing and public viewing are desktop-first; a mobile interface is outside the MVP.

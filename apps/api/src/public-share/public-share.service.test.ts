@@ -39,7 +39,8 @@ describe('PublicShareService', () => {
       nonWorkingDays: [],
       stickers: [{
         id: 'sticker-id', projectId: 'project-id', text: 'Публичная заметка',
-        color: 'amber', xDayOffset: 2, yRowOffset: 1, size: 160, zIndex: 0,
+        color: 'amber', anchorArea: 'timeline', xDayOffset: 2,
+        xTaskOffset: null, yRowOffset: 1, size: 160, zIndex: 0,
         createdAt: now, updatedAt: now,
       }],
     });

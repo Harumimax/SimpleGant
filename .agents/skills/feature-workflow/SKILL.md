@@ -50,7 +50,7 @@ If architecture, security assumptions, persisted entities, API contracts, or mod
 - Collapsing a parent hides descendants in both the task table and timeline presentation.
 - Milestones belong to the project and render as named vertical lines across the timeline.
 - Non-working days are project-specific and selected one date at a time in the MVP.
-- A project supports up to 50 free-standing timeline stickers. They are not linked to tasks, use date-relative horizontal coordinates, keep a pixel size across timeline zoom levels, and are visible without edit controls in the public viewer.
+- A project supports up to 50 free-standing board stickers. They can move between the task table and timeline, are not linked to tasks, use area-specific coordinates, keep a pixel size across timeline zoom levels, and are visible without edit controls in the public viewer.
 - Task colors come from the fixed soft palette; validate the palette value on the server rather than trusting arbitrary client input.
 - Editing uses local frontend draft state and debounced sequential autosave. Never let an older save response overwrite a newer local revision.
 - Editing and public viewing are desktop-first; a mobile interface is outside the MVP.

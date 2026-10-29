@@ -57,7 +57,9 @@ export type GanttPersistenceInput = {
     id: string;
     text: string;
     color: string;
+    anchorArea: string;
     xDayOffset: number;
+    xTaskOffset: number | null;
     yRowOffset: number;
     size: number;
     zIndex: number;
