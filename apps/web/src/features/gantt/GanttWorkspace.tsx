@@ -87,6 +87,8 @@ type GanttWorkspaceProps = {
   onActivateSticker?: (id: string) => void;
 };
 
+const GANTT_HORIZONTAL_SCROLLBAR_HEIGHT = 10;
+
 function columnTemplate(columnCount: number, showActions: boolean) {
   if (columnCount === 0) return showActions ? '42px 96px' : '42px';
   if (!showActions && columnCount === 1) return '42px minmax(0, 1fr)';
@@ -172,11 +174,16 @@ export function GanttWorkspace({
   const previewIndexes = new Map(
     previewVisibleTasks.map((task, index) => [task.id, index]),
   );
-  const boardContentHeight = Math.max(
-    boardBodyHeight,
+  const naturalBoardContentHeight = Math.max(
     visibleTasks.length * rowHeight,
     ...stickers.map((sticker) => sticker.yRowOffset * rowHeight + sticker.size),
     0,
+  );
+  const hasVerticalOverflow = boardBodyHeight > 0
+    && naturalBoardContentHeight > boardBodyHeight;
+  const boardContentHeight = Math.max(
+    boardBodyHeight,
+    naturalBoardContentHeight,
   );
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -189,7 +196,12 @@ export function GanttWorkspace({
     if (!taskPane || !board) return;
     const updateMeasurements = () => {
       setTaskPaneWidth(taskPane.clientWidth);
-      setBoardBodyHeight(Math.max(0, taskPane.clientHeight - GANTT_HEADER_HEIGHT));
+      setBoardBodyHeight(Math.max(
+        0,
+        board.clientHeight
+          - GANTT_HEADER_HEIGHT
+          - GANTT_HORIZONTAL_SCROLLBAR_HEIGHT,
+      ));
     };
     updateMeasurements();
     if (typeof ResizeObserver === 'undefined') return;
@@ -198,6 +210,15 @@ export function GanttWorkspace({
     observer.observe(board);
     return () => observer.disconnect();
   }, []);
+
+  useLayoutEffect(() => {
+    if (hasVerticalOverflow) return;
+    if (taskPaneRef.current) taskPaneRef.current.scrollTop = 0;
+    if (timelinePaneRef.current) timelinePaneRef.current.scrollTop = 0;
+    setStickerScroll((current) => current.verticalTop === 0
+      ? current
+      : { ...current, verticalTop: 0 });
+  }, [hasVerticalOverflow]);
 
   function saveStructure(nextTasks: Task[] | null) {
     if (!nextTasks || isSavingStructure) return;
@@ -467,6 +488,7 @@ export function GanttWorkspace({
             aria-label="Таблица задач"
             onScroll={(event) => syncVerticalScroll(event, timelinePaneRef.current)}
             ref={taskPaneRef}
+            style={{ overflowY: hasVerticalOverflow ? 'auto' : 'hidden' }}
             tabIndex={0}
           >
             <div className="gantt-task-table" style={{ minWidth: taskTableWidth }}>
@@ -583,6 +605,7 @@ export function GanttWorkspace({
               onScroll={(event) => syncVerticalScroll(event, taskPaneRef.current)}
               ref={timelinePaneRef}
               role="region"
+              style={{ overflowY: hasVerticalOverflow ? 'auto' : 'hidden' }}
               tabIndex={0}
             >
               <div

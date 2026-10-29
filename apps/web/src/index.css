@@ -269,6 +269,7 @@ a[href] {
 
 .gantt-shell[data-columns-collapsed="true"] .gantt-task-pane {
   overflow-x: hidden;
+  padding-bottom: 10px;
 }
 
 .gantt-task-table {
