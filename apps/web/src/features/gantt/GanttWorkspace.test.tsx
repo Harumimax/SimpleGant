@@ -58,6 +58,35 @@ beforeAll(() => {
 });
 
 describe('GanttWorkspace', () => {
+  it('adds a sticker at the selected timeline position', () => {
+    const onAddSticker = vi.fn();
+    render(
+      <GanttWorkspace
+        milestones={[]}
+        nonWorkingDays={[]}
+        onAddSticker={onAddSticker}
+        onAddTask={vi.fn()}
+        onConfigureColumns={vi.fn()}
+        onConfigureMilestones={vi.fn()}
+        onConfigureNonWorkingDays={vi.fn()}
+        onTaskDatesChange={vi.fn()}
+        onTaskDetails={vi.fn()}
+        onTaskOrderChange={vi.fn()}
+        onToggleTaskCollapsed={vi.fn()}
+        project={project}
+        tasks={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Стикер' }));
+    fireEvent.pointerDown(screen.getByLabelText('Стикеры проекта'), {
+      clientX: 200,
+      clientY: 180,
+    });
+
+    expect(onAddSticker).toHaveBeenCalledOnce();
+  });
+
   it('does not show the save panel when the draft has no changes', () => {
     render(
       <GanttWorkspace

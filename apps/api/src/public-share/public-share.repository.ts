@@ -14,6 +14,7 @@ export class PublicShareRepository {
         tasks: { orderBy: [{ orderIndex: 'asc' }, { createdAt: 'asc' }] },
         milestones: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] },
         nonWorkingDays: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] },
+        stickers: { orderBy: [{ zIndex: 'asc' }, { createdAt: 'asc' }] },
       },
     });
   }

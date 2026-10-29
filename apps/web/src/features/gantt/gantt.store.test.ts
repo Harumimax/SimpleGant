@@ -17,6 +17,7 @@ const aggregate: GanttAggregate = {
   tasks: [],
   milestones: [],
   nonWorkingDays: [],
+  stickers: [],
 };
 
 describe('useGanttDraftStore', () => {

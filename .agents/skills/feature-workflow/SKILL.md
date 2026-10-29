@@ -34,7 +34,7 @@ If architecture, security assumptions, persisted entities, API contracts, or mod
 - A project has one registered owner. Only the owner can mutate it.
 - Public access uses an unguessable project token and is read-only without registration.
 - Public responses expose only project data intended for the viewer; never expose owner credentials, password hashes, internal session data, or other private records.
-- A project has a required start and end date and is loaded as one Gantt aggregate: project, columns, tasks, milestones, and non-working days.
+- A project has a required start and end date and is loaded as one Gantt aggregate: project, columns, tasks, milestones, non-working days, and stickers.
 - A project-wide setting chosen at creation controls whether derived task duration excludes weekends and project non-working days. It is immutable in the MVP.
 - A project supports at most 10 task columns. Custom columns are text-only in the MVP and belong to one project.
 - Default columns are `Название`, `Тип работ`, `Исполнитель`, `Длительность`, and `Статус`.
@@ -50,6 +50,7 @@ If architecture, security assumptions, persisted entities, API contracts, or mod
 - Collapsing a parent hides descendants in both the task table and timeline presentation.
 - Milestones belong to the project and render as named vertical lines across the timeline.
 - Non-working days are project-specific and selected one date at a time in the MVP.
+- A project supports up to 50 free-standing timeline stickers. They are not linked to tasks, use date-relative horizontal coordinates, keep a pixel size across timeline zoom levels, and are visible without edit controls in the public viewer.
 - Task colors come from the fixed soft palette; validate the palette value on the server rather than trusting arbitrary client input.
 - Editing uses local frontend draft state and debounced sequential autosave. Never let an older save response overwrite a newer local revision.
 - Editing and public viewing are desktop-first; a mobile interface is outside the MVP.

@@ -37,6 +37,11 @@ describe('PublicShareService', () => {
       }],
       milestones: [],
       nonWorkingDays: [],
+      stickers: [{
+        id: 'sticker-id', projectId: 'project-id', text: 'Публичная заметка',
+        color: 'amber', xDayOffset: 2, yRowOffset: 1, size: 160, zIndex: 0,
+        createdAt: now, updatedAt: now,
+      }],
     });
     const service = new PublicShareService(
       repository as unknown as PublicShareRepository,
@@ -48,6 +53,7 @@ describe('PublicShareService', () => {
     expect(result.project.name).toBe('Публичный проект');
     expect(result.tasks[0]?.title).toBe('Задача');
     expect(result.tasks[0]?.comment).toBe('Важный комментарий');
+    expect(result.stickers[0]?.text).toBe('Публичная заметка');
     expect(serialized).not.toContain('private-owner-id');
     expect(serialized).not.toContain(token);
     expect(serialized).not.toContain('projectId');

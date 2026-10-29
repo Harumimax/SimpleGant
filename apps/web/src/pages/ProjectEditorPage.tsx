@@ -26,6 +26,7 @@ import type { ProjectColumnConfigurationInput } from '../features/projects/proje
 import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
 import { TaskDialog } from '../features/tasks/TaskDialog';
 import type { Task, TaskInput } from '../features/tasks/tasks.api';
+import type { StickerUpdate } from '../features/stickers/stickers.api';
 
 function formatDate(value: string) {
   return format(parseISO(value), 'd MMMM yyyy', { locale: ru });
@@ -153,7 +154,7 @@ export function ProjectEditorPage() {
     );
   }
 
-  const { project, tasks, milestones, nonWorkingDays } = aggregate;
+  const { project, tasks, milestones, nonWorkingDays, stickers } = aggregate;
   const editingTask = tasks.find(({ id }) => id === editingTaskId) ?? null;
   const deletingTask = tasks.find(({ id }) => id === deletingTaskId) ?? null;
 
@@ -361,6 +362,56 @@ export function ProjectEditorPage() {
     });
   }
 
+  function addSticker(xDayOffset: number, yRowOffset: number) {
+    const now = new Date().toISOString();
+    updateDraft((current) => ({
+      ...current,
+      stickers: [...current.stickers, {
+        id: crypto.randomUUID(),
+        projectId,
+        text: 'Новая заметка',
+        color: 'amber',
+        xDayOffset,
+        yRowOffset,
+        size: 160,
+        zIndex: Math.max(0, ...current.stickers.map((sticker) => sticker.zIndex + 1)),
+        createdAt: now,
+        updatedAt: now,
+      }],
+    }));
+  }
+
+  function updateSticker(id: string, update: StickerUpdate) {
+    updateDraft((current) => ({
+      ...current,
+      stickers: current.stickers.map((sticker) => sticker.id === id
+        ? { ...sticker, ...update, updatedAt: new Date().toISOString() }
+        : sticker),
+    }));
+  }
+
+  function deleteSticker(id: string) {
+    updateDraft((current) => ({
+      ...current,
+      stickers: current.stickers.filter((sticker) => sticker.id !== id),
+    }));
+  }
+
+  function activateSticker(id: string) {
+    const active = stickers.find((sticker) => sticker.id === id);
+    const currentMaximum = Math.max(0, ...stickers.map((sticker) => sticker.zIndex));
+    if (!active || active.zIndex === currentMaximum) return;
+    updateDraft((current) => {
+      const maximumZIndex = Math.max(0, ...current.stickers.map((sticker) => sticker.zIndex));
+      return {
+        ...current,
+        stickers: current.stickers.map((sticker) => sticker.id === id
+          ? { ...sticker, zIndex: Math.min(maximumZIndex + 1, 10_000) }
+          : sticker),
+      };
+    });
+  }
+
   return (
     <main className="flex h-screen min-h-[560px] flex-col overflow-hidden bg-[var(--color-canvas)] text-[var(--color-text)]" id="main-content">
       <header className="shrink-0 border-b border-[var(--color-border)] bg-white">
@@ -397,11 +448,15 @@ export function ProjectEditorPage() {
         isSaving={isSaving}
         milestones={milestones}
         nonWorkingDays={nonWorkingDays}
+        stickers={stickers}
+        onActivateSticker={activateSticker}
+        onAddSticker={addSticker}
         onAddTask={() => setIsCreateOpen(true)}
         onConfigureColumns={() => setIsColumnsOpen(true)}
         onConfigureMilestones={() => setIsMilestonesOpen(true)}
         onConfigureNonWorkingDays={() => setIsNonWorkingDaysOpen(true)}
         onRetrySave={retrySave}
+        onDeleteSticker={deleteSticker}
         onTaskDatesChange={async (task, periodId, dates: TaskDateRange) => {
           updateDraft((current) => ({
             ...current,
@@ -436,6 +491,7 @@ export function ProjectEditorPage() {
               : item),
           }));
         }}
+        onUpdateSticker={updateSticker}
         project={project}
         saveError={isSaveError ? mutationMessage(saveMutationError) : undefined}
         tasks={tasks}

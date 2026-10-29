@@ -3,6 +3,7 @@ import type { GanttAggregate } from '../gantt/gantt.api';
 import type { MilestoneColor } from '../milestones/milestones.api';
 import type { TaskStatus } from '../tasks/tasks.api';
 import type { TaskPeriod } from '../tasks/tasks.api';
+import type { StickerColor } from '../stickers/stickers.api';
 
 type PublicGanttResponse = {
   project: {
@@ -44,6 +45,15 @@ type PublicGanttResponse = {
     date: string;
     label: string | null;
   }>;
+  stickers: Array<{
+    id: string;
+    text: string;
+    color: StickerColor;
+    xDayOffset: number;
+    yRowOffset: number;
+    size: number;
+    zIndex: number;
+  }>;
 };
 
 export async function getPublicGantt(publicToken: string): Promise<GanttAggregate> {
@@ -70,6 +80,12 @@ export async function getPublicGantt(publicToken: string): Promise<GanttAggregat
     })),
     nonWorkingDays: response.nonWorkingDays.map((day) => ({
       ...day,
+      projectId: response.project.id,
+      createdAt: '',
+      updatedAt: '',
+    })),
+    stickers: response.stickers.map((sticker) => ({
+      ...sticker,
       projectId: response.project.id,
       createdAt: '',
       updatedAt: '',

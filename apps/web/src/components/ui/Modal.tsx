@@ -5,6 +5,7 @@ type ModalProps = {
   labelledBy: string;
   onClose: () => void;
   isDismissible?: boolean;
+  closeOnBackdrop?: boolean;
   tone?: 'default' | 'compact';
 };
 
@@ -13,6 +14,7 @@ export function Modal({
   labelledBy,
   onClose,
   isDismissible = true,
+  closeOnBackdrop = false,
   tone = 'default',
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -43,6 +45,15 @@ export function Modal({
       onCancel={(event) => {
         event.preventDefault();
         if (isDismissible) onClose();
+      }}
+      onClick={(event) => {
+        if (
+          closeOnBackdrop &&
+          isDismissible &&
+          event.target === event.currentTarget
+        ) {
+          onClose();
+        }
       }}
       ref={dialogRef}
     >

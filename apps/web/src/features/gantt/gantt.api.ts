@@ -3,6 +3,7 @@ import type { NonWorkingDay } from '../calendar/non-working-days.api';
 import type { Milestone } from '../milestones/milestones.api';
 import type { ProjectDetail } from '../projects/projects.api';
 import type { Task } from '../tasks/tasks.api';
+import type { Sticker } from '../stickers/stickers.api';
 import { normalizeTaskOrder } from './taskHierarchy';
 
 export type GanttAggregate = {
@@ -10,6 +11,7 @@ export type GanttAggregate = {
   tasks: Task[];
   milestones: Milestone[];
   nonWorkingDays: NonWorkingDay[];
+  stickers: Sticker[];
 };
 
 export type GanttSaveInput = {
@@ -35,6 +37,7 @@ export type GanttSaveInput = {
   >>;
   milestones: Array<Pick<Milestone, 'id' | 'title' | 'date' | 'color'>>;
   nonWorkingDays: Array<Pick<NonWorkingDay, 'id' | 'date' | 'label'>>;
+  stickers: Array<Pick<Sticker, 'id' | 'text' | 'color' | 'xDayOffset' | 'yRowOffset' | 'size' | 'zIndex'>>;
 };
 
 export function getGantt(projectId: string) {
@@ -82,6 +85,15 @@ export function saveGantt(
       date,
       label,
     })),
+    stickers: aggregate.stickers.map(({
+      id,
+      text,
+      color,
+      xDayOffset,
+      yRowOffset,
+      size,
+      zIndex,
+    }) => ({ id, text, color, xDayOffset, yRowOffset, size, zIndex })),
   };
   return apiRequest<GanttAggregate>(`/projects/${projectId}/gantt`, {
     method: 'PUT',

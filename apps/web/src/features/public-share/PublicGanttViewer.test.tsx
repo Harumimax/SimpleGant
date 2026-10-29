@@ -59,6 +59,18 @@ const aggregate: GanttAggregate = {
   ],
   milestones: [],
   nonWorkingDays: [],
+  stickers: [{
+    id: 'sticker-1',
+    projectId: 'project-1',
+    text: 'Проверить договор',
+    color: 'amber',
+    xDayOffset: 2,
+    yRowOffset: 0,
+    size: 160,
+    zIndex: 0,
+    createdAt: '',
+    updatedAt: '',
+  }],
 };
 
 describe('PublicGanttViewer', () => {
@@ -72,12 +84,16 @@ describe('PublicGanttViewer', () => {
     expect(screen.getByRole('region', { name: 'Публичная диаграмма Ганта' })).toHaveClass('lg:flex');
     expect(screen.getByText(/требуется окно шириной не менее 1024 пикселей/i)).toBeInTheDocument();
     expect(screen.getByText('В работе')).toBeInTheDocument();
+    const sticker = screen.getByLabelText('Стикер: Проверить договор');
+    expect(sticker).toHaveStyle({ left: '72px', width: '160px', height: '160px' });
+    expect(screen.queryByRole('textbox', { name: 'Текст стикера' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Добавить задачу' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Сохранить изменения' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /удалить|редактировать/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Месяцы' }));
     expect(screen.getByRole('region', { name: 'Горизонтальная прокрутка временной шкалы' }).firstElementChild).toHaveAttribute('data-timeline-scale', 'months');
+    expect(sticker).toHaveStyle({ left: '12px', width: '160px', height: '160px' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Скрыть дополнительные колонки' }));
     expect(screen.queryByText('Статус')).not.toBeInTheDocument();

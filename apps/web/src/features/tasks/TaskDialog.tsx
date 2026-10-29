@@ -251,7 +251,7 @@ export function TaskDialog({
     : null;
 
   return (
-    <Modal isDismissible={!isPending} labelledBy={titleId} onClose={onClose}>
+    <Modal closeOnBackdrop isDismissible={!isPending} labelledBy={titleId} onClose={onClose}>
       <div className="ds-dialog-panel">
         <div className="flex items-start justify-between gap-5 border-b border-[var(--color-border)] px-5 py-5 sm:px-7">
           <div>
@@ -272,6 +272,8 @@ export function TaskDialog({
             <div className="sm:col-span-2">
               <TextField autoFocus disabled={isPending} label="Название" maxLength={200} onChange={(event) => setTitle(event.target.value)} required value={title} />
             </div>
+            <TextField disabled={isPending || datesReadOnly} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Начало задачи" onChange={(event) => changeStartDate(event.target.value)} type="date" value={startDate} />
+            <TextField disabled={isPending || datesReadOnly} error={formError || undefined} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Конец задачи" min={startDate || undefined} onChange={(event) => changeEndDate(event.target.value)} ref={endDateRef} type="date" value={endDate} />
             <SelectField disabled={isPending} label="Тип работ" onChange={(event) => setWorkType(event.target.value)} value={workType}>
               <option value="">Не выбран</option>
               {hasLegacyWorkType ? <option value={task!.workType!}>{task!.workType} (ранее выбранное)</option> : null}
@@ -340,8 +342,6 @@ export function TaskDialog({
                 value={customFields[column.key] ?? ''}
               />
             ))}
-            <TextField disabled={isPending || datesReadOnly} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Начало задачи" onChange={(event) => changeStartDate(event.target.value)} type="date" value={startDate} />
-            <TextField disabled={isPending || datesReadOnly} error={formError || undefined} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Конец задачи" min={startDate || undefined} onChange={(event) => changeEndDate(event.target.value)} ref={endDateRef} type="date" value={endDate} />
           </div>
 
           {!datesReadOnly ? (

@@ -16,6 +16,7 @@ import {
 import { recalculateParentDates } from '../tasks/parent-task-dates.js';
 import type { UpdateGanttDto } from './gantt.dto.js';
 import { GanttRepository } from './gantt.repository.js';
+import { STICKER_COLORS } from './sticker.constants.js';
 
 @Injectable()
 export class GanttService {
@@ -37,11 +38,13 @@ export class GanttService {
     this.ensureUniqueIds(input.tasks, 'Задачи не должны повторяться');
     this.ensureUniqueIds(input.milestones, 'Вехи не должны повторяться');
     this.ensureUniqueIds(input.nonWorkingDays, 'Нерабочие дни не должны повторяться');
+    this.ensureUniqueIds(input.stickers, 'Стикеры не должны повторяться');
     if (await this.repository.findConflictingIds(projectId, {
       columnIds: input.columns.map(({ id }) => id),
       taskIds: input.tasks.map(({ id }) => id),
       milestoneIds: input.milestones.map(({ id }) => id),
       nonWorkingDayIds: input.nonWorkingDays.map(({ id }) => id),
+      stickerIds: input.stickers.map(({ id }) => id),
     })) {
       throw new BadRequestException('Один из объектов принадлежит другому проекту');
     }
@@ -170,11 +173,30 @@ export class GanttService {
       };
     });
 
+    const currentStickers = new Map(current.stickers.map((item) => [item.id, item]));
+    const projectDayCount = Math.round(
+      (current.endDate.getTime() - current.startDate.getTime()) / 86_400_000,
+    );
+    const stickers = input.stickers.map((sticker) => {
+      if (!STICKER_COLORS.includes(sticker.color as (typeof STICKER_COLORS)[number])) {
+        throw new BadRequestException('Выберите допустимый цвет стикера');
+      }
+      if (sticker.xDayOffset > projectDayCount) {
+        throw new BadRequestException('Стикер должен находиться в периоде проекта');
+      }
+      return {
+        ...sticker,
+        text: sticker.text.trim(),
+        createdAt: currentStickers.get(sticker.id)?.createdAt ?? now,
+      };
+    });
+
     const saved = await this.repository.replace(projectId, {
       columns,
       tasks,
       milestones,
       nonWorkingDays,
+      stickers,
     });
     if (!saved) throw new NotFoundException('Проект не найден');
     return this.toView(saved);
@@ -287,6 +309,11 @@ export class GanttService {
       nonWorkingDays: aggregate.nonWorkingDays.map((day) => ({
         ...day,
         date: dateOnly(day.date)!,
+      })),
+      stickers: aggregate.stickers.map((sticker) => ({
+        ...sticker,
+        createdAt: sticker.createdAt,
+        updatedAt: sticker.updatedAt,
       })),
     };
   }

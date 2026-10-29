@@ -3,6 +3,7 @@ import { useRef, useState, type UIEvent } from 'react';
 
 import type { GanttAggregate } from '../gantt/gantt.api';
 import { MilestoneLayer } from '../gantt/MilestoneLayer';
+import { StickerLayer } from '../gantt/StickerLayer';
 import { buildTaskFamilyVisuals, flattenVisibleTasks, taskHasChildren } from '../gantt/taskHierarchy';
 import { taskValue } from '../gantt/taskValue';
 import {
@@ -37,6 +38,7 @@ export function PublicGanttViewer({
   tasks,
   milestones,
   nonWorkingDays,
+  stickers,
   onTaskDetails,
 }: Props) {
   const taskPaneRef = useRef<HTMLElement>(null);
@@ -65,6 +67,11 @@ export function PublicGanttViewer({
     nonWorkingDays.map((day) => [day.date, day]),
   );
   const gridTemplate = columnTemplate(columns.length, areAdditionalColumnsHidden);
+  const stickerContentHeight = Math.max(
+    rows.length * rowHeight,
+    ...stickers.map((sticker) => sticker.yRowOffset * rowHeight + sticker.size),
+    0,
+  );
 
   function syncVerticalScroll(event: UIEvent<HTMLElement>, target: HTMLElement | null) {
     if (target && target.scrollTop !== event.currentTarget.scrollTop) {
@@ -232,7 +239,7 @@ export function PublicGanttViewer({
               role="region"
               tabIndex={0}
             >
-              <div className="relative" data-timeline-scale={timelineScale} style={{ minWidth: timeline.width, width: timeline.width }}>
+              <div className="relative" data-timeline-scale={timelineScale} style={{ minHeight: '100%', minWidth: timeline.width, width: timeline.width }}>
                 <div className="sticky top-0 z-10 border-b border-[var(--color-border-strong)] bg-[var(--color-surface-subtle)]" style={{ height: GANTT_HEADER_HEIGHT }}>
                   {timelineScale === 'months' ? (
                     <>
@@ -260,7 +267,10 @@ export function PublicGanttViewer({
                     </>
                   )}
                 </div>
-                <div className="relative">
+                <div
+                  className="relative"
+                  style={{ minHeight: `max(calc(100dvh - 210px), ${stickerContentHeight}px)` }}
+                >
                   {rows.map((task, rowIndex) => (
                     <div
                       className={`relative flex border-b border-[var(--color-border)] ${task && taskFamilyVisuals.get(task.id)?.isGrouped ? 'gantt-family-row' : ''}`}
@@ -284,6 +294,14 @@ export function PublicGanttViewer({
                       )) : null}
                     </div>
                   ))}
+                  <StickerLayer
+                    canvasHeight={stickerContentHeight}
+                    dayWidth={timeline.dayWidth}
+                    readOnly
+                    rowHeight={rowHeight}
+                    stickers={stickers}
+                    timelineWidth={timeline.width}
+                  />
                 </div>
                 <MilestoneLayer dayWidth={timeline.dayWidth} milestones={milestones} timelineEndDate={project.endDate} timelineStartDate={project.startDate} />
               </div>

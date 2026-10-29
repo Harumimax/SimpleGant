@@ -38,7 +38,7 @@ export function PublicProjectPage() {
     );
   }
 
-  const { project, tasks, milestones, nonWorkingDays } = gantt.data;
+  const { project, tasks, milestones, nonWorkingDays, stickers } = gantt.data;
 
   return (
     <main className="flex h-screen min-h-[560px] flex-col overflow-hidden bg-[var(--color-canvas)] text-[var(--color-text)]" id="main-content">
@@ -61,7 +61,7 @@ export function PublicProjectPage() {
         </div>
       </header>
 
-      <PublicGanttViewer milestones={milestones} nonWorkingDays={nonWorkingDays} onTaskDetails={setDetailsTask} project={project} tasks={tasks} />
+      <PublicGanttViewer milestones={milestones} nonWorkingDays={nonWorkingDays} onTaskDetails={setDetailsTask} project={project} stickers={stickers} tasks={tasks} />
 
       {detailsTask ? <ReadOnlyTaskDetailsDialog columns={project.columns} onClose={() => setDetailsTask(null)} task={detailsTask} /> : null}
     </main>

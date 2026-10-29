@@ -82,6 +82,15 @@ export class PublicShareService {
         date: dateOnly(day.date)!,
         label: day.label,
       })),
+      stickers: aggregate.stickers.map((sticker) => ({
+        id: sticker.id,
+        text: sticker.text,
+        color: sticker.color,
+        xDayOffset: sticker.xDayOffset,
+        yRowOffset: sticker.yRowOffset,
+        size: sticker.size,
+        zIndex: sticker.zIndex,
+      })),
     };
   }
 }

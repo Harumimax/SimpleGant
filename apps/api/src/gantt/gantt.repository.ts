@@ -53,6 +53,16 @@ export type GanttPersistenceInput = {
     label: string | null;
     createdAt: Date;
   }>;
+  stickers: Array<{
+    id: string;
+    text: string;
+    color: string;
+    xDayOffset: number;
+    yRowOffset: number;
+    size: number;
+    zIndex: number;
+    createdAt: Date;
+  }>;
 };
 
 @Injectable()
@@ -67,6 +77,7 @@ export class GanttRepository {
         tasks: { orderBy: [{ orderIndex: 'asc' }, { createdAt: 'asc' }] },
         milestones: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] },
         nonWorkingDays: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] },
+        stickers: { orderBy: [{ zIndex: 'asc' }, { createdAt: 'asc' }] },
       },
     });
   }
@@ -78,9 +89,10 @@ export class GanttRepository {
       taskIds: string[];
       milestoneIds: string[];
       nonWorkingDayIds: string[];
+      stickerIds: string[];
     },
   ) {
-    const [columns, tasks, milestones, nonWorkingDays] = await Promise.all([
+    const [columns, tasks, milestones, nonWorkingDays, stickers] = await Promise.all([
       this.prisma.projectColumn.count({
         where: { id: { in: input.columnIds }, projectId: { not: projectId } },
       }),
@@ -96,8 +108,11 @@ export class GanttRepository {
           projectId: { not: projectId },
         },
       }),
+      this.prisma.sticker.count({
+        where: { id: { in: input.stickerIds }, projectId: { not: projectId } },
+      }),
     ]);
-    return columns + tasks + milestones + nonWorkingDays;
+    return columns + tasks + milestones + nonWorkingDays + stickers;
   }
 
   async replace(projectId: string, input: GanttPersistenceInput) {
@@ -106,6 +121,7 @@ export class GanttRepository {
       await transaction.projectColumn.deleteMany({ where: { projectId } });
       await transaction.milestone.deleteMany({ where: { projectId } });
       await transaction.nonWorkingDay.deleteMany({ where: { projectId } });
+      await transaction.sticker.deleteMany({ where: { projectId } });
 
       await transaction.projectColumn.createMany({
         data: input.columns.map((column) => ({ ...column, projectId })),
@@ -146,6 +162,9 @@ export class GanttRepository {
       });
       await transaction.nonWorkingDay.createMany({
         data: input.nonWorkingDays.map((day) => ({ ...day, projectId })),
+      });
+      await transaction.sticker.createMany({
+        data: input.stickers.map((sticker) => ({ ...sticker, projectId })),
       });
       await transaction.project.update({
         where: { id: projectId },

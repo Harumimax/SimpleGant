@@ -23,6 +23,7 @@ import {
   LoaderCircle,
   Monitor,
   Plus,
+  StickyNote,
 } from 'lucide-react';
 import { useRef, useState, type UIEvent } from 'react';
 
@@ -51,12 +52,18 @@ import {
 import { TaskBar } from './TaskBar';
 import { canUsePeriodDates, taskPeriods } from './taskPeriods';
 import { MilestoneLayer } from './MilestoneLayer';
+import {
+  MAX_PROJECT_STICKERS,
+  StickerLayer,
+} from './StickerLayer';
+import type { Sticker, StickerUpdate } from '../stickers/stickers.api';
 
 type GanttWorkspaceProps = {
   project: ProjectDetail;
   tasks: Task[];
   milestones: Milestone[];
   nonWorkingDays: NonWorkingDay[];
+  stickers?: Sticker[];
   onAddTask: () => void;
   onConfigureColumns: () => void;
   onConfigureMilestones: () => void;
@@ -73,6 +80,10 @@ type GanttWorkspaceProps = {
   isSaving?: boolean;
   saveError?: string;
   onRetrySave?: () => void;
+  onAddSticker?: (xDayOffset: number, yRowOffset: number) => void;
+  onUpdateSticker?: (id: string, update: StickerUpdate) => void;
+  onDeleteSticker?: (id: string) => void;
+  onActivateSticker?: (id: string) => void;
 };
 
 function columnTemplate(columnCount: number, showActions: boolean) {
@@ -93,6 +104,7 @@ export function GanttWorkspace({
   tasks,
   milestones,
   nonWorkingDays,
+  stickers = [],
   onAddTask,
   onConfigureColumns,
   onConfigureMilestones,
@@ -109,12 +121,17 @@ export function GanttWorkspace({
   isSaving = false,
   saveError,
   onRetrySave,
+  onAddSticker,
+  onUpdateSticker,
+  onDeleteSticker,
+  onActivateSticker,
 }: GanttWorkspaceProps) {
   const taskPaneRef = useRef<HTMLElement>(null);
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
   const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
   const [rowDensity, setRowDensity] = useState<GanttRowDensity>('normal');
+  const [isPlacingSticker, setIsPlacingSticker] = useState(false);
   const [dragPreviewTasks, setDragPreviewTasks] = useState<Task[] | null>(null);
   const [dragSource, setDragSource] = useState<'table' | 'timeline' | null>(null);
   const dragBaseTasksRef = useRef<Task[]>(tasks);
@@ -144,6 +161,11 @@ export function GanttWorkspace({
   const taskFamilyVisuals = buildTaskFamilyVisuals(dragPreviewTasks ?? tasks);
   const previewIndexes = new Map(
     previewVisibleTasks.map((task, index) => [task.id, index]),
+  );
+  const stickerContentHeight = Math.max(
+    visibleTasks.length * rowHeight,
+    ...stickers.map((sticker) => sticker.yRowOffset * rowHeight + sticker.size),
+    0,
   );
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -350,6 +372,17 @@ export function GanttWorkspace({
               </span>
             ) : null}
             <button
+              aria-pressed={isPlacingSticker}
+              className={`flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${isPlacingSticker ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]' : 'border-[var(--color-border-strong)] bg-white text-[var(--color-text)] hover:bg-[var(--color-surface-subtle)]'}`}
+              disabled={stickers.length >= MAX_PROJECT_STICKERS}
+              onClick={() => setIsPlacingSticker((current) => !current)}
+              title={stickers.length >= MAX_PROJECT_STICKERS ? 'Достигнут лимит: 50 стикеров' : isPlacingSticker ? 'Отменить добавление стикера' : 'Добавить стикер на временную сетку'}
+              type="button"
+            >
+              <StickyNote aria-hidden className="size-4" />
+              {isPlacingSticker ? 'Укажите место' : 'Стикер'}
+            </button>
+            <button
               className="flex h-9 items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-white px-3 text-sm font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-subtle)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               onClick={onConfigureNonWorkingDays}
               title="Нерабочие дни"
@@ -512,7 +545,7 @@ export function GanttWorkspace({
               <div
                 className="relative"
                 data-timeline-scale={timelineScale}
-                style={{ minWidth: timeline.width, width: timeline.width }}
+                style={{ minHeight: '100%', minWidth: timeline.width, width: timeline.width }}
               >
                 <div
                   className="sticky top-0 z-10 border-b border-[var(--color-border-strong)] bg-[var(--color-surface-subtle)]"
@@ -591,7 +624,10 @@ export function GanttWorkspace({
                   )}
                 </div>
 
-                <div className="relative">
+                <div
+                  className="relative"
+                  style={{ minHeight: `max(calc(100dvh - 210px), ${stickerContentHeight}px)` }}
+                >
                   {visibleTasks.map((task, rowIndex) => (
                     <div
                       className={`relative flex border-b border-[var(--color-border)] ${taskFamilyVisuals.get(task.id)?.isGrouped ? 'gantt-family-row' : ''}`}
@@ -654,6 +690,21 @@ export function GanttWorkspace({
                       ))}
                     </div>
                   ))}
+                  <StickerLayer
+                    canvasHeight={stickerContentHeight}
+                    dayWidth={timeline.dayWidth}
+                    isPlacing={isPlacingSticker}
+                    onActivate={onActivateSticker}
+                    onDelete={onDeleteSticker}
+                    onPlace={(xDayOffset, yRowOffset) => {
+                      onAddSticker?.(xDayOffset, yRowOffset);
+                      setIsPlacingSticker(false);
+                    }}
+                    onUpdate={onUpdateSticker}
+                    rowHeight={rowHeight}
+                    stickers={stickers}
+                    timelineWidth={timeline.width}
+                  />
                 </div>
                 <MilestoneLayer
                   dayWidth={timeline.dayWidth}

@@ -9,9 +9,11 @@ import {
   IsInt,
   IsObject,
   IsOptional,
+  IsNumber,
   IsString,
   IsUUID,
   MaxLength,
+  Max,
   Min,
   MinLength,
   ValidateIf,
@@ -20,6 +22,12 @@ import {
 
 import { MILESTONE_COLORS } from '../milestones/milestone.constants.js';
 import { TASK_COLORS, TASK_STATUSES } from '../tasks/task.constants.js';
+import {
+  MAX_PROJECT_STICKERS,
+  MAX_STICKER_SIZE,
+  MIN_STICKER_SIZE,
+  STICKER_COLORS,
+} from './sticker.constants.js';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -169,6 +177,39 @@ export class GanttNonWorkingDayDto {
   label?: string | null;
 }
 
+export class GanttStickerDto {
+  @IsUUID('4')
+  id!: string;
+
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(1000)
+  text!: string;
+
+  @IsIn(STICKER_COLORS)
+  color!: string;
+
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  xDayOffset!: number;
+
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  @Max(200)
+  yRowOffset!: number;
+
+  @IsInt()
+  @Min(MIN_STICKER_SIZE)
+  @Max(MAX_STICKER_SIZE)
+  size!: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(10_000)
+  zIndex!: number;
+}
+
 export class UpdateGanttDto {
   @IsArray()
   @ArrayMinSize(5)
@@ -194,4 +235,10 @@ export class UpdateGanttDto {
   @ValidateNested({ each: true })
   @Type(() => GanttNonWorkingDayDto)
   nonWorkingDays!: GanttNonWorkingDayDto[];
+
+  @IsArray()
+  @ArrayMaxSize(MAX_PROJECT_STICKERS)
+  @ValidateNested({ each: true })
+  @Type(() => GanttStickerDto)
+  stickers!: GanttStickerDto[];
 }

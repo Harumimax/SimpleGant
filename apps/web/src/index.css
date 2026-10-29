@@ -441,6 +441,32 @@ a[href] {
 .gantt-milestone-line { background-color: var(--milestone-border); box-shadow: 0 0 0 1px rgb(255 255 255 / 55%); }
 .gantt-milestone-label { border: 1px solid var(--milestone-border); background: var(--milestone-background); color: var(--milestone-text); }
 
+.gantt-sticker[data-color="amber"], .sticker-color-button[data-color="amber"] { --sticker-color: #f3dda0; --sticker-border: #d4b75f; --sticker-text: #4f410d; }
+.gantt-sticker[data-color="sky"], .sticker-color-button[data-color="sky"] { --sticker-color: #c3e3ed; --sticker-border: #86b8c8; --sticker-text: #17424e; }
+.gantt-sticker[data-color="sage"], .sticker-color-button[data-color="sage"] { --sticker-color: #c6e1d4; --sticker-border: #87b49f; --sticker-text: #173f33; }
+.gantt-sticker[data-color="rose"], .sticker-color-button[data-color="rose"] { --sticker-color: #efd0d6; --sticker-border: #c995a0; --sticker-text: #5a3039; }
+.gantt-sticker[data-color="lavender"], .sticker-color-button[data-color="lavender"] { --sticker-color: #d9d6ef; --sticker-border: #aaa4d0; --sticker-text: #34315f; }
+.gantt-sticker[data-color="sand"], .sticker-color-button[data-color="sand"] { --sticker-color: #ead7bb; --sticker-border: #c6a77d; --sticker-text: #55401e; }
+
+.gantt-sticker {
+  border-color: var(--sticker-border);
+  color: var(--sticker-text);
+  background: var(--sticker-color);
+  box-shadow: 0 8px 22px rgb(23 35 31 / 16%);
+}
+
+.gantt-sticker textarea {
+  color: inherit;
+}
+
+.sticker-color-button {
+  background: var(--sticker-color);
+}
+
+.sticker-color-button[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--sticker-border);
+}
+
 @media (width < 1024px) {
   .gantt-shell {
     grid-template-columns: 600px minmax(0, 1fr);

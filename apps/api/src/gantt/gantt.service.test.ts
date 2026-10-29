@@ -33,6 +33,7 @@ const aggregate = {
   tasks: [],
   milestones: [],
   nonWorkingDays: [],
+  stickers: [],
 };
 
 function repositoryMock() {
@@ -49,6 +50,7 @@ function validInput(): UpdateGanttDto {
     tasks: [],
     milestones: [],
     nonWorkingDays: [],
+    stickers: [],
   };
 }
 
@@ -155,6 +157,49 @@ describe('GanttService', () => {
 
     await expect(service.update(projectId, ownerId, validInput())).rejects.toThrow(
       'Один из объектов принадлежит другому проекту',
+    );
+    expect(repository.replace).not.toHaveBeenCalled();
+  });
+
+  it('validates and saves free-standing timeline stickers', async () => {
+    repository.findOwned.mockResolvedValue(aggregate);
+    repository.replace.mockResolvedValue(aggregate);
+    const input = validInput();
+    input.stickers = [{
+      id: 'cd40b482-57ce-443f-8e88-b1f5827b6577',
+      text: 'Контрольная заметка',
+      color: 'amber',
+      xDayOffset: 4.5,
+      yRowOffset: 2,
+      size: 160,
+      zIndex: 1,
+    }];
+
+    await service.update(projectId, ownerId, input);
+
+    expect(repository.replace.mock.calls[0]?.[1].stickers[0]).toMatchObject({
+      text: 'Контрольная заметка',
+      xDayOffset: 4.5,
+      yRowOffset: 2,
+      size: 160,
+    });
+  });
+
+  it('rejects a sticker positioned outside the project period', async () => {
+    repository.findOwned.mockResolvedValue(aggregate);
+    const input = validInput();
+    input.stickers = [{
+      id: 'cd40b482-57ce-443f-8e88-b1f5827b6577',
+      text: 'За границей',
+      color: 'sky',
+      xDayOffset: 30,
+      yRowOffset: 0,
+      size: 160,
+      zIndex: 0,
+    }];
+
+    await expect(service.update(projectId, ownerId, input)).rejects.toThrow(
+      'Стикер должен находиться в периоде проекта',
     );
     expect(repository.replace).not.toHaveBeenCalled();
   });
