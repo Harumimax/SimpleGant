@@ -16,7 +16,8 @@ import {
   countTaskDescendants,
   recalculateParentTaskDates,
 } from '../features/gantt/taskHierarchy';
-import { calculateTaskDuration, type TaskDateRange } from '../features/gantt/timeline';
+import type { TaskDateRange } from '../features/gantt/timeline';
+import { taskPeriodsDuration } from '../features/gantt/taskPeriods';
 import { MilestonesDialog } from '../features/milestones/MilestonesDialog';
 import type { MilestoneInput } from '../features/milestones/milestones.api';
 import { ProjectColumnsDialog } from '../features/projects/ProjectColumnsDialog';
@@ -193,21 +194,23 @@ export function ProjectEditorPage() {
         assignee: input.assignee ?? '',
         estimate: input.estimate ?? null,
         comment: input.comment ?? null,
-        duration: calculateTaskDuration(
-          dates.startDate,
-          dates.endDate,
-          current.project.excludeNonWorkingDays,
-          current.nonWorkingDays,
-        ),
+        duration: null,
         status: input.status,
         startDate: dates.startDate,
         endDate: dates.endDate,
         color: input.color ?? 'sage',
+        includeInDuration: input.includeInDuration ?? true,
+        periods: input.periods ?? [],
         isCollapsed: false,
         customFields: input.customFields ?? {},
         createdAt: now,
         updatedAt: now,
       };
+      task.duration = taskPeriodsDuration(
+        task,
+        current.project.excludeNonWorkingDays,
+        current.nonWorkingDays,
+      );
       return { ...current, tasks: [...current.tasks, task] };
     });
     setIsCreateOpen(false);
@@ -236,14 +239,11 @@ export function ProjectEditorPage() {
           comment: input.comment ?? null,
           status: input.status,
           color: input.color ?? task.color,
+          includeInDuration: input.includeInDuration ?? task.includeInDuration,
+          periods: input.periods ?? task.periods,
           customFields: input.customFields ?? {},
           ...dates,
-          duration: calculateTaskDuration(
-            dates.startDate,
-            dates.endDate,
-            current.project.excludeNonWorkingDays,
-            current.nonWorkingDays,
-          ),
+          duration: task.duration,
           updatedAt: new Date().toISOString(),
         };
       }), current.project.excludeNonWorkingDays, current.nonWorkingDays),
@@ -402,20 +402,18 @@ export function ProjectEditorPage() {
         onConfigureMilestones={() => setIsMilestonesOpen(true)}
         onConfigureNonWorkingDays={() => setIsNonWorkingDaysOpen(true)}
         onRetrySave={retrySave}
-        onTaskDatesChange={async (task, dates: TaskDateRange) => {
+        onTaskDatesChange={async (task, periodId, dates: TaskDateRange) => {
           updateDraft((current) => ({
             ...current,
             tasks: recalculateParentTaskDates(current.tasks.map((item) => item.id === task.id
-              ? {
-                  ...item,
-                  ...dates,
-                  duration: calculateTaskDuration(
-                    dates.startDate,
-                    dates.endDate,
-                    current.project.excludeNonWorkingDays,
-                    current.nonWorkingDays,
-                  ),
-                }
+              ? periodId === item.id
+                ? { ...item, ...dates }
+                : {
+                    ...item,
+                    periods: item.periods.map((period) => period.id === periodId
+                      ? { ...period, ...dates }
+                      : period),
+                  }
               : item), current.project.excludeNonWorkingDays, current.nonWorkingDays),
           }));
         }}

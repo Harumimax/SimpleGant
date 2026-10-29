@@ -20,6 +20,8 @@ const task: Task = {
   startDate: '2026-11-03',
   endDate: '2026-11-05',
   color: 'sage',
+  includeInDuration: true,
+  periods: [],
   isCollapsed: false,
   customFields: {},
   createdAt: '2026-10-27T10:00:00.000Z',
@@ -103,7 +105,7 @@ describe('TaskBar', () => {
     fireEvent.click(bar);
 
     await waitFor(() => {
-      expect(onDateChange).toHaveBeenCalledWith(task, {
+      expect(onDateChange).toHaveBeenCalledWith(task, task.id, {
         startDate: '2026-11-04',
         endDate: '2026-11-06',
       });
@@ -132,7 +134,7 @@ describe('TaskBar', () => {
     fireEvent.pointerUp(bar, { clientX: 114, pointerId: 1 });
 
     await waitFor(() => {
-      expect(onDateChange).toHaveBeenCalledWith(task, {
+      expect(onDateChange).toHaveBeenCalledWith(task, task.id, {
         startDate: '2026-11-04',
         endDate: '2026-11-06',
       });

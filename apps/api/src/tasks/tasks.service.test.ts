@@ -364,7 +364,7 @@ describe('TasksService', () => {
       endDate: '2026-11-08',
     });
 
-    expect(result[0]?.duration).toBe(7);
+    expect(result[0]?.duration).toBe(5);
   });
 
   it('rejects manual date changes for a parent task', async () => {

@@ -7,6 +7,12 @@ import {
 
 import { isTaskColor, isTaskWorkType, TASK_STATUSES } from '../tasks/task.constants.js';
 import { calculateDuration, dateOnly, parseDateOnly, validateDateRange } from '../tasks/task-dates.js';
+import {
+  calculateTaskPeriodsDuration,
+  readTaskPeriods,
+  taskPeriodBounds,
+  validateTaskPeriods,
+} from '../tasks/task-periods.js';
 import { recalculateParentDates } from '../tasks/parent-task-dates.js';
 import type { UpdateGanttDto } from './gantt.dto.js';
 import { GanttRepository } from './gantt.repository.js';
@@ -101,11 +107,11 @@ export class GanttService {
     }
     const orderIndexes = this.resolveSiblingOrder(input.tasks);
     const levels = this.resolveLevels(input.tasks);
-    const tasks = recalculateParentDates(input.tasks.map((task) => {
+    const baseTasks = input.tasks.map((task) => {
       const startDate = task.startDate ? parseDateOnly(task.startDate) : null;
       const endDate = task.endDate ? parseDateOnly(task.endDate) : null;
       validateDateRange(startDate, endDate);
-      return {
+      const prepared = {
         ...task,
         orderIndex: orderIndexes.get(task.id) ?? 0,
         level: levels.get(task.id) ?? 0,
@@ -119,7 +125,22 @@ export class GanttService {
         ),
         createdAt: currentTasks.get(task.id)?.createdAt ?? now,
       };
-    }));
+      return {
+        ...prepared,
+        periods: validateTaskPeriods(prepared),
+      };
+    });
+    const baseTasksById = new Map(baseTasks.map((task) => [task.id, task]));
+    const parentIds = new Set(
+      baseTasks.flatMap(({ parentId }) => parentId ? [parentId] : []),
+    );
+    const recalculatedTasks = recalculateParentDates(baseTasks.map((task) => ({
+      ...task,
+      ...taskPeriodBounds(task),
+    })));
+    const tasks = recalculatedTasks.map((task) => parentIds.has(task.id)
+      ? task
+      : baseTasksById.get(task.id) ?? task);
 
     const currentMilestones = new Map(current.milestones.map((item) => [item.id, item]));
     const milestones = input.milestones.map((milestone) => {
@@ -218,6 +239,9 @@ export class GanttService {
     const nonWorkingDates = new Set(
       aggregate.nonWorkingDays.map((day) => dateOnly(day.date)!),
     );
+    const parentIds = new Set(
+      aggregate.tasks.flatMap(({ parentId }) => parentId ? [parentId] : []),
+    );
     return {
       project: {
         id: aggregate.id,
@@ -239,14 +263,21 @@ export class GanttService {
       },
       tasks: aggregate.tasks.map((task) => ({
         ...task,
-        duration: calculateDuration(
-          task.startDate,
-          task.endDate,
-          aggregate.excludeNonWorkingDays,
-          nonWorkingDates,
-        ),
+        duration: parentIds.has(task.id)
+          ? calculateDuration(
+              task.startDate,
+              task.endDate,
+              aggregate.excludeNonWorkingDays,
+              nonWorkingDates,
+            )
+          : calculateTaskPeriodsDuration(
+              task,
+              aggregate.excludeNonWorkingDays,
+              nonWorkingDates,
+            ),
         startDate: dateOnly(task.startDate),
         endDate: dateOnly(task.endDate),
+        periods: readTaskPeriods(task.periods),
         customFields: task.customFields as Record<string, string>,
       })),
       milestones: aggregate.milestones.map((milestone) => ({

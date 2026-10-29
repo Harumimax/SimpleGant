@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
 import { calculateDuration, dateOnly } from '../tasks/task-dates.js';
+import { calculateTaskPeriodsDuration, readTaskPeriods } from '../tasks/task-periods.js';
 import { PublicShareRepository } from './public-share.repository.js';
 
 @Injectable()
@@ -18,6 +19,9 @@ export class PublicShareService {
     if (!aggregate) throw new NotFoundException('Публичный проект не найден');
     const nonWorkingDates = new Set(
       aggregate.nonWorkingDays.map((day) => dateOnly(day.date)!),
+    );
+    const parentIds = new Set(
+      aggregate.tasks.flatMap(({ parentId }) => parentId ? [parentId] : []),
     );
 
     return {
@@ -46,16 +50,24 @@ export class PublicShareService {
         assignee: task.assignee,
         estimate: task.estimate,
         comment: task.comment,
-        duration: calculateDuration(
-          task.startDate,
-          task.endDate,
-          aggregate.excludeNonWorkingDays,
-          nonWorkingDates,
-        ),
+        duration: parentIds.has(task.id)
+          ? calculateDuration(
+              task.startDate,
+              task.endDate,
+              aggregate.excludeNonWorkingDays,
+              nonWorkingDates,
+            )
+          : calculateTaskPeriodsDuration(
+              task,
+              aggregate.excludeNonWorkingDays,
+              nonWorkingDates,
+            ),
         status: task.status,
         startDate: dateOnly(task.startDate),
         endDate: dateOnly(task.endDate),
         color: task.color,
+        includeInDuration: task.includeInDuration,
+        periods: readTaskPeriods(task.periods),
         isCollapsed: task.isCollapsed,
         customFields: task.customFields as Record<string, string>,
       })),

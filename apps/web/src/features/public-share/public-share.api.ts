@@ -2,6 +2,7 @@ import { apiRequest } from '../../lib/api';
 import type { GanttAggregate } from '../gantt/gantt.api';
 import type { MilestoneColor } from '../milestones/milestones.api';
 import type { TaskStatus } from '../tasks/tasks.api';
+import type { TaskPeriod } from '../tasks/tasks.api';
 
 type PublicGanttResponse = {
   project: {
@@ -27,6 +28,8 @@ type PublicGanttResponse = {
     startDate: string | null;
     endDate: string | null;
     color: string;
+    includeInDuration: boolean;
+    periods: TaskPeriod[];
     isCollapsed: boolean;
     customFields: Record<string, string>;
   }>;

@@ -18,12 +18,12 @@ import {
   type TaskStatus,
 } from './task.constants.js';
 import {
-  calculateDuration,
   dateOnly,
   normalizeCreationDates,
   parseDateOnly,
   validateDateRange,
 } from './task-dates.js';
+import { calculateTaskPeriodsDuration, readTaskPeriods } from './task-periods.js';
 import {
   changedParentDates,
   recalculateParentDates,
@@ -421,6 +421,8 @@ export class TasksService {
     startDate: Date | null;
     endDate: Date | null;
     color: string;
+    includeInDuration: boolean;
+    periods: unknown;
     isCollapsed: boolean;
     customFields: unknown;
     createdAt: Date;
@@ -432,14 +434,14 @@ export class TasksService {
     return {
       ...task,
       status: task.status as TaskStatus,
-      duration: calculateDuration(
-        task.startDate,
-        task.endDate,
+      duration: calculateTaskPeriodsDuration(
+        task,
         excludeNonWorkingDays,
         nonWorkingDates,
       ),
       startDate: dateOnly(task.startDate),
       endDate: dateOnly(task.endDate),
+      periods: readTaskPeriods(task.periods),
       customFields: task.customFields as Record<string, string>,
     };
   }

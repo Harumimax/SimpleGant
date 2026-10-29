@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent } from 'react';
 
-import type { Task } from '../tasks/tasks.api';
+import type { Task, TaskPeriod } from '../tasks/tasks.api';
 import {
   calculateTaskBarGeometry,
   calculateTaskDateChange,
@@ -26,6 +26,7 @@ const TASK_BAR_COLORS = new Set([
 
 type TaskBarProps = {
   task: Task;
+  period?: TaskPeriod;
   timelineStartDate: string;
   timelineEndDate: string;
   dayWidth?: number;
@@ -33,6 +34,7 @@ type TaskBarProps = {
   onOpen: (task: Task) => void;
   onDateChange: (
     task: Task,
+    periodId: string,
     dates: TaskDateRange,
   ) => Promise<void>;
   onVerticalMove?: (task: Task, rowDelta: number) => Promise<void>;
@@ -41,6 +43,7 @@ type TaskBarProps = {
   onVerticalMoveCancel?: () => void;
   isSaving?: boolean;
   isDateLocked?: boolean;
+  canChangeDates?: (periodId: string, dates: TaskDateRange) => boolean;
 };
 
 type Interaction = {
@@ -55,6 +58,7 @@ const DRAG_ACTIVATION_DISTANCE = 6;
 
 export function TaskBar({
   task,
+  period,
   timelineStartDate,
   timelineEndDate,
   dayWidth = GANTT_DAY_WIDTH,
@@ -67,15 +71,24 @@ export function TaskBar({
   onVerticalMoveCancel,
   isSaving = false,
   isDateLocked = false,
+  canChangeDates,
 }: TaskBarProps) {
+  const renderedPeriod = period ?? {
+    id: task.id,
+    title: task.title,
+    startDate: task.startDate ?? '',
+    endDate: task.endDate ?? '',
+    includeInDuration: task.includeInDuration,
+    color: TASK_BAR_COLORS.has(task.color) ? task.color as TaskPeriod['color'] : 'sage',
+  };
   const interactionRef = useRef<Interaction | null>(null);
   const previewRef = useRef<TaskDateRange | null>(null);
   const didDragRef = useRef(false);
   const [preview, setPreview] = useState<TaskDateRange | null>(null);
   const [activeMode, setActiveMode] = useState<TaskDateChangeMode | null>(null);
   const [verticalOffset, setVerticalOffset] = useState(0);
-  const taskStartDate = task.startDate;
-  const taskEndDate = task.endDate;
+  const taskStartDate = renderedPeriod.startDate;
+  const taskEndDate = renderedPeriod.endDate;
   const visibleStartDate = preview?.startDate ?? taskStartDate;
   const visibleEndDate = preview?.endDate ?? taskEndDate;
   const geometry = calculateTaskBarGeometry(
@@ -93,8 +106,8 @@ export function TaskBar({
 
   const startInset = geometry.isClippedStart ? 0 : 4;
   const endInset = geometry.isClippedEnd ? 0 : 4;
-  const color = TASK_BAR_COLORS.has(task.color) ? task.color : 'sage';
-  const period = `${visibleStartDate} — ${visibleEndDate}`;
+  const color = TASK_BAR_COLORS.has(renderedPeriod.color) ? renderedPeriod.color : 'sage';
+  const periodLabel = `${visibleStartDate} — ${visibleEndDate}`;
   const barHeight = Math.max(8, Math.round(rowHeight * 0.64));
   const barPadding = rowHeight <= 13 ? 2 : rowHeight < GANTT_ROW_HEIGHT ? 6 : 10;
   const resizeHandleWidth = rowHeight <= 13 ? 5 : rowHeight < GANTT_ROW_HEIGHT ? 8 : 10;
@@ -163,6 +176,7 @@ export function TaskBar({
       timelineStartDate,
       timelineEndDate,
     );
+    if (canChangeDates && !canChangeDates(renderedPeriod.id, dates)) return;
     didDragRef.current = dayDelta !== 0;
     previewRef.current = dates;
     setPreview(dates);
@@ -199,7 +213,7 @@ export function TaskBar({
         dates.endDate !== originalEndDate)
     ) {
       try {
-        await onDateChange(task, dates);
+        await onDateChange(task, renderedPeriod.id, dates);
       } catch {
         // The editor reports the mutation error and restores the cached task.
       } finally {
@@ -224,7 +238,7 @@ export function TaskBar({
 
   return (
     <button
-      aria-label={`Подробно: ${task.title}, ${period}${isDateLocked ? ', даты рассчитываются автоматически' : ''}`}
+      aria-label={`Подробно: ${renderedPeriod.title}, ${periodLabel}${isDateLocked ? ', даты рассчитываются автоматически' : ''}`}
       aria-busy={isSaving || undefined}
       className={`gantt-task-bar group absolute flex items-center overflow-hidden text-left font-semibold shadow-sm outline-none transition-[filter,box-shadow,opacity] hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70 ${verticalOffset ? 'z-30 cursor-grabbing opacity-80 shadow-lg' : 'z-[2]'} ${isDateLocked && !onVerticalMove ? 'cursor-pointer' : 'cursor-grab'}`}
       data-clipped-end={geometry.isClippedEnd || undefined}
@@ -253,7 +267,7 @@ export function TaskBar({
         transform: verticalOffset ? `translateY(${verticalOffset}px)` : undefined,
         width: Math.max(geometry.width - startInset - endInset, 8),
       }}
-      title={`${task.title}\n${period}${isDateLocked ? '\nДаты рассчитываются по вложенным задачам' : ''}`}
+      title={`${renderedPeriod.title}\n${periodLabel}${isDateLocked ? '\nДаты рассчитываются по вложенным задачам' : ''}`}
       type="button"
     >
       {!isDateLocked ? <span
@@ -263,7 +277,7 @@ export function TaskBar({
         style={{ flexBasis: resizeHandleWidth, marginLeft: -barPadding, width: resizeHandleWidth }}
       /> : null}
       {rowHeight > 13 ? <span className="min-w-0 flex-1 truncate text-center">
-          {activeMode ? period : task.title}
+          {activeMode ? periodLabel : renderedPeriod.title}
         </span> : null}
       {!isDateLocked ? <span
         aria-hidden="true"

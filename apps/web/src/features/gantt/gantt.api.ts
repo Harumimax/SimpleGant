@@ -28,6 +28,8 @@ export type GanttSaveInput = {
     | 'startDate'
     | 'endDate'
     | 'color'
+    | 'includeInDuration'
+    | 'periods'
     | 'isCollapsed'
     | 'customFields'
   >>;
@@ -64,6 +66,8 @@ export function saveGantt(
       startDate: task.startDate,
       endDate: task.endDate,
       color: task.color,
+      includeInDuration: task.includeInDuration,
+      periods: task.periods,
       isCollapsed: task.isCollapsed,
       customFields: task.customFields,
     })),

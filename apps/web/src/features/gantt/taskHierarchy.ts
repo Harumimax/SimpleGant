@@ -5,6 +5,7 @@ import {
   type TaskPositionInput,
 } from '../tasks/tasks.api';
 import { calculateTaskDuration } from './timeline';
+import { taskDateBounds, taskPeriodsDuration } from './taskPeriods';
 
 export const MAX_TASK_LEVEL = 4;
 
@@ -110,7 +111,11 @@ export function recalculateParentTaskDates(
     if (task && childIds.length > 0) {
       const boundaries = childIds.flatMap((childId) => {
         const child = byId.get(childId);
-        return child ? [child.startDate, child.endDate].filter(Boolean) as string[] : [];
+        if (!child) return [];
+        const bounds = (children.get(child.id)?.length ?? 0) > 0
+          ? { startDate: child.startDate, endDate: child.endDate }
+          : taskDateBounds(child);
+        return [bounds.startDate, bounds.endDate].filter(Boolean) as string[];
       });
       task.startDate = boundaries.length > 0 ? boundaries.sort()[0]! : null;
       task.endDate = boundaries.length > 0 ? boundaries.sort().at(-1)! : null;
@@ -124,12 +129,18 @@ export function recalculateParentTaskDates(
     const task = byId.get(id)!;
     return {
       ...task,
-      duration: calculateTaskDuration(
-        task.startDate,
-        task.endDate,
-        excludeNonWorkingDays,
-        nonWorkingDays,
-      ),
+      duration: (children.get(task.id)?.length ?? 0) > 0
+        ? calculateTaskDuration(
+            task.startDate,
+            task.endDate,
+            excludeNonWorkingDays,
+            nonWorkingDays,
+          )
+        : taskPeriodsDuration(
+            task,
+            excludeNonWorkingDays,
+            nonWorkingDays,
+          ),
     };
   });
 }

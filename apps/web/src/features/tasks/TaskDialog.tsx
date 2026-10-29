@@ -1,4 +1,5 @@
-import { CalendarDays, Trash2, X } from 'lucide-react';
+import { addDays, format, parseISO } from 'date-fns';
+import { CalendarDays, Plus, Trash2, X } from 'lucide-react';
 import { useId, useRef, useState, type FormEvent } from 'react';
 
 import { Alert } from '../../components/ui/Alert';
@@ -9,6 +10,7 @@ import { TextField } from '../../components/ui/TextField';
 import type { ProjectColumn } from '../projects/projects.api';
 import type { NonWorkingDay } from '../calendar/non-working-days.api';
 import { calculateTaskDuration } from '../gantt/timeline';
+import { periodsOverlap } from '../gantt/taskPeriods';
 import {
   isTaskColor,
   TASK_COLORS,
@@ -17,6 +19,7 @@ import {
   type Task,
   type TaskColor,
   type TaskInput,
+  type TaskPeriod,
   type TaskStatus,
 } from './tasks.api';
 
@@ -73,6 +76,10 @@ export function TaskDialog({
   const [color, setColor] = useState<TaskColor>(
     task?.color && isTaskColor(task.color) ? task.color : 'sage',
   );
+  const [includeInDuration, setIncludeInDuration] = useState(
+    task?.includeInDuration ?? true,
+  );
+  const [periods, setPeriods] = useState<TaskPeriod[]>(task?.periods ?? []);
   const [startDate, setStartDate] = useState(task?.startDate ?? '');
   const [endDate, setEndDate] = useState(task?.endDate ?? '');
   const [customFields, setCustomFields] = useState<Record<string, string>>(
@@ -115,6 +122,31 @@ export function TaskDialog({
     syncDuration(startDate, value);
   }
 
+  function defaultPeriodEnd(value: string) {
+    return value ? format(addDays(parseISO(value), 6), 'yyyy-MM-dd') : '';
+  }
+
+  function addPeriod() {
+    if (periods.length >= 4) return;
+    const periodStart = endDate
+      ? format(addDays(parseISO(endDate), 1), 'yyyy-MM-dd')
+      : '';
+    setPeriods((current) => [...current, {
+      id: crypto.randomUUID(),
+      title: '',
+      startDate: periodStart,
+      endDate: defaultPeriodEnd(periodStart),
+      includeInDuration: true,
+      color,
+    }]);
+  }
+
+  function updatePeriod(periodId: string, patch: Partial<TaskPeriod>) {
+    setPeriods((current) => current.map((period) =>
+      period.id === periodId ? { ...period, ...patch } : period,
+    ));
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (startDate && endDate && startDate > endDate) {
@@ -136,6 +168,40 @@ export function TaskDialog({
       setFormError('Для расчёта длительности укажите начало или конец задачи');
       return;
     }
+    if (periods.length > 0 && (!startDate || !endDate)) {
+      setFormError('Для дополнительных периодов укажите обе даты основного периода');
+      return;
+    }
+    const normalizedPeriods = periods.map((period) => ({
+      ...period,
+      title: period.title.trim(),
+      endDate: period.endDate || defaultPeriodEnd(period.startDate),
+    }));
+    if (normalizedPeriods.some((period) => !period.title || !period.startDate)) {
+      setFormError('Укажите название и дату начала каждого периода');
+      return;
+    }
+    if (normalizedPeriods.some((period) => period.endDate < period.startDate)) {
+      setFormError('Дата окончания периода не может быть раньше даты начала');
+      return;
+    }
+    const primaryPeriod = startDate && endDate ? [{
+      id: task?.id ?? 'primary',
+      title: title.trim(),
+      startDate,
+      endDate,
+      includeInDuration,
+      color,
+    }] : [];
+    if (periodsOverlap([...primaryPeriod, ...normalizedPeriods])) {
+      setFormError('Периоды одной задачи не должны пересекаться');
+      return;
+    }
+    if ([...primaryPeriod, ...normalizedPeriods].length > 0
+      && ![...primaryPeriod, ...normalizedPeriods].some((period) => period.includeInDuration)) {
+      setFormError('Хотя бы один период должен учитываться в общей длительности');
+      return;
+    }
     setFormError('');
     const customKeys = new Set(
       columns.filter(({ isDefault }) => !isDefault).map(({ key }) => key),
@@ -155,6 +221,8 @@ export function TaskDialog({
       comment: optionalValue(comment),
       status,
       color,
+      includeInDuration,
+      periods: normalizedPeriods,
       ...(!datesReadOnly ? {
         startDate: optionalDate(startDate),
         endDate: optionalDate(endDate),
@@ -163,6 +231,24 @@ export function TaskDialog({
       customFields: normalizedCustomFields,
     });
   }
+
+  const calculatedDuration = startDate && endDate
+    ? (includeInDuration ? calculateTaskDuration(
+        startDate,
+        endDate,
+        excludeNonWorkingDays,
+        nonWorkingDays,
+      ) ?? 0 : 0) + periods.reduce((total, period) => {
+        if (!period.includeInDuration || !period.startDate) return total;
+        const periodEnd = period.endDate || defaultPeriodEnd(period.startDate);
+        return total + (calculateTaskDuration(
+          period.startDate,
+          periodEnd,
+          excludeNonWorkingDays,
+          nonWorkingDays,
+        ) ?? 0);
+      }, 0)
+    : null;
 
   return (
     <Modal isDismissible={!isPending} labelledBy={titleId} onClose={onClose}>
@@ -209,7 +295,7 @@ export function TaskDialog({
                 {comment.length}/1000
               </p>
             </div>
-            <TextField disabled={isPending || datesReadOnly || Boolean(startDate && endDate)} label="Длительность, дней" min={startDate && endDate ? '0' : '1'} onChange={(event) => setDuration(event.target.value)} placeholder="Например, 7" step="1" type="number" value={duration} />
+            <TextField disabled={isPending || datesReadOnly || Boolean(startDate && endDate)} label="Длительность, дней" min={startDate && endDate ? '0' : '1'} onChange={(event) => setDuration(event.target.value)} placeholder="Например, 7" step="1" type="number" value={calculatedDuration === null ? duration : String(calculatedDuration)} />
             <SelectField disabled={isPending} label="Статус" onChange={(event) => setStatus(event.target.value as TaskStatus)} value={status}>
               {TASK_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
             </SelectField>
@@ -231,6 +317,16 @@ export function TaskDialog({
                 ))}
               </div>
             </fieldset>
+            <label className="sm:col-span-2 flex items-center gap-3 text-sm font-medium text-[var(--color-text)]">
+              <input
+                checked={includeInDuration}
+                className="size-4 accent-[var(--color-primary)]"
+                disabled={isPending || datesReadOnly}
+                onChange={(event) => setIncludeInDuration(event.target.checked)}
+                type="checkbox"
+              />
+              Учитывать основной период в общей длительности
+            </label>
             {columns.filter(({ isDefault }) => !isDefault).map((column) => (
               <TextField
                 disabled={isPending}
@@ -247,6 +343,69 @@ export function TaskDialog({
             <TextField disabled={isPending || datesReadOnly} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Начало задачи" onChange={(event) => changeStartDate(event.target.value)} type="date" value={startDate} />
             <TextField disabled={isPending || datesReadOnly} error={formError || undefined} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Конец задачи" min={startDate || undefined} onChange={(event) => changeEndDate(event.target.value)} ref={endDateRef} type="date" value={endDate} />
           </div>
+
+          {!datesReadOnly ? (
+            <section className="mt-7 border-t border-[var(--color-border)] pt-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--color-text)]">Дополнительные периоды</h3>
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">До четырёх дополнительных полос в строке задачи.</p>
+                </div>
+                <Button disabled={isPending || periods.length >= 4} onClick={addPeriod} type="button" variant="secondary">
+                  <Plus aria-hidden className="size-4" />
+                  Период
+                </Button>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                {periods.map((period, index) => (
+                  <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-4" key={period.id}>
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold">Период {index + 2}</span>
+                      <Button aria-label={`Удалить период ${index + 2}`} disabled={isPending} onClick={() => setPeriods((current) => current.filter(({ id }) => id !== period.id))} size="icon" type="button" variant="ghost">
+                        <Trash2 aria-hidden className="size-4" />
+                      </Button>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <TextField disabled={isPending} label="Название периода" maxLength={200} onChange={(event) => updatePeriod(period.id, { title: event.target.value })} required value={period.title} />
+                      </div>
+                      <TextField disabled={isPending} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Дата начала" onChange={(event) => {
+                        const nextStart = event.target.value;
+                        updatePeriod(period.id, {
+                          startDate: nextStart,
+                          endDate: period.endDate || defaultPeriodEnd(nextStart),
+                        });
+                      }} required type="date" value={period.startDate} />
+                      <TextField disabled={isPending} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Дата окончания" min={period.startDate || undefined} onChange={(event) => updatePeriod(period.id, { endDate: event.target.value })} type="date" value={period.endDate} />
+                      <label className="sm:col-span-2 flex items-center gap-3 text-sm font-medium">
+                        <input checked={period.includeInDuration} className="size-4 accent-[var(--color-primary)]" disabled={isPending} onChange={(event) => updatePeriod(period.id, { includeInDuration: event.target.checked })} type="checkbox" />
+                        Учитывать в общей длительности
+                      </label>
+                      <fieldset className="sm:col-span-2" disabled={isPending}>
+                        <legend className="mb-2 text-sm font-semibold">Цвет периода</legend>
+                        <div className="flex flex-wrap gap-2">
+                          {TASK_COLORS.map((item) => (
+                            <button
+                              aria-label={`Период ${index + 2}, цвет: ${TASK_COLOR_NAMES[item]}`}
+                              aria-pressed={period.color === item}
+                              className="size-7 rounded-full border-2 border-white shadow-sm outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] data-[selected=true]:ring-2 data-[selected=true]:ring-[var(--color-accent)]"
+                              data-selected={period.color === item}
+                              key={item}
+                              onClick={() => updatePeriod(period.id, { color: item })}
+                              style={{ backgroundColor: `var(--color-task-${item})` }}
+                              title={TASK_COLOR_NAMES[item]}
+                              type="button"
+                            />
+                          ))}
+                        </div>
+                      </fieldset>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           {datesReadOnly ? <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">Даты родительской задачи рассчитываются автоматически по вложенным задачам.</p> : null}
 

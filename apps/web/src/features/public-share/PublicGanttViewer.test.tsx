@@ -49,6 +49,8 @@ const aggregate: GanttAggregate = {
       startDate: '2026-11-02',
       endDate: '2026-11-06',
       color: 'sage',
+      includeInDuration: true,
+      periods: [],
       isCollapsed: false,
       customFields: {},
       createdAt: '',

@@ -3,7 +3,7 @@ import { useRef, useState, type UIEvent } from 'react';
 
 import type { GanttAggregate } from '../gantt/gantt.api';
 import { MilestoneLayer } from '../gantt/MilestoneLayer';
-import { buildTaskFamilyVisuals, flattenVisibleTasks } from '../gantt/taskHierarchy';
+import { buildTaskFamilyVisuals, flattenVisibleTasks, taskHasChildren } from '../gantt/taskHierarchy';
 import { taskValue } from '../gantt/taskValue';
 import {
   buildTimeline,
@@ -14,6 +14,7 @@ import {
 } from '../gantt/timeline';
 import type { Task } from '../tasks/tasks.api';
 import { ReadOnlyTaskBar } from './ReadOnlyTaskBar';
+import { taskPeriods } from '../gantt/taskPeriods';
 
 type Props = GanttAggregate & {
   onTaskDetails: (task: Task) => void;
@@ -276,7 +277,11 @@ export function PublicGanttViewer({
                             : day.monthKey !== nextDay?.monthKey);
                         return <div className={`shrink-0 ${task && taskFamilyVisuals.get(task.id)?.isGrouped ? 'gantt-family-cell' : ''} ${isGridBoundary ? 'border-r border-[var(--color-border)]' : ''} ${nonWorkingDay ? 'is-non-working bg-[var(--color-non-working)]' : day.isWeekend ? 'is-weekend bg-[var(--color-weekend)]' : 'bg-white'}`} key={day.date} style={{ width: timeline.dayWidth }} />;
                       })}
-                      {task ? <ReadOnlyTaskBar dayWidth={timeline.dayWidth} onOpen={onTaskDetails} rowHeight={rowHeight} task={task} timelineEndDate={project.endDate} timelineStartDate={project.startDate} /> : null}
+                      {task ? (taskHasChildren(tasks, task.id)
+                        ? taskPeriods(task).slice(0, 1)
+                        : taskPeriods(task)).map((period) => (
+                        <ReadOnlyTaskBar dayWidth={timeline.dayWidth} key={period.id} onOpen={onTaskDetails} period={period} rowHeight={rowHeight} task={task} timelineEndDate={project.endDate} timelineStartDate={project.startDate} />
+                      )) : null}
                     </div>
                   ))}
                 </div>

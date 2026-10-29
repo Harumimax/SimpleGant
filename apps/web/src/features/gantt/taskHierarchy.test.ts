@@ -35,6 +35,8 @@ function task(
     startDate: null,
     endDate: null,
     color: 'sage',
+    includeInDuration: true,
+    periods: [],
     isCollapsed,
     customFields: {},
     createdAt: `2026-01-0${orderIndex + 1}T00:00:00.000Z`,

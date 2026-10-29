@@ -1,4 +1,4 @@
-import type { Task } from '../tasks/tasks.api';
+import type { Task, TaskPeriod } from '../tasks/tasks.api';
 import {
   calculateTaskBarGeometry,
   GANTT_DAY_WIDTH,
@@ -12,6 +12,7 @@ const TASK_BAR_COLORS = new Set([
 
 type Props = {
   task: Task;
+  period: TaskPeriod;
   timelineStartDate: string;
   timelineEndDate: string;
   dayWidth?: number;
@@ -21,6 +22,7 @@ type Props = {
 
 export function ReadOnlyTaskBar({
   task,
+  period,
   timelineStartDate,
   timelineEndDate,
   dayWidth = GANTT_DAY_WIDTH,
@@ -28,22 +30,22 @@ export function ReadOnlyTaskBar({
   onOpen,
 }: Props) {
   const geometry = calculateTaskBarGeometry(
-    task.startDate,
-    task.endDate,
+    period.startDate,
+    period.endDate,
     timelineStartDate,
     timelineEndDate,
     dayWidth,
   );
-  if (!geometry || !task.startDate || !task.endDate) return null;
-  const color = TASK_BAR_COLORS.has(task.color) ? task.color : 'sage';
-  const period = `${task.startDate} — ${task.endDate}`;
+  if (!geometry) return null;
+  const color = TASK_BAR_COLORS.has(period.color) ? period.color : 'sage';
+  const periodLabel = `${period.startDate} — ${period.endDate}`;
   const startInset = geometry.isClippedStart ? 0 : 4;
   const endInset = geometry.isClippedEnd ? 0 : 4;
   const barHeight = Math.max(8, Math.round(rowHeight * 0.64));
 
   return (
     <button
-      aria-label={`Подробно: ${task.title}, ${period}`}
+      aria-label={`Подробно: ${period.title}, ${periodLabel}`}
       className="gantt-task-bar absolute z-[2] flex cursor-pointer items-center overflow-hidden text-left font-semibold shadow-sm outline-none hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1"
       data-clipped-end={geometry.isClippedEnd || undefined}
       data-clipped-start={geometry.isClippedStart || undefined}
@@ -57,10 +59,10 @@ export function ReadOnlyTaskBar({
         top: (rowHeight - barHeight) / 2,
         width: Math.max(geometry.width - startInset - endInset, 8),
       }}
-      title={`${task.title}\n${period}`}
+      title={`${period.title}\n${periodLabel}`}
       type="button"
     >
-      {rowHeight > 13 ? <span className="min-w-0 flex-1 truncate text-center">{task.title}</span> : null}
+      {rowHeight > 13 ? <span className="min-w-0 flex-1 truncate text-center">{period.title}</span> : null}
     </button>
   );
 }

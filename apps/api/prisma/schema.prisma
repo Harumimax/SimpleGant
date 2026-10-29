@@ -54,6 +54,8 @@ model Task {
   startDate    DateTime? @map("start_date") @db.Date
   endDate      DateTime? @map("end_date") @db.Date
   color        String    @default("sage") @db.VarChar(20)
+  includeInDuration Boolean @default(true) @map("include_in_duration")
+  periods      Json      @default("[]")
   isCollapsed  Boolean   @default(false) @map("is_collapsed")
   customFields Json      @default("{}") @map("custom_fields")
   createdAt    DateTime  @default(now()) @map("created_at")

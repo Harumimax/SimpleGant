@@ -27,6 +27,15 @@ export type GanttPersistenceInput = {
     startDate: Date | null;
     endDate: Date | null;
     color: string;
+    includeInDuration: boolean;
+    periods: Array<{
+      id: string;
+      title: string;
+      startDate: string;
+      endDate: string;
+      includeInDuration: boolean;
+      color: string;
+    }>;
     isCollapsed: boolean;
     customFields: Record<string, string>;
     createdAt: Date;
@@ -117,6 +126,8 @@ export class GanttRepository {
           startDate: task.startDate,
           endDate: task.endDate,
           color: task.color,
+          includeInDuration: task.includeInDuration,
+          periods: task.periods as Prisma.InputJsonValue,
           isCollapsed: task.isCollapsed,
           customFields: task.customFields as Prisma.InputJsonValue,
           createdAt: task.createdAt,

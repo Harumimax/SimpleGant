@@ -49,6 +49,7 @@ import {
   type TimelineScale,
 } from './timeline';
 import { TaskBar } from './TaskBar';
+import { canUsePeriodDates, taskPeriods } from './taskPeriods';
 import { MilestoneLayer } from './MilestoneLayer';
 
 type GanttWorkspaceProps = {
@@ -61,7 +62,7 @@ type GanttWorkspaceProps = {
   onConfigureMilestones: () => void;
   onConfigureNonWorkingDays: () => void;
   onTaskDetails: (task: Task) => void;
-  onTaskDatesChange: (task: Task, dates: TaskDateRange) => Promise<void>;
+  onTaskDatesChange: (task: Task, periodId: string, dates: TaskDateRange) => Promise<void>;
   updatingTaskId?: string;
   dateChangeError?: string;
   onTaskOrderChange: (tasks: Task[]) => Promise<void>;
@@ -624,21 +625,33 @@ export function GanttWorkspace({
                           />
                         );
                       })}
-                      <TaskBar
-                        dayWidth={timeline.dayWidth}
-                        isDateLocked={taskHasChildren(tasks, task.id)}
-                        isSaving={updatingTaskId === task.id}
-                        onDateChange={onTaskDatesChange}
-                        onOpen={onTaskDetails}
-                        onVerticalMoveCancel={clearDragPreview}
-                        onVerticalMove={moveTimelineTask}
-                        onVerticalMovePreview={previewTimelineTaskMove}
-                        onVerticalMoveStart={startTimelineTaskMove}
-                        rowHeight={rowHeight}
-                        task={task}
-                        timelineEndDate={project.endDate}
-                        timelineStartDate={project.startDate}
-                      />
+                      {(taskHasChildren(tasks, task.id)
+                        ? taskPeriods(task).slice(0, 1)
+                        : taskPeriods(task)).map((period) => (
+                        <TaskBar
+                          canChangeDates={(periodId, dates) => canUsePeriodDates(
+                            task,
+                            periodId,
+                            dates.startDate,
+                            dates.endDate,
+                          )}
+                          dayWidth={timeline.dayWidth}
+                          isDateLocked={taskHasChildren(tasks, task.id)}
+                          isSaving={updatingTaskId === task.id}
+                          key={period.id}
+                          onDateChange={onTaskDatesChange}
+                          onOpen={onTaskDetails}
+                          onVerticalMoveCancel={clearDragPreview}
+                          onVerticalMove={moveTimelineTask}
+                          onVerticalMovePreview={previewTimelineTaskMove}
+                          onVerticalMoveStart={startTimelineTaskMove}
+                          period={period}
+                          rowHeight={rowHeight}
+                          task={task}
+                          timelineEndDate={project.endDate}
+                          timelineStartDate={project.startDate}
+                        />
+                      ))}
                     </div>
                   ))}
                 </div>

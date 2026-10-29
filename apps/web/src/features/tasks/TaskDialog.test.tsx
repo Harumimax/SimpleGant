@@ -21,6 +21,8 @@ const parentTask: Task = {
   startDate: '2026-11-01',
   endDate: '2026-11-10',
   color: 'sage',
+  includeInDuration: true,
+  periods: [],
   isCollapsed: false,
   customFields: {},
   createdAt: '2026-10-27T10:00:00.000Z',

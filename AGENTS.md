@@ -23,6 +23,7 @@ Core MVP rules:
 - Tasks support at most five nesting levels. Cycles and cross-project parents are invalid.
 - Parent dates are derived from descendants and are not manually editable while children exist.
 - Task dates have day precision. Store `startDate` and `endDate`; derive duration.
+- A task has one primary period and up to four additional periods in the same row. Period names are required, ranges cannot overlap or cross, and total duration sums only included periods.
 - When the project calendar policy is enabled, derived task duration excludes weekends and project non-working days, including for explicit ranges and after drag/resize. Dragging or resizing still sets dates directly without shifting the chosen range. A range containing no working days has duration zero.
 - Milestones are named project-wide vertical timeline markers.
 - Task colors must come from a fixed soft palette.
@@ -63,6 +64,7 @@ Frontend:
 - TanStack Query owns loading, caching, and autosave mutation lifecycle for server data.
 - Zustand owns unsaved editor state and coordinated table/timeline interactions.
 - The table and timeline must use one shared flattened visible-row model and stable row dimensions.
+- All bars of one task share that row; horizontal period editing must preserve non-overlap, while vertical dragging moves the whole task.
 - Calendar and coordinate calculations should be pure, testable functions.
 - Reuse read-only presentation components in the public viewer, but exclude mutation controls and handlers by construction.
 

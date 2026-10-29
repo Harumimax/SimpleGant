@@ -40,6 +40,7 @@ If architecture, security assumptions, persisted entities, API contracts, or mod
 - Default columns are `Название`, `Тип работ`, `Исполнитель`, `Длительность`, and `Статус`.
 - Task statuses are fixed: `Ожидает`, `В работе`, `На паузе`, `Завершено`, and `Заблокировано`.
 - Task dates have day precision. Persist `startDate` and `endDate`; derive duration instead of storing an independent duration value.
+- A task has one primary period plus at most four additional periods in the same row. Require period names, reject overlaps and order crossing, and sum only periods marked for inclusion in total duration.
 - When only one boundary date is supplied during task creation, calculate the other from the explicit duration or the default two-week duration using the project calendar policy. Two explicit boundaries take precedence and are not recalculated.
 - Derive duration from the explicit date range using the project calendar policy. When exclusions are enabled, count only working days and allow zero for a range containing no working days.
 - Dragging or resizing a task bar sets its dates directly. Do not shift the selected range around weekends or non-working days, but recompute its displayed duration using the project calendar policy.

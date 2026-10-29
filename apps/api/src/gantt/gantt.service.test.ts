@@ -70,6 +70,8 @@ function validTask(
     startDate: null,
     endDate: null,
     color: 'sage',
+    includeInDuration: true,
+    periods: [],
     isCollapsed: false,
     customFields: {},
   };
@@ -131,7 +133,7 @@ describe('GanttService', () => {
         orderIndex: 0,
         title: 'A', workType: null, assignee: '', estimate: null, comment: null,
         status: 'Ожидает', startDate: null, endDate: null,
-        color: 'sage', isCollapsed: false, customFields: {},
+        color: 'sage', includeInDuration: true, periods: [], isCollapsed: false, customFields: {},
       },
       {
         id: 'e46ef151-595a-4ab9-89c2-3c75a65fed15',
@@ -139,7 +141,7 @@ describe('GanttService', () => {
         orderIndex: 0,
         title: 'B', workType: null, assignee: '', estimate: null, comment: null,
         status: 'Ожидает', startDate: null, endDate: null,
-        color: 'sage', isCollapsed: false, customFields: {},
+        color: 'sage', includeInDuration: true, periods: [], isCollapsed: false, customFields: {},
       },
     ];
 
@@ -173,6 +175,8 @@ describe('GanttService', () => {
       startDate: null,
       endDate: null,
       color: 'sage',
+      includeInDuration: true,
+      periods: [],
       isCollapsed: false,
       customFields: {},
     }];

@@ -38,6 +38,15 @@ export const TASK_COLORS = [
 
 export type TaskColor = (typeof TASK_COLORS)[number];
 
+export type TaskPeriod = {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  includeInDuration: boolean;
+  color: TaskColor;
+};
+
 export function isTaskColor(value: string): value is TaskColor {
   return TASK_COLORS.some((color) => color === value);
 }
@@ -58,6 +67,8 @@ export type Task = {
   startDate: string | null;
   endDate: string | null;
   color: string;
+  includeInDuration: boolean;
+  periods: TaskPeriod[];
   isCollapsed: boolean;
   customFields: Record<string, string>;
   createdAt: string;
@@ -73,6 +84,8 @@ export type TaskInput = {
   duration?: number;
   status: TaskStatus;
   color?: TaskColor;
+  includeInDuration?: boolean;
+  periods?: TaskPeriod[];
   startDate?: string | null;
   endDate?: string | null;
   customFields?: Record<string, string>;

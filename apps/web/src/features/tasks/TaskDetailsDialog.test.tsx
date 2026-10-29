@@ -20,6 +20,8 @@ const task: Task = {
   startDate: '2026-11-01',
   endDate: '2026-11-03',
   color: 'sage',
+  includeInDuration: true,
+  periods: [],
   isCollapsed: false,
   customFields: {},
   createdAt: '2026-10-28T00:00:00.000Z',

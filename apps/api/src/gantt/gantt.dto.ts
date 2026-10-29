@@ -44,6 +44,29 @@ export class GanttColumnDto {
   isVisible!: boolean;
 }
 
+export class GanttTaskPeriodDto {
+  @IsUUID('4')
+  id!: string;
+
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  title!: string;
+
+  @IsDateString({ strict: true })
+  startDate!: string;
+
+  @IsDateString({ strict: true })
+  endDate!: string;
+
+  @IsBoolean()
+  includeInDuration!: boolean;
+
+  @IsIn(TASK_COLORS)
+  color!: string;
+}
+
 export class GanttTaskDto {
   @IsUUID('4')
   id!: string;
@@ -98,6 +121,15 @@ export class GanttTaskDto {
 
   @IsIn(TASK_COLORS)
   color!: string;
+
+  @IsBoolean()
+  includeInDuration!: boolean;
+
+  @IsArray()
+  @ArrayMaxSize(4)
+  @ValidateNested({ each: true })
+  @Type(() => GanttTaskPeriodDto)
+  periods!: GanttTaskPeriodDto[];
 
   @IsBoolean()
   isCollapsed!: boolean;

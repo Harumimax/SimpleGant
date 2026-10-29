@@ -1,4 +1,5 @@
 import type { TaskStatus } from './task.constants.js';
+import type { TaskPeriod } from './task-periods.js';
 
 export type TaskView = {
   id: string;
@@ -16,6 +17,8 @@ export type TaskView = {
   startDate: string | null;
   endDate: string | null;
   color: string;
+  includeInDuration: boolean;
+  periods: TaskPeriod[];
   isCollapsed: boolean;
   customFields: Record<string, string>;
   createdAt: Date;

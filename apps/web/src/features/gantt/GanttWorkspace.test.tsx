@@ -41,6 +41,8 @@ function task(id: string, orderIndex: number): Task {
     startDate: '2026-11-03',
     endDate: '2026-11-05',
     color: 'sage',
+    includeInDuration: true,
+    periods: [],
     isCollapsed: false,
     customFields: {},
     createdAt: `2026-11-0${orderIndex + 1}T00:00:00.000Z`,

@@ -6,6 +6,7 @@ import { Modal } from '../../components/ui/Modal';
 import type { ProjectColumn } from '../projects/projects.api';
 import type { Task } from '../tasks/tasks.api';
 import { taskValue } from '../gantt/taskValue';
+import { taskPeriods } from '../gantt/taskPeriods';
 
 type Props = {
   task: Task;
@@ -18,6 +19,7 @@ export function ReadOnlyTaskDetailsDialog({ task, columns, onClose }: Props) {
   const detailColumns = [...columns]
     .sort((left, right) => left.orderIndex - right.orderIndex)
     .filter(({ key }) => key !== 'title');
+  const periods = taskPeriods(task);
 
   return (
     <Modal labelledBy={titleId} onClose={onClose} tone="compact">
@@ -42,6 +44,15 @@ export function ReadOnlyTaskDetailsDialog({ task, columns, onClose }: Props) {
             <dt className="text-[var(--color-text-muted)]">Начало</dt>
             <dd className="font-medium">{task.startDate || 'Не указано'}</dd>
           </div>
+          {periods.map((period, index) => (
+            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 text-sm" key={period.id}>
+              <dt className="text-[var(--color-text-muted)]">{index === 0 ? 'Основной период' : `Период ${index + 1}`}</dt>
+              <dd className="min-w-0 font-medium">
+                <div className="break-words">{period.title}</div>
+                <div className="mt-1 text-xs text-[var(--color-text-muted)]">{period.startDate} — {period.endDate}{period.includeInDuration ? '' : ' · не входит в длительность'}</div>
+              </dd>
+            </div>
+          ))}
           <div className="grid grid-cols-[140px_1fr] gap-4 py-3 text-sm">
             <dt className="text-[var(--color-text-muted)]">Окончание</dt>
             <dd className="font-medium">{task.endDate || 'Не указано'}</dd>
