@@ -49,7 +49,7 @@ function nestedTask(
 describe('TasksService', () => {
   it('calculates a ten-working-day range and server-owned defaults', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.nextOrderIndex.mockResolvedValue(0);
     repository.create.mockResolvedValue(task);
     const service = new TasksService(repository as unknown as TasksRepository);
@@ -74,7 +74,7 @@ describe('TasksService', () => {
 
   it('creates a task without an assignee', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.nextOrderIndex.mockResolvedValue(0);
     repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
     const service = new TasksService(repository as unknown as TasksRepository);
@@ -88,7 +88,7 @@ describe('TasksService', () => {
 
   it('normalizes a task comment and rejects values over 1000 characters', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.nextOrderIndex.mockResolvedValue(0);
     repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
     const service = new TasksService(repository as unknown as TasksRepository);
@@ -120,7 +120,7 @@ describe('TasksService', () => {
 
   it('counts ten working days when the supplied boundary is a weekend', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.nextOrderIndex.mockResolvedValue(1);
     repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
     const service = new TasksService(repository as unknown as TasksRepository);
@@ -136,7 +136,7 @@ describe('TasksService', () => {
 
   it('creates a seven-working-day range from an explicit duration by default', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.nextOrderIndex.mockResolvedValue(0);
     repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
     const service = new TasksService(repository as unknown as TasksRepository);
@@ -149,12 +149,12 @@ describe('TasksService', () => {
     });
 
     expect(result.endDate).toBe('2026-11-10');
-    expect(result.duration).toBe(9);
+    expect(result.duration).toBe(7);
   });
 
   it('creates a seven-calendar-day range when weekends are included', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: false });
     repository.nextOrderIndex.mockResolvedValue(0);
     repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
     const service = new TasksService(repository as unknown as TasksRepository);
@@ -164,7 +164,6 @@ describe('TasksService', () => {
       assignee: task.assignee,
       startDate: '2026-11-02',
       duration: 7,
-      excludeWeekends: false,
     });
 
     expect(result.endDate).toBe('2026-11-08');
@@ -173,7 +172,7 @@ describe('TasksService', () => {
 
   it('skips a project non-working day during automatic calculation', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.nextOrderIndex.mockResolvedValue(0);
     repository.listNonWorkingDates.mockResolvedValue([
       { date: new Date('2026-11-04T00:00:00.000Z') },
@@ -185,7 +184,6 @@ describe('TasksService', () => {
       title: task.title,
       startDate: '2026-11-02',
       duration: 7,
-      excludeWeekends: true,
     });
 
     expect(result.endDate).toBe('2026-11-11');
@@ -193,7 +191,7 @@ describe('TasksService', () => {
 
   it('creates and updates a task with a color from the fixed palette', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.nextOrderIndex.mockResolvedValue(0);
     repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
     repository.list.mockResolvedValue([task]);
@@ -220,7 +218,7 @@ describe('TasksService', () => {
 
   it('rejects a task color outside the fixed palette', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     const service = new TasksService(repository as unknown as TasksRepository);
 
     await expect(service.create(projectId, ownerId, {
@@ -233,7 +231,7 @@ describe('TasksService', () => {
 
   it('accepts only work types from the fixed list for new values', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.nextOrderIndex.mockResolvedValue(0);
     repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
     const service = new TasksService(repository as unknown as TasksRepository);
@@ -256,7 +254,7 @@ describe('TasksService', () => {
 
   it('preserves an unchanged legacy work type during editing', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.list.mockResolvedValue([task]);
     repository.updateWithParentDates.mockResolvedValue([task]);
     const service = new TasksService(repository as unknown as TasksRepository);
@@ -268,7 +266,7 @@ describe('TasksService', () => {
 
   it('clears optional fields while preserving server-owned task fields', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.list.mockResolvedValue([task]);
     repository.updateWithParentDates.mockResolvedValue([
       { ...task, workType: null, estimate: null },
@@ -292,7 +290,7 @@ describe('TasksService', () => {
 
   it('accepts only text values for custom columns from the same project', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.nextOrderIndex.mockResolvedValue(0);
     repository.listCustomColumns.mockResolvedValue([{ key: 'custom_budget' }]);
     repository.create.mockImplementation(async (input) => ({ ...task, ...input }));
@@ -322,7 +320,7 @@ describe('TasksService', () => {
       startDate: new Date('2026-11-04T00:00:00.000Z'),
       endDate: new Date('2026-11-06T00:00:00.000Z'),
     };
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.list.mockResolvedValue([task, child]);
     repository.updateWithParentDates.mockResolvedValue([
       { ...task, startDate: new Date('2026-12-01T00:00:00.000Z'), endDate: new Date('2026-12-10T00:00:00.000Z') },
@@ -352,7 +350,7 @@ describe('TasksService', () => {
 
   it('returns a recalculated duration after a direct date resize', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.list.mockResolvedValue([task]);
     repository.updateWithParentDates.mockResolvedValue([{
       ...task,
@@ -371,7 +369,7 @@ describe('TasksService', () => {
 
   it('rejects manual date changes for a parent task', async () => {
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.list.mockResolvedValue([
       task,
       nestedTask('22222222-2222-4222-8222-222222222222', task.id, 0, 1),
@@ -388,7 +386,7 @@ describe('TasksService', () => {
     const repository = repositoryMock();
     const rootId = '11111111-1111-4111-8111-111111111111';
     const childId = '22222222-2222-4222-8222-222222222222';
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.list.mockResolvedValue([
       nestedTask(rootId, null, 0, 0),
       nestedTask(childId, null, 1, 0),
@@ -418,7 +416,7 @@ describe('TasksService', () => {
       (_, index) => `${index + 1}0000000-0000-4000-8000-000000000000`,
     );
     const repository = repositoryMock();
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.list.mockResolvedValue(
       ids.map((id, index) =>
         nestedTask(id, index === 0 ? null : ids[index - 1]!, 0, index),
@@ -452,7 +450,7 @@ describe('TasksService', () => {
     const repository = repositoryMock();
     const childId = '22222222-2222-4222-8222-222222222222';
     const grandchildId = '33333333-3333-4333-8333-333333333333';
-    repository.findOwnedProject.mockResolvedValue({ id: projectId });
+    repository.findOwnedProject.mockResolvedValue({ id: projectId, excludeNonWorkingDays: true });
     repository.find.mockResolvedValue(task);
     repository.list.mockResolvedValue([
       task,

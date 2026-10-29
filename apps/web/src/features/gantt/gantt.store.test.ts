@@ -9,6 +9,7 @@ const aggregate: GanttAggregate = {
     name: 'Проект',
     startDate: '2026-11-01',
     endDate: '2026-11-30',
+    excludeNonWorkingDays: true,
     createdAt: '2026-10-28T00:00:00.000Z',
     updatedAt: '2026-10-28T00:00:00.000Z',
     columns: [],

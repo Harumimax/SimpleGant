@@ -3,6 +3,7 @@ export type ProjectView = {
   name: string;
   startDate: string;
   endDate: string;
+  excludeNonWorkingDays: boolean;
   createdAt: Date;
   updatedAt: Date;
 };

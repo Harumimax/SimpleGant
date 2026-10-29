@@ -15,6 +15,7 @@ Core MVP rules:
 - A project has exactly one owner; only that owner can modify it.
 - Public access is read-only and must not expose private user or session data.
 - A project has required start and end dates.
+- A project chooses at creation whether task duration excludes weekends and its manually marked non-working days. This setting is project-wide and immutable in the MVP.
 - The task table supports at most 10 project-specific columns.
 - Default columns are `Название`, `Тип работ`, `Исполнитель`, `Оценка`, and `Статус`.
 - Custom columns are text-only in the MVP.
@@ -22,7 +23,7 @@ Core MVP rules:
 - Tasks support at most five nesting levels. Cycles and cross-project parents are invalid.
 - Parent dates are derived from descendants and are not manually editable while children exist.
 - Task dates have day precision. Store `startDate` and `endDate`; derive duration.
-- Automatic date calculation can skip weekends and project non-working days. Dragging or resizing a task bar sets dates directly without skipping them.
+- When the project calendar policy is enabled, derived task duration excludes weekends and project non-working days, including for explicit ranges and after drag/resize. Dragging or resizing still sets dates directly without shifting the chosen range. A range containing no working days has duration zero.
 - Milestones are named project-wide vertical timeline markers.
 - Task colors must come from a fixed soft palette.
 - Editing happens in local draft state and is persisted by debounced sequential autosave; stale responses must never overwrite a newer draft.

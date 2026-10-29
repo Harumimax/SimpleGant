@@ -11,6 +11,7 @@ const project: ProjectDetail = {
   name: 'Большой проект',
   startDate: '2026-11-01',
   endDate: '2026-11-30',
+  excludeNonWorkingDays: true,
   createdAt: '2026-10-28T00:00:00.000Z',
   updatedAt: '2026-10-28T00:00:00.000Z',
   columns: Array.from({ length: 10 }, (_, index) => ({

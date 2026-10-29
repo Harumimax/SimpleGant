@@ -73,4 +73,17 @@ describe('task dates', () => {
       parseDateOnly('2026-11-08'),
     )).toBe(7);
   });
+
+  it('derives duration from working days and allows a zero-day range', () => {
+    expect(calculateDuration(
+      parseDateOnly('2026-11-02'),
+      parseDateOnly('2026-11-08'),
+      true,
+    )).toBe(5);
+    expect(calculateDuration(
+      parseDateOnly('2026-11-07'),
+      parseDateOnly('2026-11-08'),
+      true,
+    )).toBe(0);
+  });
 });

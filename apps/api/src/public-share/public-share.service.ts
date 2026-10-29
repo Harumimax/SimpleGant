@@ -16,6 +16,9 @@ export class PublicShareService {
     }
     const aggregate = await this.repository.findByToken(publicToken);
     if (!aggregate) throw new NotFoundException('Публичный проект не найден');
+    const nonWorkingDates = new Set(
+      aggregate.nonWorkingDays.map((day) => dateOnly(day.date)!),
+    );
 
     return {
       project: {
@@ -23,6 +26,7 @@ export class PublicShareService {
         name: aggregate.name,
         startDate: dateOnly(aggregate.startDate)!,
         endDate: dateOnly(aggregate.endDate)!,
+        excludeNonWorkingDays: aggregate.excludeNonWorkingDays,
         columns: aggregate.columns.map((column) => ({
           id: column.id,
           name: column.name,
@@ -42,7 +46,12 @@ export class PublicShareService {
         assignee: task.assignee,
         estimate: task.estimate,
         comment: task.comment,
-        duration: calculateDuration(task.startDate, task.endDate),
+        duration: calculateDuration(
+          task.startDate,
+          task.endDate,
+          aggregate.excludeNonWorkingDays,
+          nonWorkingDates,
+        ),
         status: task.status,
         startDate: dateOnly(task.startDate),
         endDate: dateOnly(task.endDate),

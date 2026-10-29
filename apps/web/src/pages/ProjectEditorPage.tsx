@@ -179,7 +179,7 @@ export function ProjectEditorPage() {
         input.startDate,
         input.endDate,
         input.duration,
-        input.excludeWeekends ?? true,
+        current.project.excludeNonWorkingDays,
         current.nonWorkingDays,
       );
       const task: Task = {
@@ -193,7 +193,12 @@ export function ProjectEditorPage() {
         assignee: input.assignee ?? '',
         estimate: input.estimate ?? null,
         comment: input.comment ?? null,
-        duration: calculateTaskDuration(dates.startDate, dates.endDate),
+        duration: calculateTaskDuration(
+          dates.startDate,
+          dates.endDate,
+          current.project.excludeNonWorkingDays,
+          current.nonWorkingDays,
+        ),
         status: input.status,
         startDate: dates.startDate,
         endDate: dates.endDate,
@@ -218,7 +223,7 @@ export function ProjectEditorPage() {
               input.startDate,
               input.endDate,
               input.duration,
-              false,
+              current.project.excludeNonWorkingDays,
               current.nonWorkingDays,
             )
           : { startDate: task.startDate, endDate: task.endDate };
@@ -233,10 +238,15 @@ export function ProjectEditorPage() {
           color: input.color ?? task.color,
           customFields: input.customFields ?? {},
           ...dates,
-          duration: calculateTaskDuration(dates.startDate, dates.endDate),
+          duration: calculateTaskDuration(
+            dates.startDate,
+            dates.endDate,
+            current.project.excludeNonWorkingDays,
+            current.nonWorkingDays,
+          ),
           updatedAt: new Date().toISOString(),
         };
-      })),
+      }), current.project.excludeNonWorkingDays, current.nonWorkingDays),
     }));
     setEditingTaskId(null);
   }
@@ -248,6 +258,8 @@ export function ProjectEditorPage() {
         ...current,
         tasks: recalculateParentTaskDates(
           current.tasks.filter(({ id }) => !removed.has(id)),
+          current.project.excludeNonWorkingDays,
+          current.nonWorkingDays,
         ),
       };
     });
@@ -313,24 +325,40 @@ export function ProjectEditorPage() {
 
   function addNonWorkingDay(input: NonWorkingDayInput) {
     const now = new Date().toISOString();
-    updateDraft((current) => ({
-      ...current,
-      nonWorkingDays: [...current.nonWorkingDays, {
+    updateDraft((current) => {
+      const nonWorkingDays = [...current.nonWorkingDays, {
         id: crypto.randomUUID(),
         projectId,
         date: input.date,
         label: input.label ?? null,
         createdAt: now,
         updatedAt: now,
-      }].sort((left, right) => left.date.localeCompare(right.date)),
-    }));
+      }].sort((left, right) => left.date.localeCompare(right.date));
+      return {
+        ...current,
+        nonWorkingDays,
+        tasks: recalculateParentTaskDates(
+          current.tasks,
+          current.project.excludeNonWorkingDays,
+          nonWorkingDays,
+        ),
+      };
+    });
   }
 
   function deleteNonWorkingDay(id: string) {
-    updateDraft((current) => ({
-      ...current,
-      nonWorkingDays: current.nonWorkingDays.filter((day) => day.id !== id),
-    }));
+    updateDraft((current) => {
+      const nonWorkingDays = current.nonWorkingDays.filter((day) => day.id !== id);
+      return {
+        ...current,
+        nonWorkingDays,
+        tasks: recalculateParentTaskDates(
+          current.tasks,
+          current.project.excludeNonWorkingDays,
+          nonWorkingDays,
+        ),
+      };
+    });
   }
 
   return (
@@ -378,13 +406,29 @@ export function ProjectEditorPage() {
           updateDraft((current) => ({
             ...current,
             tasks: recalculateParentTaskDates(current.tasks.map((item) => item.id === task.id
-              ? { ...item, ...dates, duration: calculateTaskDuration(dates.startDate, dates.endDate) }
-              : item)),
+              ? {
+                  ...item,
+                  ...dates,
+                  duration: calculateTaskDuration(
+                    dates.startDate,
+                    dates.endDate,
+                    current.project.excludeNonWorkingDays,
+                    current.nonWorkingDays,
+                  ),
+                }
+              : item), current.project.excludeNonWorkingDays, current.nonWorkingDays),
           }));
         }}
         onTaskDetails={(task) => setEditingTaskId(task.id)}
         onTaskOrderChange={async (nextTasks) => {
-          updateDraft((current) => ({ ...current, tasks: nextTasks }));
+          updateDraft((current) => ({
+            ...current,
+            tasks: recalculateParentTaskDates(
+              nextTasks,
+              current.project.excludeNonWorkingDays,
+              current.nonWorkingDays,
+            ),
+          }));
         }}
         onToggleTaskCollapsed={async (task) => {
           updateDraft((current) => ({
@@ -399,8 +443,8 @@ export function ProjectEditorPage() {
         tasks={tasks}
       />
 
-      {isCreateOpen ? <TaskDialog columns={project.columns} isPending={false} onClose={() => setIsCreateOpen(false)} onSubmit={createTask} /> : null}
-      {editingTask ? <TaskDialog columns={project.columns} datesReadOnly={countTaskDescendants(tasks, editingTask.id) > 0} isPending={false} onClose={() => setEditingTaskId(null)} onDelete={() => { setEditingTaskId(null); setDeletingTaskId(editingTask.id); }} onSubmit={(input) => updateTask(editingTask.id, input)} task={editingTask} /> : null}
+      {isCreateOpen ? <TaskDialog columns={project.columns} excludeNonWorkingDays={project.excludeNonWorkingDays} isPending={false} nonWorkingDays={nonWorkingDays} onClose={() => setIsCreateOpen(false)} onSubmit={createTask} /> : null}
+      {editingTask ? <TaskDialog columns={project.columns} datesReadOnly={countTaskDescendants(tasks, editingTask.id) > 0} excludeNonWorkingDays={project.excludeNonWorkingDays} isPending={false} nonWorkingDays={nonWorkingDays} onClose={() => setEditingTaskId(null)} onDelete={() => { setEditingTaskId(null); setDeletingTaskId(editingTask.id); }} onSubmit={(input) => updateTask(editingTask.id, input)} task={editingTask} /> : null}
       {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks, deletingTask.id)} isPending={false} onClose={() => setDeletingTaskId(null)} onConfirm={() => deleteTask(deletingTask.id)} task={deletingTask} /> : null}
       {isColumnsOpen ? <ProjectColumnsDialog columns={project.columns} isPending={false} onClose={() => setIsColumnsOpen(false)} onSubmit={configureColumns} /> : null}
       {isMilestonesOpen ? <MilestonesDialog isPending={false} milestones={milestones} onClose={() => setIsMilestonesOpen(false)} onDelete={deleteMilestone} onSave={saveMilestone} projectEndDate={project.endDate} projectStartDate={project.startDate} /> : null}

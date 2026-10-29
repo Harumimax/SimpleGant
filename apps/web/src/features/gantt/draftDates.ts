@@ -32,7 +32,7 @@ export function normalizeDraftTaskDates(
   startDate: string | null | undefined,
   endDate: string | null | undefined,
   duration: number | undefined,
-  excludeWeekends: boolean,
+  excludeNonWorkingDays: boolean,
   nonWorkingDays: NonWorkingDay[],
 ) {
   if (startDate && endDate) return { startDate, endDate };
@@ -45,7 +45,7 @@ export function normalizeDraftTaskDates(
   if (startDate) {
     return {
       startDate,
-      endDate: excludeWeekends
+      endDate: excludeNonWorkingDays
         ? moveWorkingDays(
             startDate,
             effectiveDuration - (isWorkingDay(startDate, nonWorkingDates) ? 1 : 0),
@@ -57,7 +57,7 @@ export function normalizeDraftTaskDates(
   }
 
   return {
-    startDate: excludeWeekends
+    startDate: excludeNonWorkingDays
       ? moveWorkingDays(
           endDate!,
           effectiveDuration - (isWorkingDay(endDate!, nonWorkingDates) ? 1 : 0),

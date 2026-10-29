@@ -186,12 +186,20 @@ export function calculateTaskBarGeometry(
 export function calculateTaskDuration(
   taskStartDate: string | null,
   taskEndDate: string | null,
+  excludeNonWorkingDays = false,
+  nonWorkingDays: ReadonlyArray<{ date: string }> = [],
 ) {
   if (!taskStartDate || !taskEndDate) return null;
   const taskStart = parseISO(taskStartDate);
   const taskEnd = parseISO(taskEndDate);
   if (isAfter(taskStart, taskEnd)) return null;
-  return differenceInCalendarDays(taskEnd, taskStart) + 1;
+  if (!excludeNonWorkingDays) {
+    return differenceInCalendarDays(taskEnd, taskStart) + 1;
+  }
+  const nonWorkingDates = new Set(nonWorkingDays.map(({ date }) => date));
+  return eachDayOfInterval({ start: taskStart, end: taskEnd }).filter((date) =>
+    !isWeekend(date) && !nonWorkingDates.has(format(date, 'yyyy-MM-dd')),
+  ).length;
 }
 
 export function calculateMilestoneLeft(

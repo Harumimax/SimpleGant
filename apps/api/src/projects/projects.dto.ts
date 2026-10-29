@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsDateString,
   IsOptional,
   IsString,
@@ -22,6 +23,10 @@ export class CreateProjectDto {
 
   @IsDateString({ strict: true }, { message: 'Укажите корректную дату окончания' })
   endDate!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  excludeNonWorkingDays?: boolean;
 }
 
 export class UpdateProjectDto {

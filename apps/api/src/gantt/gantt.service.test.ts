@@ -25,6 +25,7 @@ const aggregate = {
   name: 'Проект',
   startDate: new Date('2026-11-01T00:00:00.000Z'),
   endDate: new Date('2026-11-30T00:00:00.000Z'),
+  excludeNonWorkingDays: true,
   publicToken: 'token',
   createdAt: now,
   updatedAt: now,

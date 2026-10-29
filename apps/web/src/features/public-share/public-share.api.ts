@@ -9,6 +9,7 @@ type PublicGanttResponse = {
     name: string;
     startDate: string;
     endDate: string;
+    excludeNonWorkingDays: boolean;
     columns: GanttAggregate['project']['columns'];
   };
   tasks: Array<{

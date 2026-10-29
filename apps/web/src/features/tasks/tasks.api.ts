@@ -75,13 +75,10 @@ export type TaskInput = {
   color?: TaskColor;
   startDate?: string | null;
   endDate?: string | null;
-  excludeWeekends?: boolean;
   customFields?: Record<string, string>;
 };
 
-export type TaskUpdateInput = Partial<
-  Omit<TaskInput, 'excludeWeekends'>
-> & { isCollapsed?: boolean };
+export type TaskUpdateInput = Partial<TaskInput> & { isCollapsed?: boolean };
 
 export type TaskPositionInput = Pick<
   Task,

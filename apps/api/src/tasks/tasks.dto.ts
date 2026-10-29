@@ -93,10 +93,6 @@ export class CreateTaskDto {
   endDate?: string;
 
   @IsOptional()
-  @IsBoolean()
-  excludeWeekends?: boolean;
-
-  @IsOptional()
   @IsObject({ message: 'Поля задачи должны быть объектом' })
   customFields?: Record<string, unknown>;
 }

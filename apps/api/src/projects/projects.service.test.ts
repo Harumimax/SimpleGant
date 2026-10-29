@@ -10,6 +10,7 @@ const project = {
   name: 'Запуск продукта',
   startDate: new Date('2026-11-01T00:00:00.000Z'),
   endDate: new Date('2027-01-31T00:00:00.000Z'),
+  excludeNonWorkingDays: true,
   publicToken: 'secret-token',
   createdAt: new Date('2026-10-27T10:00:00.000Z'),
   updatedAt: new Date('2026-10-27T10:00:00.000Z'),
@@ -56,6 +57,7 @@ describe('ProjectsService', () => {
         name: project.name,
         startDate: new Date('2026-11-01T00:00:00.000Z'),
         endDate: new Date('2027-01-31T00:00:00.000Z'),
+        excludeNonWorkingDays: true,
         publicToken: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
       }),
     );

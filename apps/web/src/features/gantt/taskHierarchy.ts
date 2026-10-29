@@ -85,7 +85,11 @@ export function taskHasChildren(tasks: Task[], taskId: string) {
   return tasks.some(({ parentId }) => parentId === taskId);
 }
 
-export function recalculateParentTaskDates(tasks: Task[]) {
+export function recalculateParentTaskDates(
+  tasks: Task[],
+  excludeNonWorkingDays = false,
+  nonWorkingDays: ReadonlyArray<{ date: string }> = [],
+) {
   const byId = new Map(tasks.map((task) => [task.id, { ...task }]));
   const children = new Map<string, string[]>();
   for (const task of tasks) {
@@ -120,7 +124,12 @@ export function recalculateParentTaskDates(tasks: Task[]) {
     const task = byId.get(id)!;
     return {
       ...task,
-      duration: calculateTaskDuration(task.startDate, task.endDate),
+      duration: calculateTaskDuration(
+        task.startDate,
+        task.endDate,
+        excludeNonWorkingDays,
+        nonWorkingDays,
+      ),
     };
   });
 }

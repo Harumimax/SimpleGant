@@ -35,6 +35,7 @@ export class ProjectsService {
     const project = await this.repository.create({
       ownerId,
       name: input.name,
+      excludeNonWorkingDays: input.excludeNonWorkingDays ?? true,
       ...dates,
       publicToken: randomBytes(32).toString('base64url'),
     });
@@ -107,6 +108,7 @@ export class ProjectsService {
     name: string;
     startDate: Date;
     endDate: Date;
+    excludeNonWorkingDays: boolean;
     createdAt: Date;
     updatedAt: Date;
   }): ProjectView {
@@ -115,6 +117,7 @@ export class ProjectsService {
       name: project.name,
       startDate: this.dateOnly(project.startDate),
       endDate: this.dateOnly(project.endDate),
+      excludeNonWorkingDays: project.excludeNonWorkingDays,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     };

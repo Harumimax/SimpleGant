@@ -33,6 +33,7 @@ export class ProjectsRepository {
     name: string;
     startDate: Date;
     endDate: Date;
+    excludeNonWorkingDays: boolean;
     publicToken: string;
   }) {
     return this.prisma.project.create({

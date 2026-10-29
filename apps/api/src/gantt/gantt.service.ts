@@ -215,6 +215,9 @@ export class GanttService {
   }
 
   private toView(aggregate: NonNullable<Awaited<ReturnType<GanttRepository['findOwned']>>>) {
+    const nonWorkingDates = new Set(
+      aggregate.nonWorkingDays.map((day) => dateOnly(day.date)!),
+    );
     return {
       project: {
         id: aggregate.id,
@@ -222,6 +225,7 @@ export class GanttService {
         name: aggregate.name,
         startDate: dateOnly(aggregate.startDate)!,
         endDate: dateOnly(aggregate.endDate)!,
+        excludeNonWorkingDays: aggregate.excludeNonWorkingDays,
         createdAt: aggregate.createdAt,
         updatedAt: aggregate.updatedAt,
         columns: aggregate.columns.map((column) => ({
@@ -235,7 +239,12 @@ export class GanttService {
       },
       tasks: aggregate.tasks.map((task) => ({
         ...task,
-        duration: calculateDuration(task.startDate, task.endDate),
+        duration: calculateDuration(
+          task.startDate,
+          task.endDate,
+          aggregate.excludeNonWorkingDays,
+          nonWorkingDates,
+        ),
         startDate: dateOnly(task.startDate),
         endDate: dateOnly(task.endDate),
         customFields: task.customFields as Record<string, string>,

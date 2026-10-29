@@ -31,6 +31,7 @@ describe('ProjectDialog', () => {
       name: 'План запуска',
       startDate: '2026-11-01',
       endDate: '2027-01-31',
+      excludeNonWorkingDays: true,
     });
   });
 

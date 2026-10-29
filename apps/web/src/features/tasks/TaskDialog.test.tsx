@@ -52,7 +52,6 @@ describe('TaskDialog', () => {
       status: 'Ожидает',
       startDate: '2026-11-02',
       endDate: undefined,
-      excludeWeekends: true,
     }));
   });
 
@@ -121,7 +120,7 @@ describe('TaskDialog', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('submits an explicit duration with the weekend preference', () => {
+  it('submits an explicit duration using the project calendar', () => {
     const onSubmit = vi.fn();
     render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
 
@@ -134,7 +133,6 @@ describe('TaskDialog', () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       startDate: '2026-11-02',
       duration: 7,
-      excludeWeekends: true,
     }));
   });
 

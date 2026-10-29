@@ -15,6 +15,16 @@ describe('calculateTaskDuration', () => {
     expect(calculateTaskDuration('2026-11-02', '2026-11-08')).toBe(7);
     expect(calculateTaskDuration('2026-11-02', '2026-11-02')).toBe(1);
   });
+
+  it('calculates duration using the project working calendar', () => {
+    expect(calculateTaskDuration(
+      '2026-11-02',
+      '2026-11-08',
+      true,
+      [{ date: '2026-11-04' }],
+    )).toBe(4);
+    expect(calculateTaskDuration('2026-11-07', '2026-11-08', true)).toBe(0);
+  });
 });
 
 describe('buildTimeline', () => {

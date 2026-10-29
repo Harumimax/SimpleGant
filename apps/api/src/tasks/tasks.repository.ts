@@ -10,7 +10,7 @@ export class TasksRepository {
   findOwnedProject(projectId: string, ownerId: string) {
     return this.prisma.project.findFirst({
       where: { id: projectId, ownerId },
-      select: { id: true },
+      select: { id: true, excludeNonWorkingDays: true },
     });
   }
 

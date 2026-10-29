@@ -27,6 +27,7 @@ export function ProjectDialog({
   const [name, setName] = useState(project?.name ?? '');
   const [startDate, setStartDate] = useState(project?.startDate ?? '');
   const [endDate, setEndDate] = useState(project?.endDate ?? '');
+  const [excludeNonWorkingDays, setExcludeNonWorkingDays] = useState(true);
   const [formError, setFormError] = useState('');
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -37,7 +38,12 @@ export function ProjectDialog({
       return;
     }
     setFormError('');
-    onSubmit({ name: name.trim(), startDate, endDate });
+    onSubmit({
+      name: name.trim(),
+      startDate,
+      endDate,
+      ...(!project ? { excludeNonWorkingDays } : {}),
+    });
   }
 
   return (
@@ -113,6 +119,24 @@ export function ProjectDialog({
               value={endDate}
             />
           </div>
+
+          {!project ? (
+            <label className="mt-5 flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-4 text-sm">
+              <input
+                checked={excludeNonWorkingDays}
+                className="mt-0.5 size-4 accent-[var(--color-primary)]"
+                disabled={isPending}
+                onChange={(event) => setExcludeNonWorkingDays(event.target.checked)}
+                type="checkbox"
+              />
+              <span>
+                <span className="font-semibold">Исключать выходные и нерабочие дни из длительности</span>
+                <span className="mt-1 block text-xs leading-5 text-[var(--color-text-muted)]">
+                  Настройка применяется ко всем задачам проекта и после создания не изменяется.
+                </span>
+              </span>
+            </label>
+          ) : null}
 
           {serverError ? (
             <div className="mt-5">

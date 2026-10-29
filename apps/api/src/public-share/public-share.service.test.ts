@@ -21,6 +21,7 @@ describe('PublicShareService', () => {
       name: 'Публичный проект',
       startDate: new Date('2026-11-01T00:00:00.000Z'),
       endDate: new Date('2026-11-30T00:00:00.000Z'),
+      excludeNonWorkingDays: true,
       createdAt: now,
       updatedAt: now,
       columns: [{

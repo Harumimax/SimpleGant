@@ -1,5 +1,4 @@
 import { CalendarDays, Trash2, X } from 'lucide-react';
-import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { useId, useRef, useState, type FormEvent } from 'react';
 
 import { Alert } from '../../components/ui/Alert';
@@ -8,6 +7,8 @@ import { Modal } from '../../components/ui/Modal';
 import { SelectField } from '../../components/ui/SelectField';
 import { TextField } from '../../components/ui/TextField';
 import type { ProjectColumn } from '../projects/projects.api';
+import type { NonWorkingDay } from '../calendar/non-working-days.api';
+import { calculateTaskDuration } from '../gantt/timeline';
 import {
   isTaskColor,
   TASK_COLORS,
@@ -41,9 +42,22 @@ type TaskDialogProps = {
   onSubmit: (input: TaskInput) => void;
   datesReadOnly?: boolean;
   columns?: ProjectColumn[];
+  excludeNonWorkingDays?: boolean;
+  nonWorkingDays?: NonWorkingDay[];
 };
 
-export function TaskDialog({ task, isPending, serverError, onClose, onDelete, onSubmit, datesReadOnly = false, columns = [] }: TaskDialogProps) {
+export function TaskDialog({
+  task,
+  isPending,
+  serverError,
+  onClose,
+  onDelete,
+  onSubmit,
+  datesReadOnly = false,
+  columns = [],
+  excludeNonWorkingDays = true,
+  nonWorkingDays = [],
+}: TaskDialogProps) {
   const titleId = useId();
   const endDateRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(task?.title ?? '');
@@ -61,7 +75,6 @@ export function TaskDialog({ task, isPending, serverError, onClose, onDelete, on
   );
   const [startDate, setStartDate] = useState(task?.startDate ?? '');
   const [endDate, setEndDate] = useState(task?.endDate ?? '');
-  const [excludeWeekends, setExcludeWeekends] = useState(true);
   const [customFields, setCustomFields] = useState<Record<string, string>>(
     task?.customFields ?? {},
   );
@@ -83,12 +96,12 @@ export function TaskDialog({ task, isPending, serverError, onClose, onDelete, on
 
   function syncDuration(nextStartDate: string, nextEndDate: string) {
     if (nextStartDate && nextEndDate && nextStartDate <= nextEndDate) {
-      setDuration(String(
-        differenceInCalendarDays(
-          parseISO(nextEndDate),
-          parseISO(nextStartDate),
-        ) + 1,
-      ));
+      setDuration(String(calculateTaskDuration(
+        nextStartDate,
+        nextEndDate,
+        excludeNonWorkingDays,
+        nonWorkingDays,
+      ) ?? ''));
     }
   }
 
@@ -110,14 +123,16 @@ export function TaskDialog({ task, isPending, serverError, onClose, onDelete, on
       return;
     }
     const parsedDuration = duration ? Number(duration) : undefined;
+    const hasExplicitRange = Boolean(startDate && endDate);
     if (
+      !hasExplicitRange &&
       parsedDuration !== undefined &&
       (!Number.isInteger(parsedDuration) || parsedDuration < 1)
     ) {
       setFormError('Длительность должна быть целым числом не меньше одного дня');
       return;
     }
-    if (parsedDuration !== undefined && !startDate && !endDate) {
+    if (!hasExplicitRange && parsedDuration !== undefined && !startDate && !endDate) {
       setFormError('Для расчёта длительности укажите начало или конец задачи');
       return;
     }
@@ -143,9 +158,8 @@ export function TaskDialog({ task, isPending, serverError, onClose, onDelete, on
       ...(!datesReadOnly ? {
         startDate: optionalDate(startDate),
         endDate: optionalDate(endDate),
-        duration: parsedDuration,
+        duration: hasExplicitRange ? undefined : parsedDuration,
       } : {}),
-      ...(!task ? { excludeWeekends } : {}),
       customFields: normalizedCustomFields,
     });
   }
@@ -159,7 +173,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onDelete, on
               {task ? 'Редактировать задачу' : 'Новая задача'}
             </h2>
             <p className="mt-1.5 text-sm leading-6 text-[var(--color-text-muted)]">
-              Обязательно только название. Длительность задаёт длину полосы в календарных днях.
+              Обязательно только название. Длительность рассчитывается по календарю проекта.
             </p>
           </div>
           <Button aria-label="Закрыть" disabled={isPending} onClick={onClose} size="icon" type="button" variant="ghost">
@@ -195,7 +209,7 @@ export function TaskDialog({ task, isPending, serverError, onClose, onDelete, on
                 {comment.length}/1000
               </p>
             </div>
-            <TextField disabled={isPending || datesReadOnly} label="Длительность, дней" min="1" onChange={(event) => setDuration(event.target.value)} placeholder="Например, 7" step="1" type="number" value={duration} />
+            <TextField disabled={isPending || datesReadOnly || Boolean(startDate && endDate)} label="Длительность, дней" min={startDate && endDate ? '0' : '1'} onChange={(event) => setDuration(event.target.value)} placeholder="Например, 7" step="1" type="number" value={duration} />
             <SelectField disabled={isPending} label="Статус" onChange={(event) => setStatus(event.target.value as TaskStatus)} value={status}>
               {TASK_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
             </SelectField>
@@ -235,13 +249,6 @@ export function TaskDialog({ task, isPending, serverError, onClose, onDelete, on
           </div>
 
           {datesReadOnly ? <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">Даты родительской задачи рассчитываются автоматически по вложенным задачам.</p> : null}
-
-          {!task ? (
-            <label className="mt-5 flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-4 text-sm">
-              <input checked={excludeWeekends} className="mt-0.5 size-4 accent-[var(--color-primary)]" disabled={isPending} onChange={(event) => setExcludeWeekends(event.target.checked)} type="checkbox" />
-              <span><span className="font-semibold">Не учитывать выходные дни</span><span className="mt-1 block text-xs leading-5 text-[var(--color-text-muted)]">При одной указанной дате длительность считается в рабочих днях. Если указаны обе даты, диапазон сохраняется без пересчёта.</span></span>
-            </label>
-          ) : null}
 
           {serverError ? <div className="mt-5"><Alert>{serverError}</Alert></div> : null}
 

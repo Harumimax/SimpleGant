@@ -38,13 +38,21 @@ export class TasksService {
   ) {}
 
   async list(projectId: string, ownerId: string): Promise<TaskView[]> {
-    await this.ensureOwnedProject(projectId, ownerId);
-    return (await this.repository.list(projectId)).map((task) => this.toView(task));
+    const project = await this.ensureOwnedProject(projectId, ownerId);
+    const nonWorkingDates = await this.getNonWorkingDates(projectId);
+    return (await this.repository.list(projectId)).map((task) =>
+      this.toView(task, project.excludeNonWorkingDays, nonWorkingDates),
+    );
   }
 
   async get(projectId: string, taskId: string, ownerId: string): Promise<TaskView> {
-    await this.ensureOwnedProject(projectId, ownerId);
-    return this.toView(await this.findTask(projectId, taskId));
+    const project = await this.ensureOwnedProject(projectId, ownerId);
+    const nonWorkingDates = await this.getNonWorkingDates(projectId);
+    return this.toView(
+      await this.findTask(projectId, taskId),
+      project.excludeNonWorkingDays,
+      nonWorkingDates,
+    );
   }
 
   async create(
@@ -52,18 +60,15 @@ export class TasksService {
     ownerId: string,
     input: CreateTaskDto,
   ): Promise<TaskView> {
-    await this.ensureOwnedProject(projectId, ownerId);
+    const project = await this.ensureOwnedProject(projectId, ownerId);
     this.validateWorkType(input.workType);
     const color = input.color ?? DEFAULT_TASK_COLOR;
     this.validateTaskColor(color);
-    const nonWorkingDates = new Set(
-      (await this.repository.listNonWorkingDates(projectId))
-        .map(({ date }) => dateOnly(date)!),
-    );
+    const nonWorkingDates = await this.getNonWorkingDates(projectId);
     const dates = normalizeCreationDates(
       input.startDate,
       input.endDate,
-      input.excludeWeekends ?? true,
+      project.excludeNonWorkingDays,
       input.duration,
       nonWorkingDates,
     );
@@ -84,7 +89,7 @@ export class TasksService {
       color,
       customFields,
     });
-    return this.toView(task);
+    return this.toView(task, project.excludeNonWorkingDays, nonWorkingDates);
   }
 
   async update(
@@ -93,7 +98,8 @@ export class TasksService {
     ownerId: string,
     input: UpdateTaskDto,
   ): Promise<TaskView[]> {
-    await this.ensureOwnedProject(projectId, ownerId);
+    const project = await this.ensureOwnedProject(projectId, ownerId);
+    const nonWorkingDates = await this.getNonWorkingDates(projectId);
     const currentTasks = await this.repository.list(projectId);
     const current = currentTasks.find(({ id }) => id === taskId);
     if (!current) throw new NotFoundException('Задача не найдена');
@@ -132,8 +138,9 @@ export class TasksService {
       const normalized = normalizeCreationDates(
         dateOnly(startDate) ?? undefined,
         dateOnly(endDate) ?? undefined,
-        false,
+        project.excludeNonWorkingDays,
         input.duration,
+        nonWorkingDates,
       );
       startDate = normalized.startDate;
       endDate = normalized.endDate;
@@ -176,7 +183,9 @@ export class TasksService {
       persistedTaskUpdate,
       changedParentDates(currentTasks, recalculated),
     );
-    return tasks.map((task) => this.toView(task));
+    return tasks.map((task) =>
+      this.toView(task, project.excludeNonWorkingDays, nonWorkingDates),
+    );
   }
 
   async reorder(
@@ -184,7 +193,8 @@ export class TasksService {
     ownerId: string,
     input: ReorderTasksDto,
   ): Promise<TaskView[]> {
-    await this.ensureOwnedProject(projectId, ownerId);
+    const project = await this.ensureOwnedProject(projectId, ownerId);
+    const nonWorkingDates = await this.getNonWorkingDates(projectId);
     const currentTasks = await this.repository.list(projectId);
     const currentIds = new Set(currentTasks.map(({ id }) => id));
     const submittedIds = new Set(input.tasks.map(({ id }) => id));
@@ -233,7 +243,9 @@ export class TasksService {
         endDate: recalculatedById.get(position.id)?.endDate ?? null,
       })),
     );
-    return tasks.map((task) => this.toView(task));
+    return tasks.map((task) =>
+      this.toView(task, project.excludeNonWorkingDays, nonWorkingDates),
+    );
   }
 
   private validateWorkType(workType: string | null | undefined): void {
@@ -347,9 +359,18 @@ export class TasksService {
   }
 
   private async ensureOwnedProject(projectId: string, ownerId: string) {
-    if (!(await this.repository.findOwnedProject(projectId, ownerId))) {
+    const project = await this.repository.findOwnedProject(projectId, ownerId);
+    if (!project) {
       throw new NotFoundException('Проект не найден');
     }
+    return project;
+  }
+
+  private async getNonWorkingDates(projectId: string) {
+    return new Set(
+      (await this.repository.listNonWorkingDates(projectId))
+        .map(({ date }) => dateOnly(date)!),
+    );
   }
 
   private async validateCustomFields(
@@ -404,11 +425,19 @@ export class TasksService {
     customFields: unknown;
     createdAt: Date;
     updatedAt: Date;
-  }): TaskView {
+  },
+    excludeNonWorkingDays: boolean,
+    nonWorkingDates: ReadonlySet<string>,
+  ): TaskView {
     return {
       ...task,
       status: task.status as TaskStatus,
-      duration: calculateDuration(task.startDate, task.endDate),
+      duration: calculateDuration(
+        task.startDate,
+        task.endDate,
+        excludeNonWorkingDays,
+        nonWorkingDates,
+      ),
       startDate: dateOnly(task.startDate),
       endDate: dateOnly(task.endDate),
       customFields: task.customFields as Record<string, string>,

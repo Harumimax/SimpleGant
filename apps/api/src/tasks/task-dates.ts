@@ -10,9 +10,24 @@ export function dateOnly(value: Date | null) {
   return value?.toISOString().slice(0, 10) ?? null;
 }
 
-export function calculateDuration(startDate: Date | null, endDate: Date | null) {
+export function calculateDuration(
+  startDate: Date | null,
+  endDate: Date | null,
+  excludeNonWorkingDays = false,
+  nonWorkingDates: ReadonlySet<string> = new Set(),
+) {
   if (!startDate || !endDate || startDate > endDate) return null;
-  return Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
+  if (!excludeNonWorkingDays) {
+    return Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
+  }
+
+  let duration = 0;
+  let current = new Date(startDate);
+  while (current <= endDate) {
+    if (isWorkingDay(current, nonWorkingDates)) duration += 1;
+    current = moveDays(current, 1);
+  }
+  return duration;
 }
 
 function moveDays(date: Date, amount: number) {
@@ -44,7 +59,7 @@ function moveWorkingDays(
 export function normalizeCreationDates(
   startValue?: string,
   endValue?: string,
-  excludeWeekends = true,
+  excludeNonWorkingDays = true,
   duration?: number,
   nonWorkingDates: ReadonlySet<string> = new Set(),
 ) {
@@ -58,7 +73,7 @@ export function normalizeCreationDates(
 
   if (duration !== undefined) {
     if (startDate) {
-      endDate = excludeWeekends
+      endDate = excludeNonWorkingDays
         ? moveWorkingDays(
             startDate,
             duration - (isWorkingDay(startDate, nonWorkingDates) ? 1 : 0),
@@ -67,7 +82,7 @@ export function normalizeCreationDates(
           )
         : moveDays(startDate, duration - 1);
     } else if (endDate) {
-      startDate = excludeWeekends
+      startDate = excludeNonWorkingDays
         ? moveWorkingDays(
             endDate,
             duration - (isWorkingDay(endDate, nonWorkingDates) ? 1 : 0),
@@ -86,7 +101,7 @@ export function normalizeCreationDates(
   const calendarDays = DEFAULT_TASK_DURATION * 7 / 5 - 1;
 
   if (startDate && !endDate) {
-    endDate = excludeWeekends
+    endDate = excludeNonWorkingDays
       ? moveWorkingDays(
           startDate,
           DEFAULT_TASK_DURATION - (isWorkingDay(startDate, nonWorkingDates) ? 1 : 0),
@@ -95,7 +110,7 @@ export function normalizeCreationDates(
         )
       : moveDays(startDate, calendarDays);
   } else if (!startDate && endDate) {
-    startDate = excludeWeekends
+    startDate = excludeNonWorkingDays
       ? moveWorkingDays(
           endDate,
           DEFAULT_TASK_DURATION - (isWorkingDay(endDate, nonWorkingDates) ? 1 : 0),

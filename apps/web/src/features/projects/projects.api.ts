@@ -5,6 +5,7 @@ export type Project = {
   name: string;
   startDate: string;
   endDate: string;
+  excludeNonWorkingDays: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -33,6 +34,7 @@ export type ProjectInput = {
   name: string;
   startDate: string;
   endDate: string;
+  excludeNonWorkingDays?: boolean;
 };
 
 export function listProjects() {

@@ -10,6 +10,7 @@ const aggregate: GanttAggregate = {
     name: 'Публичный план',
     startDate: '2026-11-01',
     endDate: '2026-11-14',
+    excludeNonWorkingDays: true,
     createdAt: '',
     updatedAt: '',
     columns: [
