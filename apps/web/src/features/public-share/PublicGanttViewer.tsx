@@ -113,9 +113,12 @@ export function PublicGanttViewer({
     if (hasVerticalOverflow) return;
     if (taskPaneRef.current) taskPaneRef.current.scrollTop = 0;
     if (timelinePaneRef.current) timelinePaneRef.current.scrollTop = 0;
-    setStickerScroll((current) => current.verticalTop === 0
-      ? current
-      : { ...current, verticalTop: 0 });
+    const frame = requestAnimationFrame(() => {
+      setStickerScroll((current) => current.verticalTop === 0
+        ? current
+        : { ...current, verticalTop: 0 });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [hasVerticalOverflow]);
 
   function syncVerticalScroll(event: UIEvent<HTMLElement>, target: HTMLElement | null) {

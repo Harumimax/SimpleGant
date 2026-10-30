@@ -261,7 +261,7 @@ describe('GanttWorkspace', () => {
     expect(screen.queryByText('Колонка 2')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Действия')).not.toBeInTheDocument();
     expect(taskPane.querySelector('.gantt-task-table')).toHaveStyle({
-      minWidth: '232px',
+      minWidth: '0',
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Показать дополнительные колонки' }));

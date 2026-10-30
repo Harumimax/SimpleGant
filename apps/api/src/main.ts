@@ -14,9 +14,10 @@ import { AppModule } from './app.module.js';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    new FastifyAdapter({ trustProxy: true }),
   );
   const port = Number(process.env.PORT ?? 3000);
+  const host = process.env.HOST ?? '127.0.0.1';
 
   await app.register(fastifyCookie);
   app.setGlobalPrefix('api');
@@ -33,7 +34,7 @@ async function bootstrap() {
     origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
   });
 
-  await app.listen(port);
+  await app.listen({ host, port });
 }
 
 void bootstrap();

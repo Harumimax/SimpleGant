@@ -139,6 +139,37 @@ npm run lint
 npm run build
 ```
 
+## 🚢 Автоматический деплой на VPS
+
+Push в ветку `main` запускает GitHub Actions: проект проходит тесты, typecheck,
+lint и сборку, после чего архив исходников передаётся на VPS по SSH. На сервере
+автоматически собираются контейнеры, применяются Prisma-миграции и обновляются
+web/API-сервисы.
+
+В GitHub Actions необходимо создать secrets:
+
+- `VPS_HOST` — адрес сервера;
+- `VPS_PORT` — SSH-порт;
+- `VPS_USER` — пользователь для деплоя;
+- `VPS_SSH_KEY` — его приватный SSH-ключ.
+
+Перед первым деплоем подготовьте каталог и production-конфигурацию:
+
+```bash
+sudo mkdir -p /srv/simplegant
+sudo chown deploy:deploy /srv/simplegant
+cd /srv/simplegant
+nano .env
+```
+
+Содержимое `.env` можно взять из корневого `.env.example`. Для запуска по HTTP
+укажите `COOKIE_SECURE=false`. После настройки HTTPS переключите значение на
+`true`, задайте публичный HTTPS-адрес в `WEB_ORIGIN` и при необходимости
+ограничьте публикацию контейнера значением `APP_BIND=127.0.0.1`.
+
+Приложение по умолчанию публикуется на порту `8080`, а PostgreSQL доступен только
+внутри Docker-сети. Данные базы сохраняются в именованном Docker volume.
+
 ## 🗂️ Структура репозитория
 
 ```text
