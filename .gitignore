@@ -15,3 +15,6 @@ apps/api/src/generated/prisma/
 .idea/
 .vscode/
 .DS_Store
+
+.agents/skills/
+docs/
