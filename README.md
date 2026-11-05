@@ -10,7 +10,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
 [![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
 
 </div>
@@ -71,64 +70,10 @@ SimpleGant помогает превратить список работ в на
 **Backend**
 
 - NestJS + Fastify
-- PostgreSQL + Prisma
+- Prisma
 - Cookie-based авторизация
 - bcrypt для хеширования паролей
 - Vitest
-
-## 🚀 Быстрый старт
-
-Понадобятся:
-
-- Node.js `24.11+`
-- npm
-- PostgreSQL
-
-### 1. Установите зависимости
-
-```bash
-git clone https://github.com/Harumimax/SimpleGant.git
-cd SimpleGant
-npm install
-```
-
-### 2. Подготовьте переменные окружения
-
-Создайте файлы на основе примеров:
-
-```text
-apps/api/.env.example  →  apps/api/.env
-apps/web/.env.example  →  apps/web/.env
-```
-
-Минимальная конфигурация API:
-
-```env
-PORT=3000
-WEB_ORIGIN=http://localhost:5173
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/simplegant?schema=public
-```
-
-### 3. Подготовьте базу данных
-
-```bash
-npm run prisma:generate
-npm run prisma:migrate
-```
-
-### 4. Запустите приложение
-
-В двух терминалах:
-
-```bash
-npm run dev:api
-```
-
-```bash
-npm run dev:web
-```
-
-После запуска frontend будет доступен по адресу [http://localhost:5173](http://localhost:5173).
 
 ## 🧪 Проверки проекта
 
@@ -138,37 +83,6 @@ npm run typecheck
 npm run lint
 npm run build
 ```
-
-## 🚢 Автоматический деплой на VPS
-
-Push в ветку `main` запускает GitHub Actions: проект проходит тесты, typecheck,
-lint и сборку, после чего архив исходников передаётся на VPS по SSH. На сервере
-автоматически собираются контейнеры, применяются Prisma-миграции и обновляются
-web/API-сервисы.
-
-В GitHub Actions необходимо создать secrets:
-
-- `VPS_HOST` — адрес сервера;
-- `VPS_PORT` — SSH-порт;
-- `VPS_USER` — пользователь для деплоя;
-- `VPS_SSH_KEY` — его приватный SSH-ключ.
-
-Перед первым деплоем подготовьте каталог и production-конфигурацию:
-
-```bash
-sudo mkdir -p /srv/simplegant
-sudo chown deploy:deploy /srv/simplegant
-cd /srv/simplegant
-nano .env
-```
-
-Содержимое `.env` можно взять из корневого `.env.example`. Для запуска по HTTP
-укажите `COOKIE_SECURE=false`. После настройки HTTPS переключите значение на
-`true`, задайте публичный HTTPS-адрес в `WEB_ORIGIN` и при необходимости
-ограничьте публикацию контейнера значением `APP_BIND=127.0.0.1`.
-
-Приложение по умолчанию публикуется на порту `8080`, а PostgreSQL доступен только
-внутри Docker-сети. Данные базы сохраняются в именованном Docker volume.
 
 ## 🗂️ Структура репозитория
 
