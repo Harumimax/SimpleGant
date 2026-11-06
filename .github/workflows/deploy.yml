@@ -129,8 +129,8 @@ jobs:
 
           cd "$DEPLOY_PATH"
           docker compose build api web migrate
-          docker compose --profile tools run --rm migrate
-          docker compose up -d api web
+          docker compose --profile tools run --rm -T migrate </dev/null
+          docker compose up -d --wait --wait-timeout 120 api web
           docker compose ps
           REMOTE
 
