@@ -4,6 +4,8 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+
+import { getWebOrigin } from '../config/web-origin.js';
 import type { FastifyRequest } from 'fastify';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -17,7 +19,7 @@ export class CsrfOriginGuard implements CanActivate {
       return true;
     }
 
-    const allowedOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
+    const allowedOrigin = getWebOrigin();
 
     if (request.headers.origin !== allowedOrigin) {
       throw new ForbiddenException('Недопустимый источник запроса');

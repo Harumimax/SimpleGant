@@ -10,6 +10,7 @@ import {
 } from '@nestjs/platform-fastify';
 
 import { AppModule } from './app.module.js';
+import { getWebOrigin } from './config/web-origin.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -18,6 +19,7 @@ async function bootstrap() {
   );
   const port = Number(process.env.PORT ?? 3000);
   const host = process.env.HOST ?? '127.0.0.1';
+  const webOrigin = getWebOrigin();
 
   await app.register(fastifyCookie);
   app.setGlobalPrefix('api');
@@ -31,7 +33,7 @@ async function bootstrap() {
   app.enableCors({
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
+    origin: webOrigin,
   });
 
   await app.listen({ host, port });
