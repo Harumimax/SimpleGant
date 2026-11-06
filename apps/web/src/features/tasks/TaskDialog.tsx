@@ -272,6 +272,16 @@ export function TaskDialog({
             <div className="sm:col-span-2">
               <TextField autoFocus disabled={isPending} label="Название" maxLength={200} onChange={(event) => setTitle(event.target.value)} required value={title} />
             </div>
+            {!task ? (
+              <div className="sm:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Button disabled={isPending} onClick={onClose} type="button" variant="secondary">
+                  Отмена
+                </Button>
+                <Button aria-label="Создать задачу сверху" isLoading={isPending} loadingLabel="Сохраняем…" type="submit">
+                  Создать задачу
+                </Button>
+              </div>
+            ) : null}
             <TextField disabled={isPending || datesReadOnly} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Начало задачи" onChange={(event) => changeStartDate(event.target.value)} type="date" value={startDate} />
             <TextField disabled={isPending || datesReadOnly} error={formError || undefined} icon={<CalendarDays aria-hidden className="size-[18px]" />} label="Конец задачи" min={startDate || undefined} onChange={(event) => changeEndDate(event.target.value)} ref={endDateRef} type="date" value={endDate} />
             <SelectField disabled={isPending} label="Тип работ" onChange={(event) => setWorkType(event.target.value)} value={workType}>
