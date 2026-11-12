@@ -204,7 +204,7 @@ a[href] {
 }
 
 .task-title-button {
-  font-weight: 700;
+  font-weight: 400;
   text-decoration-line: underline;
   text-decoration-color: currentColor;
   text-decoration-thickness: 2px;
