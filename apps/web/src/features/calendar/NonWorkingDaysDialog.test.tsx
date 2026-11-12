@@ -31,19 +31,35 @@ describe('NonWorkingDaysDialog', () => {
   it('adds one named date inside the project period', () => {
     const { onAdd } = renderDialog();
 
-    fireEvent.change(screen.getByLabelText('Дата'), { target: { value: '2026-11-04' } });
+    fireEvent.change(screen.getByLabelText('Дата начала'), { target: { value: '2026-11-04' } });
+    fireEvent.change(screen.getByLabelText('Дата окончания'), { target: { value: '2026-11-04' } });
     fireEvent.change(screen.getByLabelText('Название'), { target: { value: ' Праздник ' } });
     fireEvent.submit(screen.getByRole('button', { name: 'Добавить день' }).closest('form')!);
 
-    expect(onAdd).toHaveBeenCalledWith({ date: '2026-11-04', label: 'Праздник' });
+    expect(onAdd).toHaveBeenCalledWith([{ date: '2026-11-04', label: 'Праздник' }]);
+  });
+
+  it('adds an inclusive range and skips dates that are already marked', () => {
+    const { onAdd } = renderDialog([day]);
+
+    fireEvent.change(screen.getByLabelText('Дата начала'), { target: { value: '2026-11-03' } });
+    fireEvent.change(screen.getByLabelText('Дата окончания'), { target: { value: '2026-11-05' } });
+    fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Каникулы' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Добавить 2 дня' }).closest('form')!);
+
+    expect(onAdd).toHaveBeenCalledWith([
+      { date: '2026-11-03', label: 'Каникулы' },
+      { date: '2026-11-05', label: 'Каникулы' },
+    ]);
   });
 
   it('rejects a duplicate date and confirms deletion', () => {
     const { onAdd, onDelete } = renderDialog([day]);
 
-    fireEvent.change(screen.getByLabelText('Дата'), { target: { value: day.date } });
+    fireEvent.change(screen.getByLabelText('Дата начала'), { target: { value: day.date } });
+    fireEvent.change(screen.getByLabelText('Дата окончания'), { target: { value: day.date } });
     fireEvent.submit(screen.getByRole('button', { name: 'Добавить день' }).closest('form')!);
-    expect(screen.getByRole('alert')).toHaveTextContent('уже отмечена');
+    expect(screen.getByRole('alert')).toHaveTextContent('уже отмечены');
     expect(onAdd).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: /Удалить 4 ноября/ }));

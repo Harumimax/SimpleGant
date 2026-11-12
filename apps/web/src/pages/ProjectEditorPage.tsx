@@ -359,17 +359,20 @@ export function ProjectEditorPage() {
     setIsMilestonesOpen(false);
   }
 
-  function addNonWorkingDay(input: NonWorkingDayInput) {
+  function addNonWorkingDays(inputs: NonWorkingDayInput[]) {
     const now = new Date().toISOString();
     updateDraft((current) => {
-      const nonWorkingDays = [...current.nonWorkingDays, {
-        id: crypto.randomUUID(),
-        projectId,
-        date: input.date,
-        label: input.label ?? null,
-        createdAt: now,
-        updatedAt: now,
-      }].sort((left, right) => left.date.localeCompare(right.date));
+      const nonWorkingDays = [
+        ...current.nonWorkingDays,
+        ...inputs.map((input) => ({
+          id: crypto.randomUUID(),
+          projectId,
+          date: input.date,
+          label: input.label ?? null,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      ].sort((left, right) => left.date.localeCompare(right.date));
       return {
         ...current,
         nonWorkingDays,
@@ -562,7 +565,7 @@ export function ProjectEditorPage() {
       {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks, deletingTask.id)} isPending={false} onClose={() => setDeletingTaskId(null)} onConfirm={() => deleteTask(deletingTask.id)} task={deletingTask} /> : null}
       {isColumnsOpen ? <ProjectColumnsDialog columns={project.columns} isPending={false} onClose={() => setIsColumnsOpen(false)} onSubmit={configureColumns} /> : null}
       {isMilestonesOpen ? <MilestonesDialog isPending={false} milestones={milestones} onClose={() => setIsMilestonesOpen(false)} onDelete={deleteMilestone} onSave={saveMilestone} projectEndDate={project.endDate} projectStartDate={project.startDate} /> : null}
-      {isNonWorkingDaysOpen ? <NonWorkingDaysDialog days={nonWorkingDays} isPending={false} onAdd={addNonWorkingDay} onClose={() => setIsNonWorkingDaysOpen(false)} onDelete={deleteNonWorkingDay} projectEndDate={project.endDate} projectStartDate={project.startDate} /> : null}
+      {isNonWorkingDaysOpen ? <NonWorkingDaysDialog days={nonWorkingDays} isPending={false} onAdd={addNonWorkingDays} onClose={() => setIsNonWorkingDaysOpen(false)} onDelete={deleteNonWorkingDay} projectEndDate={project.endDate} projectStartDate={project.startDate} /> : null}
       {isShareOpen && project.publicToken ? <ShareProjectDialog onClose={() => setIsShareOpen(false)} publicUrl={`${window.location.origin}/public/${project.publicToken}`} /> : null}
     </main>
   );

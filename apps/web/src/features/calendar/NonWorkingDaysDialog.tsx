@@ -1,5 +1,5 @@
 import { CalendarOff, Trash2, X } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { eachDayOfInterval, format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useId, useState, type FormEvent } from 'react';
 
@@ -19,12 +19,29 @@ type Props = {
   isPending: boolean;
   serverError?: string;
   onClose: () => void;
-  onAdd: (input: NonWorkingDayInput) => void;
+  onAdd: (inputs: NonWorkingDayInput[]) => void;
   onDelete: (dayId: string) => void;
 };
 
 function formatDate(value: string) {
   return format(parseISO(value), 'd MMMM yyyy', { locale: ru });
+}
+
+function datesInRange(startDate: string, endDate: string) {
+  if (!startDate || !endDate || startDate > endDate) return [];
+  return eachDayOfInterval({
+    start: parseISO(startDate),
+    end: parseISO(endDate),
+  }).map((date) => format(date, 'yyyy-MM-dd'));
+}
+
+function daysLabel(count: number) {
+  const remainder100 = count % 100;
+  const remainder10 = count % 10;
+  if (remainder100 >= 11 && remainder100 <= 14) return 'дней';
+  if (remainder10 === 1) return 'день';
+  if (remainder10 >= 2 && remainder10 <= 4) return 'дня';
+  return 'дней';
 }
 
 export function NonWorkingDaysDialog({
@@ -38,23 +55,39 @@ export function NonWorkingDaysDialog({
   onDelete,
 }: Props) {
   const titleId = useId();
-  const [date, setDate] = useState(projectStartDate);
+  const [startDate, setStartDate] = useState(projectStartDate);
+  const [endDate, setEndDate] = useState(projectStartDate);
   const [label, setLabel] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
+  const selectedDates = datesInRange(startDate, endDate);
+  const existingDates = new Set(days.map((day) => day.date));
+  const availableDates = selectedDates.filter((date) => !existingDates.has(date));
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (date < projectStartDate || date > projectEndDate) {
-      setFormError('Дата должна входить в период проекта');
+    if (
+      startDate < projectStartDate
+      || startDate > projectEndDate
+      || endDate < projectStartDate
+      || endDate > projectEndDate
+    ) {
+      setFormError('Диапазон должен входить в период проекта');
       return;
     }
-    if (days.some((day) => day.date === date)) {
-      setFormError('Эта дата уже отмечена как нерабочая');
+    if (startDate > endDate) {
+      setFormError('Дата окончания не может быть раньше даты начала');
+      return;
+    }
+    if (availableDates.length === 0) {
+      setFormError('Все даты диапазона уже отмечены как нерабочие');
       return;
     }
     setFormError('');
-    onAdd({ date, label: label.trim() || undefined });
+    onAdd(availableDates.map((date) => ({
+      date,
+      label: label.trim() || undefined,
+    })));
   }
 
   return (
@@ -94,13 +127,23 @@ export function NonWorkingDaysDialog({
           )}
 
           <form className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-4" onSubmit={handleSubmit}>
-            <h3 className="mb-4 text-sm font-semibold">Добавить нерабочий день</h3>
+            <h3 className="mb-4 text-sm font-semibold">Добавить нерабочие дни</h3>
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField disabled={isPending} label="Дата" max={projectEndDate} min={projectStartDate} onChange={(event) => setDate(event.target.value)} required type="date" value={date} />
-              <TextField disabled={isPending} label="Название" maxLength={120} onChange={(event) => setLabel(event.target.value)} placeholder="Например, Новый год" value={label} />
+              <TextField disabled={isPending} label="Дата начала" max={projectEndDate} min={projectStartDate} onChange={(event) => {
+                const nextStartDate = event.target.value;
+                setStartDate(nextStartDate);
+                if (endDate < nextStartDate) setEndDate(nextStartDate);
+              }} required type="date" value={startDate} />
+              <TextField disabled={isPending} label="Дата окончания" max={projectEndDate} min={startDate || projectStartDate} onChange={(event) => setEndDate(event.target.value)} required type="date" value={endDate} />
+              <div className="sm:col-span-2">
+                <TextField disabled={isPending} label="Название" maxLength={120} onChange={(event) => setLabel(event.target.value)} placeholder="Например, Новый год" value={label} />
+              </div>
             </div>
+            {selectedDates.length > availableDates.length && availableDates.length > 0 ? (
+              <p className="mt-3 text-xs text-[var(--color-text-muted)]">Уже отмеченные даты будут пропущены.</p>
+            ) : null}
             {formError || serverError ? <div className="mt-4"><Alert>{formError || serverError}</Alert></div> : null}
-            <div className="mt-5 flex justify-end"><Button isLoading={isPending} loadingLabel="Сохраняем…" type="submit">Добавить день</Button></div>
+            <div className="mt-5 flex justify-end"><Button isLoading={isPending} loadingLabel="Сохраняем…" type="submit">{availableDates.length > 1 ? `Добавить ${availableDates.length} ${daysLabel(availableDates.length)}` : 'Добавить день'}</Button></div>
           </form>
         </div>
       </div>

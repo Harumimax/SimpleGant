@@ -205,18 +205,11 @@ a[href] {
 
 .task-title-button {
   font-weight: 400;
-  text-decoration-line: underline;
-  text-decoration-color: currentColor;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 2px;
+  text-decoration: none;
 }
 
 .task-title-button:hover {
   color: var(--color-primary);
-}
-
-.task-title-button--dense {
-  text-decoration: none;
 }
 
 .task-family-row[data-family-color="sage"],
