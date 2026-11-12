@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { ArrowLeft, CalendarRange, ChartNoAxesGantt, Share2 } from 'lucide-react';
+import { ArrowLeft, CalendarRange, ChartNoAxesGantt, Pencil, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -22,8 +22,14 @@ import { taskPeriodsDuration } from '../features/gantt/taskPeriods';
 import { MilestonesDialog } from '../features/milestones/MilestonesDialog';
 import type { MilestoneInput } from '../features/milestones/milestones.api';
 import { ProjectColumnsDialog } from '../features/projects/ProjectColumnsDialog';
+import { ProjectDialog } from '../features/projects/ProjectDialog';
 import { ShareProjectDialog } from '../features/projects/ShareProjectDialog';
-import type { ProjectColumnConfigurationInput } from '../features/projects/projects.api';
+import {
+  updateProject,
+  type ProjectColumnConfigurationInput,
+  type ProjectInput,
+} from '../features/projects/projects.api';
+import { projectsQueryKey } from '../features/projects/projects.queries';
 import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
 import { TaskDialog } from '../features/tasks/TaskDialog';
 import type { Task, TaskInput, TaskStatus } from '../features/tasks/tasks.api';
@@ -65,6 +71,7 @@ export function ProjectEditorPage() {
   const markSaved = useGanttDraftStore((state) => state.markSaved);
   const clearDraft = useGanttDraftStore((state) => state.clear);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isProjectEditOpen, setIsProjectEditOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
@@ -102,6 +109,24 @@ export function ProjectEditorPage() {
       projectId,
       revision: request.revision,
     }),
+  });
+
+  const projectUpdateMutation = useMutation({
+    mutationFn: (input: ProjectInput) => updateProject(projectId, input),
+    onSuccess: (updatedProject) => {
+      updateDraft((current) => ({
+        ...current,
+        project: {
+          ...current.project,
+          name: updatedProject.name,
+          startDate: updatedProject.startDate,
+          endDate: updatedProject.endDate,
+          updatedAt: updatedProject.updatedAt,
+        },
+      }));
+      void queryClient.invalidateQueries({ queryKey: projectsQueryKey });
+      setIsProjectEditOpen(false);
+    },
   });
 
   useEffect(() => {
@@ -433,7 +458,21 @@ export function ProjectEditorPage() {
             SimpleGant
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold sm:text-lg">{project.name}</h1>
+            <h1 className="flex min-w-0 items-center">
+              <button
+                aria-label={`Редактировать проект «${project.name}»`}
+                className="group flex min-w-0 items-center gap-1.5 rounded-sm text-left text-base font-semibold hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] sm:text-lg"
+                onClick={() => {
+                  projectUpdateMutation.reset();
+                  setIsProjectEditOpen(true);
+                }}
+                title="Редактировать название и период проекта"
+                type="button"
+              >
+                <span className="truncate group-hover:underline">{project.name}</span>
+                <Pencil aria-hidden className="size-3.5 shrink-0 text-[var(--color-text-faint)] group-hover:text-[var(--color-accent)]" />
+              </button>
+            </h1>
             <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-[var(--color-text-muted)]">
               <CalendarRange aria-hidden className="size-3.5 shrink-0" />
               {formatDate(project.startDate)} — {formatDate(project.endDate)}
@@ -507,6 +546,17 @@ export function ProjectEditorPage() {
         tasks={tasks}
       />
 
+      {isProjectEditOpen ? (
+        <ProjectDialog
+          isPending={projectUpdateMutation.isPending}
+          onClose={() => setIsProjectEditOpen(false)}
+          onSubmit={(input) => projectUpdateMutation.mutate(input)}
+          project={project}
+          serverError={projectUpdateMutation.isError
+            ? mutationMessage(projectUpdateMutation.error)
+            : undefined}
+        />
+      ) : null}
       {isCreateOpen ? <TaskDialog columns={project.columns} excludeNonWorkingDays={project.excludeNonWorkingDays} isPending={false} nonWorkingDays={nonWorkingDays} onClose={() => setIsCreateOpen(false)} onSubmit={createTask} /> : null}
       {editingTask ? <TaskDialog columns={project.columns} datesReadOnly={countTaskDescendants(tasks, editingTask.id) > 0} excludeNonWorkingDays={project.excludeNonWorkingDays} isPending={false} nonWorkingDays={nonWorkingDays} onClose={() => setEditingTaskId(null)} onDelete={() => { setEditingTaskId(null); setDeletingTaskId(editingTask.id); }} onSubmit={(input) => updateTask(editingTask.id, input)} task={editingTask} /> : null}
       {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks, deletingTask.id)} isPending={false} onClose={() => setDeletingTaskId(null)} onConfirm={() => deleteTask(deletingTask.id)} task={deletingTask} /> : null}
