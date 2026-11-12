@@ -9,7 +9,12 @@ import {
 } from 'lucide-react';
 
 import type { ProjectColumn } from '../projects/projects.api';
-import type { Task, TaskColor } from '../tasks/tasks.api';
+import {
+  TASK_STATUSES,
+  type Task,
+  type TaskColor,
+  type TaskStatus,
+} from '../tasks/tasks.api';
 import { taskValue } from './taskValue';
 import { GANTT_ROW_HEIGHT, type GanttRowDensity } from './timeline';
 
@@ -31,6 +36,7 @@ type Props = {
   onDetails: (task: Task) => void;
   onIndent: (task: Task) => void;
   onOutdent: (task: Task) => void;
+  onStatusChange?: (task: Task, status: TaskStatus) => void;
   onToggleCollapsed: (task: Task) => void;
 };
 
@@ -52,6 +58,7 @@ export function TaskTableRow({
   onDetails,
   onIndent,
   onOutdent,
+  onStatusChange,
   onToggleCollapsed,
 }: Props) {
   const {
@@ -70,6 +77,7 @@ export function TaskTableRow({
   const controlSize = isMaximum ? 'size-3' : isCompact ? 'size-5' : 'size-6';
   const actionSize = isMaximum ? 'size-3' : isCompact ? 'size-5' : 'size-7';
   const iconSize = isMaximum ? 'size-2.5' : isCompact ? 'size-3' : 'size-3.5';
+  const selectHeight = isMaximum ? 'h-5' : isCompact ? 'h-6' : 'h-8';
   const titleGap = isMaximum ? 'mr-0.5' : 'mr-1';
   const indentation = isMaximum ? 10 : isCompact ? 14 : 18;
 
@@ -137,6 +145,18 @@ export function TaskTableRow({
                 {task.title}
               </button>
             </div>
+          ) : column.key === 'status' && onStatusChange ? (
+            <select
+              aria-label={`Статус задачи ${task.title}`}
+              className={`w-full min-w-0 cursor-pointer rounded-md border border-transparent bg-transparent px-1 text-inherit outline-none hover:border-[var(--color-border-hover)] hover:bg-white focus:border-[var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-ring)] disabled:cursor-not-allowed disabled:opacity-60 ${selectHeight}`}
+              disabled={isDisabled}
+              onChange={(event) => onStatusChange(task, event.target.value as TaskStatus)}
+              value={task.status}
+            >
+              {TASK_STATUSES.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
           ) : (
             <span className="truncate">{taskValue(task, column.key)}</span>
           )}

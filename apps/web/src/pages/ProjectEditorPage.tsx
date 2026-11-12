@@ -26,7 +26,7 @@ import { ShareProjectDialog } from '../features/projects/ShareProjectDialog';
 import type { ProjectColumnConfigurationInput } from '../features/projects/projects.api';
 import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
 import { TaskDialog } from '../features/tasks/TaskDialog';
-import type { Task, TaskInput } from '../features/tasks/tasks.api';
+import type { Task, TaskInput, TaskStatus } from '../features/tasks/tasks.api';
 import type { StickerUpdate } from '../features/stickers/stickers.api';
 
 function formatDate(value: string) {
@@ -251,6 +251,15 @@ export function ProjectEditorPage() {
       }), current.project.excludeNonWorkingDays, current.nonWorkingDays),
     }));
     setEditingTaskId(null);
+  }
+
+  function updateTaskStatus(taskId: string, status: TaskStatus) {
+    updateDraft((current) => ({
+      ...current,
+      tasks: current.tasks.map((task) => task.id === taskId
+        ? { ...task, status, updatedAt: new Date().toISOString() }
+        : task),
+    }));
   }
 
   function deleteTask(taskId: string) {
@@ -483,6 +492,7 @@ export function ProjectEditorPage() {
             ),
           }));
         }}
+        onTaskStatusChange={(task, status) => updateTaskStatus(task.id, status)}
         onToggleTaskCollapsed={async (task) => {
           updateDraft((current) => ({
             ...current,
