@@ -65,7 +65,7 @@ export function PublicGanttViewer({
   const todayDate = currentDateIso();
   const rowHeight = GANTT_ROW_HEIGHTS[rowDensity];
   const rowTextSize = rowDensity === 'maximum'
-    ? 'text-[9px] leading-none'
+    ? 'text-[8px] leading-[1]'
     : rowDensity === 'compact' ? 'text-[10px]' : 'text-xs';
   const rowCellPadding = rowDensity === 'maximum'
     ? 'px-1'
@@ -273,11 +273,11 @@ export function PublicGanttViewer({
                       {task ? rowIndex + 1 : null}
                     </div>
                     {columns.map((column) => (
-                      <div className={`flex min-w-0 items-center border-r border-[var(--color-border)] ${rowCellPadding} ${rowTextSize}`} key={column.id}>
+                      <div className={`flex h-full min-w-0 items-center border-r border-[var(--color-border)] ${rowCellPadding} ${rowTextSize}`} key={column.id}>
                         {task && column.key === 'title' ? (
-                          <div className="flex min-w-0 items-center" style={{ marginLeft: task.level * rowIndentation }}>
+                          <div className="flex h-full min-w-0 items-center" style={{ marginLeft: task.level * rowIndentation }}>
                             <button
-                              className={`task-title-button min-w-0 truncate rounded-sm text-left focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${rowDensity !== 'normal' ? 'task-title-button--dense' : ''}`}
+                              className={`task-title-button inline-flex h-full min-w-0 items-center truncate rounded-sm text-left focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${rowDensity !== 'normal' ? 'task-title-button--dense' : ''}`}
                               onClick={() => onTaskDetails(task)}
                               type="button"
                             >

@@ -71,13 +71,15 @@ export function TaskTableRow({
   } = useSortable({ id: task.id, disabled: isDisabled });
   const isCompact = rowDensity === 'compact';
   const isMaximum = rowDensity === 'maximum';
-  const textSize = isMaximum ? 'text-[9px] leading-none' : isCompact ? 'text-[10px]' : 'text-xs';
+  const textSize = isMaximum ? 'text-[8px] leading-[1]' : isCompact ? 'text-[10px]' : 'text-xs';
   const cellPadding = isMaximum ? 'px-1' : isCompact ? 'px-2' : 'px-3';
   const dragWidth = isMaximum ? 'w-3' : isCompact ? 'w-5' : 'w-6';
   const controlSize = isMaximum ? 'size-3' : isCompact ? 'size-5' : 'size-6';
   const actionSize = isMaximum ? 'size-3' : isCompact ? 'size-5' : 'size-7';
   const iconSize = isMaximum ? 'size-2.5' : isCompact ? 'size-3' : 'size-3.5';
-  const selectHeight = isMaximum ? 'h-5' : isCompact ? 'h-6' : 'h-8';
+  const selectStyle = isMaximum
+    ? 'h-3 rounded-none px-0 text-[8px] leading-none'
+    : `${isCompact ? 'h-6' : 'h-8'} rounded-md px-1`;
   const titleGap = isMaximum ? 'mr-0.5' : 'mr-1';
   const indentation = isMaximum ? 10 : isCompact ? 14 : 18;
 
@@ -115,13 +117,13 @@ export function TaskTableRow({
 
       {columns.map((column) => (
         <div
-          className={`flex min-w-0 items-center border-r border-[var(--color-border)] text-[var(--color-text)] ${cellPadding} ${textSize}`}
+          className={`flex h-full min-w-0 items-center border-r border-[var(--color-border)] text-[var(--color-text)] ${cellPadding} ${textSize}`}
           key={column.id}
           title={String(taskValue(task, column.key))}
         >
           {column.key === 'title' ? (
             <div
-              className="flex min-w-0 items-center"
+              className="flex h-full min-w-0 items-center"
               style={{ paddingLeft: task.level * indentation }}
             >
               {hasChildren ? (
@@ -138,7 +140,7 @@ export function TaskTableRow({
                 <span className={`shrink-0 ${titleGap} ${controlSize}`} />
               )}
               <button
-                className={`task-title-button min-w-0 truncate rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] ${(isCompact || isMaximum) ? 'task-title-button--dense' : ''}`}
+                className={`task-title-button inline-flex h-full min-w-0 items-center truncate rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] ${(isCompact || isMaximum) ? 'task-title-button--dense' : ''}`}
                 onClick={() => onDetails(task)}
                 type="button"
               >
@@ -148,7 +150,7 @@ export function TaskTableRow({
           ) : column.key === 'status' && onStatusChange ? (
             <select
               aria-label={`Статус задачи ${task.title}`}
-              className={`w-full min-w-0 cursor-pointer rounded-md border border-transparent bg-transparent px-1 text-inherit outline-none hover:border-[var(--color-border-hover)] hover:bg-white focus:border-[var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-ring)] disabled:cursor-not-allowed disabled:opacity-60 ${selectHeight}`}
+              className={`w-full min-w-0 cursor-pointer border border-transparent bg-transparent text-inherit outline-none hover:border-[var(--color-border-hover)] hover:bg-white focus:border-[var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-ring)] disabled:cursor-not-allowed disabled:opacity-60 ${selectStyle}`}
               disabled={isDisabled}
               onChange={(event) => onStatusChange(task, event.target.value as TaskStatus)}
               value={task.status}
