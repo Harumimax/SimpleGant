@@ -16,6 +16,7 @@ import {
 import type { Task } from '../tasks/tasks.api';
 import { ReadOnlyTaskBar } from './ReadOnlyTaskBar';
 import { taskPeriods } from '../gantt/taskPeriods';
+import { currentDateIso, TodayMarker } from '../gantt/TodayMarker';
 
 type Props = GanttAggregate & {
   onTaskDetails: (task: Task) => void;
@@ -61,6 +62,7 @@ export function PublicGanttViewer({
       ? column.key === 'title'
       : column.isVisible);
   const timeline = buildTimeline(project.startDate, project.endDate, timelineScale);
+  const todayDate = currentDateIso();
   const rowHeight = GANTT_ROW_HEIGHTS[rowDensity];
   const rowTextSize = rowDensity === 'maximum'
     ? 'text-[9px] leading-none'
@@ -327,7 +329,8 @@ export function PublicGanttViewer({
                       {timelineScale === 'days' ? <div className="flex h-[34px]">
                         {timeline.days.map((day) => {
                           const nonWorkingDay = nonWorkingDaysByDate.get(day.date);
-                          return <div className={`flex shrink-0 flex-col items-center justify-center border-r border-[var(--color-border)] text-[10px] ${nonWorkingDay ? 'bg-[var(--color-non-working)] text-[var(--color-warning)]' : day.isWeekend ? 'bg-[var(--color-weekend)] text-[var(--color-text-muted)]' : ''}`} key={day.date} style={{ width: timeline.dayWidth }} title={nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : day.date}><span className="font-semibold leading-none">{day.dayNumber}</span><span className="mt-0.5 text-[9px] leading-none">{day.weekday}</span></div>;
+                          const isToday = day.date === todayDate;
+                          return <div className={`flex shrink-0 flex-col items-center justify-center border-r border-[var(--color-border)] text-[10px] ${isToday ? 'bg-[var(--color-today-soft)] text-[var(--color-today-text)] shadow-[inset_0_0_0_1px_var(--color-today)]' : nonWorkingDay ? 'bg-[var(--color-non-working)] text-[var(--color-warning)]' : day.isWeekend ? 'bg-[var(--color-weekend)] text-[var(--color-text-muted)]' : ''}`} key={day.date} style={{ width: timeline.dayWidth }} title={`${isToday ? 'Сегодня — ' : ''}${nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : day.date}`}><span className="font-semibold leading-none">{day.dayNumber}</span><span className="mt-0.5 text-[9px] leading-none">{day.weekday}</span></div>;
                         })}
                       </div> : null}
                     </>
@@ -361,6 +364,12 @@ export function PublicGanttViewer({
                     </div>
                   ))}
                 </div>
+                <TodayMarker
+                  dayWidth={timeline.dayWidth}
+                  timelineEndDate={project.endDate}
+                  timelineStartDate={project.startDate}
+                  todayDate={todayDate}
+                />
                 <MilestoneLayer dayWidth={timeline.dayWidth} milestones={milestones} timelineEndDate={project.endDate} timelineStartDate={project.startDate} />
               </div>
             </div>

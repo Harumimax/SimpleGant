@@ -52,6 +52,7 @@ import {
 import { TaskBar } from './TaskBar';
 import { canUsePeriodDates, taskPeriods } from './taskPeriods';
 import { MilestoneLayer } from './MilestoneLayer';
+import { currentDateIso, TodayMarker } from './TodayMarker';
 import {
   MAX_PROJECT_STICKERS,
   StickerLayer,
@@ -156,6 +157,7 @@ export function GanttWorkspace({
     project.endDate,
     timelineScale,
   );
+  const todayDate = currentDateIso();
   const rowHeight = GANTT_ROW_HEIGHTS[rowDensity];
   const nonWorkingDaysByDate = new Map(
     nonWorkingDays.map((day) => [day.date, day]),
@@ -678,12 +680,13 @@ export function GanttWorkspace({
                         <div className="flex h-[34px]">
                           {timeline.days.map((day) => {
                             const nonWorkingDay = nonWorkingDaysByDate.get(day.date);
+                            const isToday = day.date === todayDate;
                             return (
                               <div
-                                className={`flex shrink-0 flex-col items-center justify-center border-r border-[var(--color-border)] text-[10px] ${nonWorkingDay ? 'bg-[var(--color-non-working)] text-[var(--color-warning)]' : day.isWeekend ? 'bg-[var(--color-weekend)] text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'}`}
+                                className={`flex shrink-0 flex-col items-center justify-center border-r border-[var(--color-border)] text-[10px] ${isToday ? 'bg-[var(--color-today-soft)] text-[var(--color-today-text)] shadow-[inset_0_0_0_1px_var(--color-today)]' : nonWorkingDay ? 'bg-[var(--color-non-working)] text-[var(--color-warning)]' : day.isWeekend ? 'bg-[var(--color-weekend)] text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'}`}
                                 key={day.date}
                                 style={{ width: timeline.dayWidth }}
-                                title={nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : day.date}
+                                title={`${isToday ? 'Сегодня — ' : ''}${nonWorkingDay?.label ? `${day.date} — ${nonWorkingDay.label}` : day.date}`}
                               >
                                 <span className="font-semibold leading-none">{day.dayNumber}</span>
                                 <span className="mt-0.5 text-[9px] leading-none">{day.weekday}</span>
@@ -763,6 +766,12 @@ export function GanttWorkspace({
                     </div>
                   ))}
                 </div>
+                <TodayMarker
+                  dayWidth={timeline.dayWidth}
+                  timelineEndDate={project.endDate}
+                  timelineStartDate={project.startDate}
+                  todayDate={todayDate}
+                />
                 <MilestoneLayer
                   dayWidth={timeline.dayWidth}
                   milestones={milestones}
