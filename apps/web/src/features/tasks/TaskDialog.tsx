@@ -164,7 +164,7 @@ export function TaskDialog({
       setFormError('Длительность должна быть целым числом не меньше одного дня');
       return;
     }
-    if (!hasExplicitRange && parsedDuration !== undefined && !startDate && !endDate) {
+    if (!task && !hasExplicitRange && parsedDuration !== undefined && !startDate && !endDate) {
       setFormError('Для расчёта длительности укажите начало или конец задачи');
       return;
     }

@@ -152,6 +152,32 @@ describe('TaskDialog', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('allows editing only the title when an existing task has duration without dates', () => {
+    const onSubmit = vi.fn();
+    render(
+      <TaskDialog
+        isPending={false}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        task={{ ...parentTask, duration: 7, startDate: null, endDate: null }}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Название'), {
+      target: { value: 'Новое название' },
+    });
+    fireEvent.submit(
+      screen.getByRole('button', { name: 'Сохранить задачу' }).closest('form')!,
+    );
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Новое название',
+      duration: 7,
+      startDate: null,
+      endDate: null,
+    }));
+  });
+
   it('submits a work type selected from the fixed list', () => {
     const onSubmit = vi.fn();
     render(<TaskDialog isPending={false} onClose={vi.fn()} onSubmit={onSubmit} />);
