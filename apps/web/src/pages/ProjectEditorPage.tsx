@@ -302,7 +302,10 @@ export function ProjectEditorPage() {
     setDeletingTaskId(null);
   }
 
-  function configureColumns(configurations: ProjectColumnConfigurationInput[]) {
+  function configureColumns(
+    configurations: ProjectColumnConfigurationInput[],
+    showTaskActions: boolean,
+  ) {
     updateDraft((current) => {
       const existing = new Map(current.project.columns.map((column) => [column.id, column]));
       const columns = configurations.map((configuration, orderIndex) => {
@@ -320,7 +323,7 @@ export function ProjectEditorPage() {
       const customKeys = new Set(columns.filter(({ isDefault }) => !isDefault).map(({ key }) => key));
       return {
         ...current,
-        project: { ...current.project, columns },
+        project: { ...current.project, columns, showTaskActions },
         tasks: current.tasks.map((task) => ({
           ...task,
           customFields: Object.fromEntries(
@@ -563,7 +566,7 @@ export function ProjectEditorPage() {
       {isCreateOpen ? <TaskDialog columns={project.columns} excludeNonWorkingDays={project.excludeNonWorkingDays} isPending={false} nonWorkingDays={nonWorkingDays} onClose={() => setIsCreateOpen(false)} onSubmit={createTask} /> : null}
       {editingTask ? <TaskDialog columns={project.columns} datesReadOnly={countTaskDescendants(tasks, editingTask.id) > 0} excludeNonWorkingDays={project.excludeNonWorkingDays} isPending={false} nonWorkingDays={nonWorkingDays} onClose={() => setEditingTaskId(null)} onDelete={() => { setEditingTaskId(null); setDeletingTaskId(editingTask.id); }} onSubmit={(input) => updateTask(editingTask.id, input)} task={editingTask} /> : null}
       {deletingTask ? <DeleteTaskDialog descendantCount={countTaskDescendants(tasks, deletingTask.id)} isPending={false} onClose={() => setDeletingTaskId(null)} onConfirm={() => deleteTask(deletingTask.id)} task={deletingTask} /> : null}
-      {isColumnsOpen ? <ProjectColumnsDialog columns={project.columns} isPending={false} onClose={() => setIsColumnsOpen(false)} onSubmit={configureColumns} /> : null}
+      {isColumnsOpen ? <ProjectColumnsDialog columns={project.columns} isPending={false} onClose={() => setIsColumnsOpen(false)} onSubmit={configureColumns} showTaskActions={project.showTaskActions !== false} /> : null}
       {isMilestonesOpen ? <MilestonesDialog isPending={false} milestones={milestones} onClose={() => setIsMilestonesOpen(false)} onDelete={deleteMilestone} onSave={saveMilestone} projectEndDate={project.endDate} projectStartDate={project.startDate} /> : null}
       {isNonWorkingDaysOpen ? <NonWorkingDaysDialog days={nonWorkingDays} isPending={false} onAdd={addNonWorkingDays} onClose={() => setIsNonWorkingDaysOpen(false)} onDelete={deleteNonWorkingDay} projectEndDate={project.endDate} projectStartDate={project.startDate} /> : null}
       {isShareOpen && project.publicToken ? <ShareProjectDialog onClose={() => setIsShareOpen(false)} publicUrl={`${window.location.origin}/public/${project.publicToken}`} /> : null}

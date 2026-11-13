@@ -31,6 +31,7 @@ export class PublicShareService {
         startDate: dateOnly(aggregate.startDate)!,
         endDate: dateOnly(aggregate.endDate)!,
         excludeNonWorkingDays: aggregate.excludeNonWorkingDays,
+        showTaskActions: aggregate.showTaskActions,
         columns: aggregate.columns.map((column) => ({
           id: column.id,
           name: column.name,

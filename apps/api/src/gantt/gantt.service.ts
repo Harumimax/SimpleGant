@@ -200,6 +200,7 @@ export class GanttService {
     });
 
     const saved = await this.repository.replace(projectId, {
+      showTaskActions: input.showTaskActions ?? current.showTaskActions,
       columns,
       tasks,
       milestones,
@@ -280,6 +281,7 @@ export class GanttService {
         startDate: dateOnly(aggregate.startDate)!,
         endDate: dateOnly(aggregate.endDate)!,
         excludeNonWorkingDays: aggregate.excludeNonWorkingDays,
+        showTaskActions: aggregate.showTaskActions,
         createdAt: aggregate.createdAt,
         updatedAt: aggregate.updatedAt,
         columns: aggregate.columns.map((column) => ({

@@ -15,6 +15,7 @@ export type GanttAggregate = {
 };
 
 export type GanttSaveInput = {
+  showTaskActions: boolean;
   columns: Array<Pick<ProjectDetail['columns'][number], 'id' | 'name' | 'isVisible'>>;
   tasks: Array<Pick<
     Task,
@@ -51,6 +52,7 @@ export function saveGantt(
 ) {
   const tasks = normalizeTaskOrder(aggregate.tasks);
   const input: GanttSaveInput = {
+    showTaskActions: aggregate.project.showTaskActions !== false,
     columns: aggregate.project.columns.map(({ id, name, isVisible }) => ({
       id,
       name,

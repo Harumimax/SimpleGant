@@ -4,6 +4,7 @@ import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 
 export type GanttPersistenceInput = {
+  showTaskActions: boolean;
   columns: Array<{
     id: string;
     name: string;
@@ -170,7 +171,10 @@ export class GanttRepository {
       });
       await transaction.project.update({
         where: { id: projectId },
-        data: { updatedAt: new Date() },
+        data: {
+          showTaskActions: input.showTaskActions,
+          updatedAt: new Date(),
+        },
       });
     });
 

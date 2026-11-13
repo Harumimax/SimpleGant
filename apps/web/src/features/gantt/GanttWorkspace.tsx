@@ -167,7 +167,8 @@ export function GanttWorkspace({
   const columns = configuredColumns.filter((column) =>
     areAdditionalColumnsHidden ? column.key === 'title' : column.isVisible,
   );
-  const showTaskActions = !areAdditionalColumnsHidden;
+  const showTaskActions = !areAdditionalColumnsHidden
+    && project.showTaskActions !== false;
   const taskGridTemplate = columnTemplate(columns.length, showTaskActions);
   const taskTableWidth = taskTableMinWidth(columns.length, showTaskActions);
   const visibleTasks = flattenVisibleTasks(tasks);

@@ -13,6 +13,7 @@ type PublicGanttResponse = {
     startDate: string;
     endDate: string;
     excludeNonWorkingDays: boolean;
+    showTaskActions: boolean;
     columns: GanttAggregate['project']['columns'];
   };
   tasks: Array<{

@@ -6,6 +6,7 @@ export type Project = {
   startDate: string;
   endDate: string;
   excludeNonWorkingDays: boolean;
+  showTaskActions?: boolean;
   createdAt: string;
   updatedAt: string;
 };

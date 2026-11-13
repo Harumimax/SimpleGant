@@ -221,6 +221,10 @@ export class GanttStickerDto {
 }
 
 export class UpdateGanttDto {
+  @IsOptional()
+  @IsBoolean()
+  showTaskActions?: boolean;
+
   @IsArray()
   @ArrayMinSize(5)
   @ArrayMaxSize(10)

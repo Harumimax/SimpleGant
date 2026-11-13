@@ -109,6 +109,7 @@ export class ProjectsService {
     startDate: Date;
     endDate: Date;
     excludeNonWorkingDays: boolean;
+    showTaskActions?: boolean;
     createdAt: Date;
     updatedAt: Date;
   }): ProjectView {
@@ -118,6 +119,7 @@ export class ProjectsService {
       startDate: this.dateOnly(project.startDate),
       endDate: this.dateOnly(project.endDate),
       excludeNonWorkingDays: project.excludeNonWorkingDays,
+      showTaskActions: project.showTaskActions ?? true,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     };

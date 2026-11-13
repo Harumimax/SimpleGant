@@ -26,6 +26,7 @@ model Project {
   startDate   DateTime        @map("start_date") @db.Date
   endDate     DateTime        @map("end_date") @db.Date
   excludeNonWorkingDays Boolean @default(true) @map("exclude_non_working_days")
+  showTaskActions Boolean      @default(true) @map("show_task_actions")
   publicToken String          @unique @map("public_token") @db.VarChar(64)
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")

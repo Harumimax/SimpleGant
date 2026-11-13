@@ -4,6 +4,7 @@ export type ProjectView = {
   startDate: string;
   endDate: string;
   excludeNonWorkingDays: boolean;
+  showTaskActions: boolean;
   createdAt: Date;
   updatedAt: Date;
 };

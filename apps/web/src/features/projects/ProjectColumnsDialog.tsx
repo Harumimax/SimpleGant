@@ -3,7 +3,9 @@ import {
   ArrowUp,
   Eye,
   EyeOff,
+  LockKeyhole,
   Plus,
+  Settings2,
   Trash2,
   X,
 } from 'lucide-react';
@@ -27,10 +29,14 @@ type ColumnDraft = {
 
 type Props = {
   columns: ProjectColumn[];
+  showTaskActions?: boolean;
   isPending: boolean;
   serverError?: string;
   onClose: () => void;
-  onSubmit: (columns: ProjectColumnConfigurationInput[]) => void;
+  onSubmit: (
+    columns: ProjectColumnConfigurationInput[],
+    showTaskActions: boolean,
+  ) => void;
 };
 
 function toDraft(column: ProjectColumn): ColumnDraft {
@@ -39,6 +45,7 @@ function toDraft(column: ProjectColumn): ColumnDraft {
 
 export function ProjectColumnsDialog({
   columns,
+  showTaskActions,
   isPending,
   serverError,
   onClose,
@@ -47,6 +54,9 @@ export function ProjectColumnsDialog({
   const titleId = useId();
   const [drafts, setDrafts] = useState<ColumnDraft[]>(() =>
     [...columns].sort((left, right) => left.orderIndex - right.orderIndex).map(toDraft),
+  );
+  const [areTaskActionsVisible, setAreTaskActionsVisible] = useState(
+    showTaskActions !== false,
   );
   const [formError, setFormError] = useState('');
 
@@ -93,11 +103,14 @@ export function ProjectColumnsDialog({
       return;
     }
     setFormError('');
-    onSubmit(drafts.map(({ id, name, isVisible }) => ({
-      ...(id ? { id } : {}),
-      name: name.trim(),
-      isVisible,
-    })));
+    onSubmit(
+      drafts.map(({ id, name, isVisible }) => ({
+        ...(id ? { id } : {}),
+        name: name.trim(),
+        isVisible,
+      })),
+      areTaskActionsVisible,
+    );
   }
 
   return (
@@ -141,6 +154,21 @@ export function ProjectColumnsDialog({
                 </button>
               </div>
             ))}
+            <div className="grid grid-cols-[56px_minmax(0,1fr)_36px_36px] items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-2" role="listitem">
+              <div className="grid place-items-center text-[var(--color-text-muted)]">
+                <Settings2 aria-hidden className="size-4" />
+              </div>
+              <div className="min-w-0 px-3">
+                <p className="truncate text-sm font-medium">Кнопки управления задачами</p>
+                <p className="truncate text-xs text-[var(--color-text-muted)]">Вложенность и редактирование</p>
+              </div>
+              <button aria-label={`${areTaskActionsVisible ? 'Скрыть' : 'Показать'} кнопки управления задачами`} aria-pressed={areTaskActionsVisible} className="grid size-9 place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-text)]" disabled={isPending} onClick={() => setAreTaskActionsVisible((current) => !current)} title={areTaskActionsVisible ? 'Кнопки видны' : 'Кнопки скрыты'} type="button">
+                {areTaskActionsVisible ? <Eye aria-hidden className="size-4" /> : <EyeOff aria-hidden className="size-4" />}
+              </button>
+              <span className="grid size-9 place-items-center text-[var(--color-text-faint)]" title="Эту область нельзя удалить">
+                <LockKeyhole aria-hidden className="size-4" />
+              </span>
+            </div>
           </div>
 
           <button className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-md border border-dashed border-[var(--color-border-strong)] text-sm font-semibold text-[var(--color-accent)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] disabled:cursor-not-allowed disabled:opacity-50" disabled={isPending || drafts.length >= 10} onClick={addColumn} type="button">
