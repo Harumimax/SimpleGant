@@ -37,6 +37,7 @@ describe('ProjectColumnsDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Скрыть колонку Длительность' }));
     fireEvent.click(screen.getByRole('button', { name: 'Поднять колонку Статус' }));
     fireEvent.click(screen.getByRole('button', { name: 'Добавить колонку' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Скрыть кнопки управления задачами' }));
     fireEvent.submit(screen.getByRole('button', { name: 'Сохранить колонки' }).closest('form')!);
 
     expect(onSubmit).toHaveBeenCalledWith([
@@ -46,7 +47,7 @@ describe('ProjectColumnsDialog', () => {
       expect.objectContaining({ name: 'Статус' }),
       expect.objectContaining({ name: 'Длительность', isVisible: false }),
       { name: 'Новая колонка 1', isVisible: true },
-    ]);
+    ], false);
   });
 
   it('does not allow deleting system columns or duplicate names', () => {
