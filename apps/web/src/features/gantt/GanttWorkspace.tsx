@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState, type UIEvent } from 'react';
 
-import type { ProjectDetail } from '../projects/projects.api';
+import type { ProjectColumn, ProjectDetail } from '../projects/projects.api';
 import type { Milestone } from '../milestones/milestones.api';
 import type { NonWorkingDay } from '../calendar/non-working-days.api';
 import type { Task, TaskStatus } from '../tasks/tasks.api';
@@ -40,6 +40,7 @@ import {
   taskHasChildren,
 } from './taskHierarchy';
 import { TaskTableRow } from './TaskTableRow';
+import { ColumnResizeHandle } from './ColumnResizeHandle';
 import {
   buildTimeline,
   calculateGanttRowDelta,
@@ -91,19 +92,41 @@ type GanttWorkspaceProps = {
 
 const GANTT_HORIZONTAL_SCROLLBAR_HEIGHT = 10;
 
-function columnTemplate(columnCount: number, showActions: boolean) {
-  if (columnCount === 0) return showActions ? '42px 96px' : '42px';
-  if (!showActions && columnCount === 1) return '42px minmax(0, 1fr)';
-  const extraColumns = Math.max(columnCount - 1, 0);
+type ColumnWidths = Record<string, number>;
+
+function columnTemplate(
+  columns: ProjectColumn[],
+  columnWidths: ColumnWidths,
+  showActions: boolean,
+  isCompact: boolean,
+) {
+  if (columns.length === 0) return showActions ? '42px 96px' : '42px';
+  if (isCompact && !showActions && columns.length === 1) {
+    return '42px minmax(0, 1fr)';
+  }
+  const columnTracks = columns.map((column) => {
+    const width = columnWidths[column.id];
+    if (width) return `${width}px`;
+    return column.key === 'title'
+      ? 'minmax(190px, 2fr)'
+      : 'minmax(104px, 1fr)';
+  });
   const actionsColumn = showActions ? ' 96px' : '';
-  return `42px minmax(190px, 2fr) repeat(${extraColumns}, minmax(104px, 1fr))${actionsColumn}`;
+  return `42px ${columnTracks.join(' ')}${actionsColumn}`;
 }
 
-function taskTableMinWidth(columnCount: number, showActions: boolean) {
+function taskTableMinWidth(
+  columns: ProjectColumn[],
+  columnWidths: ColumnWidths,
+  showActions: boolean,
+  isCompact: boolean,
+) {
   const actionsWidth = showActions ? 96 : 0;
-  if (columnCount === 0) return 42 + actionsWidth;
-  if (!showActions && columnCount === 1) return 0;
-  return 42 + 190 + Math.max(columnCount - 1, 0) * 104 + actionsWidth;
+  if (columns.length === 0) return 42 + actionsWidth;
+  if (isCompact && !showActions && columns.length === 1) return 0;
+  return 42 + columns.reduce((total, column) => total + (
+    columnWidths[column.id] ?? (column.key === 'title' ? 190 : 104)
+  ), 0) + actionsWidth;
 }
 
 export function GanttWorkspace({
@@ -138,6 +161,7 @@ export function GanttWorkspace({
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
+  const [columnWidths, setColumnWidths] = useState<ColumnWidths>({});
   const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
   const [rowDensity, setRowDensity] = useState<GanttRowDensity>('normal');
   const [isPlacingSticker, setIsPlacingSticker] = useState(false);
@@ -169,8 +193,18 @@ export function GanttWorkspace({
   );
   const showTaskActions = !areAdditionalColumnsHidden
     && project.showTaskActions !== false;
-  const taskGridTemplate = columnTemplate(columns.length, showTaskActions);
-  const taskTableWidth = taskTableMinWidth(columns.length, showTaskActions);
+  const taskGridTemplate = columnTemplate(
+    columns,
+    columnWidths,
+    showTaskActions,
+    areAdditionalColumnsHidden,
+  );
+  const taskTableWidth = taskTableMinWidth(
+    columns,
+    columnWidths,
+    showTaskActions,
+    areAdditionalColumnsHidden,
+  );
   const visibleTasks = flattenVisibleTasks(tasks);
   const previewVisibleTasks = dragPreviewTasks
     ? flattenVisibleTasks(dragPreviewTasks)
@@ -527,11 +561,26 @@ export function GanttWorkspace({
                   </div>
                   {columns.map((column) => (
                     <div
-                      className="flex min-w-0 items-center border-r border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text)] last:border-r-0"
+                      className="relative flex min-w-0 items-center border-r border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text)] last:border-r-0"
                       key={column.id}
                       title={column.name}
                     >
                       <span className="truncate">{column.name}</span>
+                      {!areAdditionalColumnsHidden ? (
+                        <ColumnResizeHandle
+                          columnName={column.name}
+                          minWidth={column.key === 'title' ? 140 : 80}
+                          onReset={() => setColumnWidths((current) => {
+                            const next = { ...current };
+                            delete next[column.id];
+                            return next;
+                          })}
+                          onResize={(width) => setColumnWidths((current) => ({
+                            ...current,
+                            [column.id]: width,
+                          }))}
+                        />
+                      ) : null}
                     </div>
                   ))}
                   {showTaskActions ? (

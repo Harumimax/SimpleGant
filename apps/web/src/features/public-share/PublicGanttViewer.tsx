@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState, type UIEvent } from 'react';
 
 import type { GanttAggregate } from '../gantt/gantt.api';
 import { MilestoneLayer } from '../gantt/MilestoneLayer';
+import { ColumnResizeHandle } from '../gantt/ColumnResizeHandle';
 import { StickerLayer } from '../gantt/StickerLayer';
 import { buildTaskFamilyVisuals, flattenVisibleTasks, taskHasChildren } from '../gantt/taskHierarchy';
 import { taskValue } from '../gantt/taskValue';
@@ -14,6 +15,7 @@ import {
   type TimelineScale,
 } from '../gantt/timeline';
 import type { Task } from '../tasks/tasks.api';
+import type { ProjectColumn } from '../projects/projects.api';
 import { ReadOnlyTaskBar } from './ReadOnlyTaskBar';
 import { taskPeriods } from '../gantt/taskPeriods';
 import { currentDateIso, TodayMarker } from '../gantt/TodayMarker';
@@ -24,16 +26,35 @@ type Props = GanttAggregate & {
 
 const GANTT_HORIZONTAL_SCROLLBAR_HEIGHT = 10;
 
-function columnTemplate(columnCount: number, compact: boolean) {
-  if (columnCount === 0) return '42px';
+type ColumnWidths = Record<string, number>;
+
+function columnTemplate(
+  columns: ProjectColumn[],
+  columnWidths: ColumnWidths,
+  compact: boolean,
+) {
+  if (columns.length === 0) return '42px';
   if (compact) return '42px minmax(0, 1fr)';
-  return `42px minmax(210px, 2fr) repeat(${Math.max(columnCount - 1, 0)}, minmax(110px, 1fr))`;
+  const tracks = columns.map((column) => {
+    const width = columnWidths[column.id];
+    if (width) return `${width}px`;
+    return column.key === 'title'
+      ? 'minmax(210px, 2fr)'
+      : 'minmax(110px, 1fr)';
+  });
+  return `42px ${tracks.join(' ')}`;
 }
 
-function taskTableMinWidth(columnCount: number, compact: boolean) {
-  if (columnCount === 0) return 42;
+function taskTableMinWidth(
+  columns: ProjectColumn[],
+  columnWidths: ColumnWidths,
+  compact: boolean,
+) {
+  if (columns.length === 0) return 42;
   if (compact) return 0;
-  return 42 + 210 + Math.max(columnCount - 1, 0) * 110;
+  return 42 + columns.reduce((total, column) => total + (
+    columnWidths[column.id] ?? (column.key === 'title' ? 210 : 110)
+  ), 0);
 }
 
 export function PublicGanttViewer({
@@ -48,6 +69,7 @@ export function PublicGanttViewer({
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
+  const [columnWidths, setColumnWidths] = useState<ColumnWidths>({});
   const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
   const [rowDensity, setRowDensity] = useState<GanttRowDensity>('normal');
   const [taskPaneWidth, setTaskPaneWidth] = useState(0);
@@ -77,7 +99,11 @@ export function PublicGanttViewer({
   const nonWorkingDaysByDate = new Map(
     nonWorkingDays.map((day) => [day.date, day]),
   );
-  const gridTemplate = columnTemplate(columns.length, areAdditionalColumnsHidden);
+  const gridTemplate = columnTemplate(
+    columns,
+    columnWidths,
+    areAdditionalColumnsHidden,
+  );
   const naturalBoardContentHeight = Math.max(
     rows.length * rowHeight,
     ...stickers.map((sticker) => sticker.yRowOffset * rowHeight + sticker.size),
@@ -232,7 +258,7 @@ export function PublicGanttViewer({
             style={{ overflowY: hasVerticalOverflow ? 'auto' : 'hidden' }}
             tabIndex={0}
           >
-            <div className="gantt-task-table" style={{ minWidth: taskTableMinWidth(columns.length, areAdditionalColumnsHidden) }}>
+            <div className="gantt-task-table" style={{ minWidth: taskTableMinWidth(columns, columnWidths, areAdditionalColumnsHidden) }}>
               <div className="sticky top-0 z-20 border-b border-[var(--color-border-strong)] bg-[var(--color-surface-subtle)]" style={{ height: GANTT_HEADER_HEIGHT }}>
                 <div className="flex h-8 items-center border-b border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text-muted)]">
                   <span>Структура проекта</span>
@@ -251,8 +277,23 @@ export function PublicGanttViewer({
                 <div className="grid h-[58px]" style={{ gridTemplateColumns: gridTemplate }}>
                   <div className="grid place-items-center border-r border-[var(--color-border)] text-xs text-[var(--color-text-faint)]">№</div>
                   {columns.map((column) => (
-                    <div className="flex min-w-0 items-center border-r border-[var(--color-border)] px-3 text-xs font-semibold" key={column.id} title={column.name}>
+                    <div className="relative flex min-w-0 items-center border-r border-[var(--color-border)] px-3 text-xs font-semibold" key={column.id} title={column.name}>
                       <span className="truncate">{column.name}</span>
+                      {!areAdditionalColumnsHidden ? (
+                        <ColumnResizeHandle
+                          columnName={column.name}
+                          minWidth={column.key === 'title' ? 140 : 80}
+                          onReset={() => setColumnWidths((current) => {
+                            const next = { ...current };
+                            delete next[column.id];
+                            return next;
+                          })}
+                          onResize={(width) => setColumnWidths((current) => ({
+                            ...current,
+                            [column.id]: width,
+                          }))}
+                        />
+                      ) : null}
                     </div>
                   ))}
                 </div>
