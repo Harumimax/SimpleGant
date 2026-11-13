@@ -11,9 +11,11 @@ import {
 import type { ProjectColumn } from '../projects/projects.api';
 import {
   TASK_STATUSES,
+  TASK_WORK_TYPES,
   type Task,
   type TaskColor,
   type TaskStatus,
+  type TaskWorkType,
 } from '../tasks/tasks.api';
 import { taskValue } from './taskValue';
 import { GANTT_ROW_HEIGHT, type GanttRowDensity } from './timeline';
@@ -37,6 +39,7 @@ type Props = {
   onIndent: (task: Task) => void;
   onOutdent: (task: Task) => void;
   onStatusChange?: (task: Task, status: TaskStatus) => void;
+  onWorkTypeChange?: (task: Task, workType: TaskWorkType | null) => void;
   onToggleCollapsed: (task: Task) => void;
 };
 
@@ -59,6 +62,7 @@ export function TaskTableRow({
   onIndent,
   onOutdent,
   onStatusChange,
+  onWorkTypeChange,
   onToggleCollapsed,
 }: Props) {
   const {
@@ -147,6 +151,27 @@ export function TaskTableRow({
                 {task.title}
               </button>
             </div>
+          ) : column.key === 'workType' && onWorkTypeChange ? (
+            <select
+              aria-label={`Тип работ задачи ${task.title}`}
+              className={`w-full min-w-0 cursor-pointer border border-transparent bg-transparent text-inherit outline-none hover:border-[var(--color-border-hover)] hover:bg-white focus:border-[var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-ring)] disabled:cursor-not-allowed disabled:opacity-60 ${selectStyle}`}
+              disabled={isDisabled}
+              onChange={(event) => onWorkTypeChange(
+                task,
+                event.target.value
+                  ? event.target.value as TaskWorkType
+                  : null,
+              )}
+              value={task.workType ?? ''}
+            >
+              <option value="">—</option>
+              {task.workType && !TASK_WORK_TYPES.some((workType) => workType === task.workType) ? (
+                <option value={task.workType}>{task.workType} (ранее выбранное)</option>
+              ) : null}
+              {TASK_WORK_TYPES.map((workType) => (
+                <option key={workType} value={workType}>{workType}</option>
+              ))}
+            </select>
           ) : column.key === 'status' && onStatusChange ? (
             <select
               aria-label={`Статус задачи ${task.title}`}

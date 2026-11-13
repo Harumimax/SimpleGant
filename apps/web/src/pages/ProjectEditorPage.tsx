@@ -32,7 +32,12 @@ import {
 import { projectsQueryKey } from '../features/projects/projects.queries';
 import { DeleteTaskDialog } from '../features/tasks/DeleteTaskDialog';
 import { TaskDialog } from '../features/tasks/TaskDialog';
-import type { Task, TaskInput, TaskStatus } from '../features/tasks/tasks.api';
+import type {
+  Task,
+  TaskInput,
+  TaskStatus,
+  TaskWorkType,
+} from '../features/tasks/tasks.api';
 import type { StickerUpdate } from '../features/stickers/stickers.api';
 
 function formatDate(value: string) {
@@ -283,6 +288,15 @@ export function ProjectEditorPage() {
       ...current,
       tasks: current.tasks.map((task) => task.id === taskId
         ? { ...task, status, updatedAt: new Date().toISOString() }
+        : task),
+    }));
+  }
+
+  function updateTaskWorkType(taskId: string, workType: TaskWorkType | null) {
+    updateDraft((current) => ({
+      ...current,
+      tasks: current.tasks.map((task) => task.id === taskId
+        ? { ...task, workType, updatedAt: new Date().toISOString() }
         : task),
     }));
   }
@@ -538,6 +552,7 @@ export function ProjectEditorPage() {
           }));
         }}
         onTaskStatusChange={(task, status) => updateTaskStatus(task.id, status)}
+        onTaskWorkTypeChange={(task, workType) => updateTaskWorkType(task.id, workType)}
         onToggleTaskCollapsed={async (task) => {
           updateDraft((current) => ({
             ...current,

@@ -30,7 +30,7 @@ import { useLayoutEffect, useRef, useState, type UIEvent } from 'react';
 import type { ProjectColumn, ProjectDetail } from '../projects/projects.api';
 import type { Milestone } from '../milestones/milestones.api';
 import type { NonWorkingDay } from '../calendar/non-working-days.api';
-import type { Task, TaskStatus } from '../tasks/tasks.api';
+import type { Task, TaskStatus, TaskWorkType } from '../tasks/tasks.api';
 import {
   buildTaskFamilyVisuals,
   flattenVisibleTasks,
@@ -74,6 +74,7 @@ type GanttWorkspaceProps = {
   onTaskDetails: (task: Task) => void;
   onTaskDatesChange: (task: Task, periodId: string, dates: TaskDateRange) => Promise<void>;
   onTaskStatusChange?: (task: Task, status: TaskStatus) => void;
+  onTaskWorkTypeChange?: (task: Task, workType: TaskWorkType | null) => void;
   updatingTaskId?: string;
   dateChangeError?: string;
   onTaskOrderChange: (tasks: Task[]) => Promise<void>;
@@ -142,6 +143,7 @@ export function GanttWorkspace({
   onTaskDetails,
   onTaskDatesChange,
   onTaskStatusChange,
+  onTaskWorkTypeChange,
   updatingTaskId,
   dateChangeError,
   onTaskOrderChange,
@@ -624,6 +626,7 @@ export function GanttWorkspace({
                           saveStructure(outdentTask(tasks, selectedTask.id))
                         }
                         onStatusChange={onTaskStatusChange}
+                        onWorkTypeChange={onTaskWorkTypeChange}
                         onToggleCollapsed={(selectedTask) => {
                           if (!isSavingStructure) {
                             void onToggleTaskCollapsed(selectedTask).catch(
