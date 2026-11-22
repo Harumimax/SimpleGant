@@ -1,5 +1,5 @@
-import { ChartNoAxesGantt } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SimpleGantLogo } from './SimpleGantLogo';
 
 type BrandProps = {
   inverse?: boolean;
@@ -11,9 +11,9 @@ export function Brand({ inverse = false, linkTo, compact = false }: BrandProps) 
   const content = (
     <>
       <span
-        className={`grid size-8 place-items-center rounded-[10px] ${inverse ? 'bg-white/12 text-[var(--color-brand-mark)]' : 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]'}`}
+        className={`grid size-8 place-items-center rounded-[10px] ${inverse ? 'ring-1 ring-white/20' : ''}`}
       >
-        <ChartNoAxesGantt aria-hidden className="size-[18px]" />
+        <SimpleGantLogo aria-hidden className="size-8" />
       </span>
       {!compact ? <span translate="no">SimpleGant</span> : null}
     </>

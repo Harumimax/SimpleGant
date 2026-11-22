@@ -1,12 +1,13 @@
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { CalendarRange, ChartNoAxesGantt, Eye } from 'lucide-react';
+import { CalendarRange, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { PublicGanttViewer } from '../features/public-share/PublicGanttViewer';
 import { ReadOnlyTaskDetailsDialog } from '../features/public-share/ReadOnlyTaskDetailsDialog';
 import { usePublicGantt } from '../features/public-share/public-share.queries';
+import { SimpleGantLogo } from '../components/ui/SimpleGantLogo';
 import type { Task } from '../features/tasks/tasks.api';
 
 function formatDate(value: string) {
@@ -45,7 +46,7 @@ export function PublicProjectPage() {
       <header className="shrink-0 border-b border-[var(--color-border)] bg-white">
         <div className="flex min-h-16 items-center gap-3 px-4 sm:px-6">
           <div className="hidden items-center gap-2 border-r border-[var(--color-border)] pr-4 font-semibold sm:flex">
-            <ChartNoAxesGantt aria-hidden className="size-5 text-[var(--color-accent)]" />
+            <SimpleGantLogo aria-hidden className="size-5" />
             SimpleGant
           </div>
           <div className="min-w-0">

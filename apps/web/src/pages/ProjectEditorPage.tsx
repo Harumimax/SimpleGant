@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { ArrowLeft, CalendarRange, ChartNoAxesGantt, Pencil, Share2 } from 'lucide-react';
+import { ArrowLeft, CalendarRange, Pencil, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ import { saveGantt } from '../features/gantt/gantt.api';
 import { ganttQueryKey, useGantt } from '../features/gantt/gantt.queries';
 import { useGanttDraftStore } from '../features/gantt/gantt.store';
 import { GanttWorkspace } from '../features/gantt/GanttWorkspace';
+import { SimpleGantLogo } from '../components/ui/SimpleGantLogo';
 import type { StickerPlacement } from '../features/gantt/StickerLayer';
 import {
   countTaskDescendants,
@@ -474,7 +475,7 @@ export function ProjectEditorPage() {
             <ArrowLeft aria-hidden className="size-5" />
           </Link>
           <div className="hidden items-center gap-2 border-r border-[var(--color-border)] pr-4 font-semibold sm:flex">
-            <ChartNoAxesGantt aria-hidden className="size-5 text-[var(--color-accent)]" />
+            <SimpleGantLogo aria-hidden className="size-5" />
             SimpleGant
           </div>
           <div className="min-w-0">
