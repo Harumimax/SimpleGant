@@ -1,4 +1,4 @@
-import { CalendarDays, Eye, EyeOff, Monitor } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronRight, Eye, EyeOff, Monitor } from 'lucide-react';
 import { useLayoutEffect, useRef, useState, type UIEvent } from 'react';
 
 import type { GanttAggregate } from '../gantt/gantt.api';
@@ -69,6 +69,7 @@ export function PublicGanttViewer({
   const timelinePaneRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [areAdditionalColumnsHidden, setAreAdditionalColumnsHidden] = useState(false);
+  const [collapsedTaskOverrides, setCollapsedTaskOverrides] = useState<Record<string, boolean>>({});
   const [columnWidths, setColumnWidths] = useState<ColumnWidths>({});
   const [timelineScale, setTimelineScale] = useState<TimelineScale>('days');
   const [rowDensity, setRowDensity] = useState<GanttRowDensity>('normal');
@@ -93,7 +94,18 @@ export function PublicGanttViewer({
     ? 'px-1'
     : rowDensity === 'compact' ? 'px-2' : 'px-3';
   const rowIndentation = rowDensity === 'maximum' ? 10 : rowDensity === 'compact' ? 14 : 18;
-  const visibleTasks = flattenVisibleTasks(tasks);
+  const hierarchyControlSize = rowDensity === 'maximum'
+    ? 'size-3'
+    : rowDensity === 'compact' ? 'size-5' : 'size-6';
+  const hierarchyIconSize = rowDensity === 'maximum'
+    ? 'size-2.5'
+    : rowDensity === 'compact' ? 'size-3' : 'size-3.5';
+  const hierarchyControlGap = rowDensity === 'maximum' ? 'mr-0.5' : 'mr-1';
+  const tasksWithViewState = tasks.map((task) => ({
+    ...task,
+    isCollapsed: collapsedTaskOverrides[task.id] ?? task.isCollapsed,
+  }));
+  const visibleTasks = flattenVisibleTasks(tasksWithViewState);
   const taskFamilyVisuals = buildTaskFamilyVisuals(tasks);
   const rows: Array<Task | null> = [...visibleTasks];
   const nonWorkingDaysByDate = new Map(
@@ -197,6 +209,13 @@ export function PublicGanttViewer({
         verticalTop: nextScrollTop,
       }));
     });
+  }
+
+  function toggleTaskCollapsed(task: Task) {
+    setCollapsedTaskOverrides((current) => ({
+      ...current,
+      [task.id]: !(current[task.id] ?? task.isCollapsed),
+    }));
   }
 
   return (
@@ -317,6 +336,20 @@ export function PublicGanttViewer({
                       <div className={`flex h-full min-w-0 items-center border-r border-[var(--color-border)] ${rowCellPadding} ${rowTextSize}`} key={column.id}>
                         {task && column.key === 'title' ? (
                           <div className="flex h-full min-w-0 items-center" style={{ marginLeft: task.level * rowIndentation }}>
+                            {taskHasChildren(tasks, task.id) ? (
+                              <button
+                                aria-label={task.isCollapsed ? `Раскрыть ${task.title}` : `Свернуть ${task.title}`}
+                                className={`grid shrink-0 place-items-center rounded text-[var(--color-text-muted)] hover:bg-[var(--color-surface-subtle)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${hierarchyControlGap} ${hierarchyControlSize}`}
+                                onClick={() => toggleTaskCollapsed(task)}
+                                type="button"
+                              >
+                                {task.isCollapsed
+                                  ? <ChevronRight aria-hidden className={hierarchyIconSize} />
+                                  : <ChevronDown aria-hidden className={hierarchyIconSize} />}
+                              </button>
+                            ) : (
+                              <span className={`shrink-0 ${hierarchyControlGap} ${hierarchyControlSize}`} />
+                            )}
                             <button
                               className={`task-title-button inline-flex h-full min-w-0 items-center truncate rounded-sm text-left focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${rowDensity !== 'normal' ? 'task-title-button--dense' : ''}`}
                               onClick={() => onTaskDetails(task)}
